@@ -1,8 +1,7 @@
-# Every push to main: prepare the database, build the app for Cloudflare and deploy it.
-name: Deploy to Cloudflare
+# Optional manual deploy from GitHub. Normal deploys come from Cloudflare Workers Builds
+# (connected to this repo), so this only runs when started by hand.
+name: Deploy to Cloudflare (manual)
 on:
-  push:
-    branches: [main]
   workflow_dispatch: {}
 concurrency: deploy
 jobs:
