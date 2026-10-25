@@ -23,26 +23,31 @@ Not in this version yet: cups, training, staff packs, team of the week and playe
 
 ```bash
 npm install
+npm run seed      # creates the local database in ./.data and loads the players
 npm run dev
 ```
 
-Open http://localhost:3000. With no `DATABASE_URL`, data is saved in `./.data`.
+Open http://localhost:3000. Season test without the browser: `npm run test:league -- ENG 20`
 
-Season test without the browser: `npm run test:league -- ENG 20`
+## Online on Cloudflare (free)
 
-## Put it online (free tiers)
+The app runs as a Cloudflare Worker (built with OpenNext) and stores data in Neon Postgres.
+Every push to `main` deploys automatically through `.github/workflows/deploy.yml`.
 
-1. **Database (Neon)**: create a project at neon.tech (region: Frankfurt). Copy the connection string.
-2. **Code (GitHub)**: create a private repository and upload this folder (without `node_modules`, `.next`, `.data`).
-3. **Hosting (Vercel)**: import the repository at vercel.com. In *Environment Variables* add:
-   - `DATABASE_URL` = the Neon connection string
-   - `SESSION_SECRET` = a long random text
-   - `CRON_SECRET` = another long random text
-   Deploy. The first visit creates the tables and loads the players (takes a few seconds).
-4. **Match timer (GitHub Actions)**: in the GitHub repository go to *Settings → Secrets and variables → Actions* and add:
-   - `APP_URL` = your Vercel address, for example `https://kora-manager.vercel.app`
-   - `CRON_SECRET` = the same value as on Vercel
-   The workflow in `.github/workflows/cron.yml` then plays due matches every 5 minutes. Matches are also played the moment anyone opens the league or the match page, so kick-offs are on time when people are watching.
+1. **Neon**: create a project at neon.tech (region Frankfurt) and copy the connection string.
+2. **Cloudflare**: sign up at cloudflare.com, open *Workers & Pages* once (this creates your free `*.workers.dev` address).
+   Copy your **Account ID** (shown on the Workers & Pages page) and create an **API token** at
+   *My Profile → API Tokens → Create Token → "Edit Cloudflare Workers"* template.
+3. **GitHub**: in this repository open *Settings → Secrets and variables → Actions* and add:
+   - `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+   - `DATABASE_URL` (from Neon)
+   - `SESSION_SECRET`, `CRON_SECRET` (any long random texts)
+4. Open *Actions → Deploy to Cloudflare → Run workflow*. When it finishes, the game is live at
+   `https://kora-manager.<your-subdomain>.workers.dev`.
+
+How matches run on the free plan: Cloudflare gives each request about 10 ms of CPU, so one request plays
+one match. A timer in `worker.ts` runs every minute and plays all due matches one by one, and the league and
+match pages also play due matches while someone is watching, so kick-offs happen on time.
 
 ## Data note
 

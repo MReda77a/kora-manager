@@ -16,7 +16,7 @@ export default function MatchPage({ params }: { params: Promise<{ fid: string }>
   useEffect(() => {
     if (!d || d.fixture.status === 'done') return;
     const ms = new Date(d.fixture.kickoff).getTime() - Date.now();
-    const t = setTimeout(load, Math.max(3000, Math.min(ms + 2500, 60_000)));
+    const t = setTimeout(load, ms < 0 ? 1200 : Math.min(ms + 1500, 60_000));
     return () => clearTimeout(t);
   }, [d]);
   if (err) return <div className="pad err">{err}</div>;

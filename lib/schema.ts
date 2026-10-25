@@ -77,8 +77,10 @@ CREATE TABLE IF NOT EXISTS fixtures (
   status TEXT NOT NULL DEFAULT 'scheduled',
   home_goals INT,
   away_goals INT,
-  report JSONB
+  report JSONB,
+  claimed_at TIMESTAMPTZ
 );
+ALTER TABLE fixtures ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS fixtures_due ON fixtures (status, kickoff_at);
 CREATE INDEX IF NOT EXISTS fixtures_league ON fixtures (league_id, matchday);
 

@@ -12,7 +12,7 @@ export const GET = handle(async (_req: Request, ctx: { params: Promise<{ fid: st
   let f = await one('SELECT * FROM fixtures WHERE id=$1', [Number(fid)]);
   if (!f) fail(404, 'Match not found.');
   if (f.status !== 'done' && new Date(f.kickoff_at).getTime() <= Date.now()) {
-    await runDue(f.league_id);
+    await runDue(f.league_id, { prefer: f.id });
     f = await one('SELECT * FROM fixtures WHERE id=$1', [Number(fid)]);
   }
   const clubs = await q('SELECT id, name, short, color1, color2, shape, emblem, club_type, user_id, stadium FROM clubs WHERE id IN ($1,$2)', [f!.home_id, f!.away_id]);
@@ -22,7 +22,7 @@ export const GET = handle(async (_req: Request, ctx: { params: Promise<{ fid: st
   let names: Record<string, { name: string; pos: string; ovr: number }> = {};
   if (f!.report) {
     const ids = f!.report.players.map((p: any) => p.id);
-    const rows = await q('SELECT id, name, pos, ovr FROM players WHERE id = ANY($1::text[])', [ids]);
+    const rows = await q('SELECT id, name, pos, ovr FROM players WHERE id IN (SELECT jsonb_array_elements_text($1::jsonb))', [JSON.stringify(ids)]);
     names = Object.fromEntries(rows.map((r) => [r.id, { name: r.name, pos: r.pos, ovr: r.ovr }]));
   }
   return {

@@ -16,7 +16,7 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
   const club = await one('SELECT * FROM clubs WHERE league_id=$1 AND user_id=$2', [lid, s.uid]);
 
   if (action === 'overview') {
-    if (l.status === 'running') await L.runDue(lid);
+    const run = l.status === 'running' ? await L.runDue(lid) : { remaining: 0 };
     const fresh = await L.getLeague(lid);
     const table = await L.standings(lid);
     const win = await L.windowFor(fresh);
@@ -43,7 +43,7 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
     return {
       league: { id: fresh.id, name: fresh.name, code: fresh.code, pool: fresh.pool, poolName: POOLS[fresh.pool], status: fresh.status, kickoffUtcMin: fresh.kickoff_utc_min, maxClubs: fresh.max_clubs, aiLevel: fresh.ai_level, interval: fresh.interval_min, intervalLabel: L.INTERVALS[fresh.interval_min], isOwner: fresh.owner_id === s.uid },
       club: club ? { ...club, type: CLUB_TYPES[club.club_type as ClubTypeKey], squadSize, gks, pos, targetPos: CLUB_TYPES[club.club_type as ClubTypeKey].targetPos(fresh.max_clubs) } : null,
-      table, window: win, fixtures: mine, news, matchdays: md, now: new Date().toISOString(),
+      table, window: win, fixtures: mine, news, matchdays: md, pending: run.remaining, now: new Date().toISOString(),
     };
   }
   if (action === 'squad') {

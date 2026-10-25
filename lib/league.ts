@@ -370,40 +370,44 @@ async function makeFixtures(l: Row) {
 }
 
 // ---------------------------------------------------------------- running matches
-let running: Promise<number> | null = null;
+// How many matches one web request may simulate. Cloudflare's free plan allows ~10 ms of CPU per
+// request, so there it is 1 and the page / timer simply ask again. Unlimited elsewhere.
+export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
 
-// Plays every fixture whose kickoff time has passed. Safe to call from many requests.
-export async function runDue(leagueId?: number) {
-  if (running) return running;
-  running = (async () => {
-    let played = 0;
-    const t0 = Date.now();
+// Plays fixtures whose kick-off time has passed, oldest first. `prefer` is played first when due.
+// Safe to call from many requests at once: each fixture is claimed in a single atomic UPDATE.
+export async function runDue(leagueId?: number, opts: { max?: number; prefer?: number } = {}) {
+  const max = opts.max ?? PER_REQUEST;
+  let played = 0;
+  const t0 = Date.now();
+  // claims from a request that died mid-match go back to the queue
+  await q(`UPDATE fixtures SET status='scheduled' WHERE status='playing' AND claimed_at < now() - interval '2 minutes'`);
+  while (played < max && Date.now() - t0 < 40_000) {
+    const params: unknown[] = [];
+    let where = `status='scheduled' AND kickoff_at <= now()`;
+    if (leagueId) { params.push(leagueId); where += ` AND league_id=$${params.length}`; }
+    let order = 'kickoff_at, id';
+    if (opts.prefer) { params.push(opts.prefer); order = `(id=$${params.length}) DESC, kickoff_at, id`; }
+    const f = await one(
+      `UPDATE fixtures SET status='playing', claimed_at=now() WHERE id = (
+         SELECT id FROM fixtures WHERE ${where} ORDER BY ${order} LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING *`,
+      params,
+    );
+    if (!f) break;
     try {
-      for (let guard = 0; guard < 400 && Date.now() - t0 < 40_000; guard++) {
-        const f = await one(
-          `UPDATE fixtures SET status='playing' WHERE id = (
-             SELECT id FROM fixtures WHERE status='scheduled' AND kickoff_at <= now() ${leagueId ? 'AND league_id=$1' : ''}
-             ORDER BY kickoff_at, id LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING *`,
-          leagueId ? [leagueId] : [],
-        );
-        if (!f) break;
-        try {
-          await playFixture(f);
-          played++;
-        } catch (e) {
-          console.error('match failed', f.id, e);
-          await q(`UPDATE fixtures SET status='scheduled' WHERE id=$1`, [f.id]);
-          break;
-        }
-      }
-      // stuck "playing" rows from a crashed run go back to the queue
-      await q(`UPDATE fixtures SET status='scheduled' WHERE status='playing' AND kickoff_at < now() - interval '10 minutes'`);
-    } finally {
-      running = null;
+      await playFixture(f);
+      played++;
+    } catch (e) {
+      console.error('match failed', f.id, e);
+      await q(`UPDATE fixtures SET status='scheduled' WHERE id=$1 AND status='playing'`, [f.id]);
+      break;
     }
-    return played;
-  })();
-  return running;
+  }
+  const rest = await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM fixtures WHERE status='scheduled' AND kickoff_at <= now() ${leagueId ? 'AND league_id=$1' : ''}`,
+    leagueId ? [leagueId] : [],
+  );
+  return { played, remaining: rest?.n ?? 0 };
 }
 
 async function sideFor(club: Row, l: Row, matchday: number, opp: Row, home: boolean): Promise<ESide> {
@@ -453,7 +457,8 @@ async function playFixture(f: Row) {
   rep.derby = home.club_type === 'fan' && away.club_type === 'fan' && !!home.user_id && !!away.user_id;
   rep.lineups = [hs, as].map((s) => ({ xi: s.xi.map((p) => p.id), formation: s.tactic.formation, preset: s.tactic.preset }));
   const [hg, ag] = rep.score;
-  await q(`UPDATE fixtures SET status='done', home_goals=$2, away_goals=$3, report=$4::jsonb WHERE id=$1`, [f.id, hg, ag, JSON.stringify(rep)]);
+  const saved = await q(`UPDATE fixtures SET status='done', home_goals=$2, away_goals=$3, report=$4::jsonb WHERE id=$1 AND status='playing' RETURNING id`, [f.id, hg, ag, JSON.stringify(rep)]);
+  if (!saved[0]) return; // someone else finished it
 
   // fitness, injuries and suspensions (one statement)
   const all = [...hs.xi, ...hs.bench, ...as.xi, ...as.bench];
@@ -631,8 +636,8 @@ export async function playNow(uid: number, leagueId: number) {
   if (!next?.md) fail(400, 'No matches left.');
   // only this matchday moves to now; the rest keeps the league's schedule
   await q(`UPDATE fixtures SET kickoff_at = now() - interval '1 second' WHERE league_id=$1 AND matchday=$2 AND status='scheduled'`, [leagueId, next.md]);
-  await runDue(leagueId);
-  return { ok: true, matchday: next.md };
+  const r = await runDue(leagueId);
+  return { ok: true, matchday: next.md, remaining: r.remaining };
 }
 
 // League owner changes the match time (e.g. every day at 18:00). Unplayed matchdays move to the new slots.

@@ -2,6 +2,7 @@ export {};
 // End-to-end season test on an in-memory database: 2 humans + bots, a full season.
 process.env.PGLITE_DIR ||= 'memory';
 const { q, one } = await import('../lib/db.ts');
+await (await import('../lib/seed.ts')).ensureSeeded();
 const L = await import('../lib/league.ts');
 const { PACKS } = await import('../lib/game.ts');
 

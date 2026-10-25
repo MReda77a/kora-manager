@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kora-manager",
+  "main": "worker.ts",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "kora-manager" }],
+  // Free plan: ~10 ms CPU per request, so each request plays at most 1 match.
+  "vars": { "MATCHES_PER_REQUEST": "1" },
+  // Every minute: play matches whose kick-off time has passed.
+  "triggers": { "crons": ["* * * * *"] },
+  "observability": { "enabled": true }
+}

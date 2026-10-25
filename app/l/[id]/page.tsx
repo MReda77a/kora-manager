@@ -30,6 +30,12 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
     const iv = setInterval(load, 30_000);
     return () => clearInterval(iv);
   }, [id, load]);
+  // matches are played a few at a time on the server; keep asking while some are waiting
+  useEffect(() => {
+    if (!d?.pending) return;
+    const t = setTimeout(load, 400);
+    return () => clearTimeout(t);
+  }, [d, load]);
   const go = (t: Tab) => {
     setTab(t);
     try { sessionStorage.setItem(`kora-tab-${id}`, t); } catch {}
