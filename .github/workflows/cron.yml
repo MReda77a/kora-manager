@@ -1,0 +1,13 @@
+# Plays every match whose kick-off time has passed. Runs every 5 minutes.
+# Pages also play due matches when someone opens them, so this is the safety net.
+name: Play due matches
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the match runner
+        run: curl -fsS --max-time 70 "${{ secrets.APP_URL }}/api/cron?key=${{ secrets.CRON_SECRET }}"
