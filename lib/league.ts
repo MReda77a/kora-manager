@@ -5,6 +5,7 @@ import { fail } from './errors.ts';
 import {
   CLUB_TYPES, CORNER_ROUTINES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK,
   shortName, type ClubTypeKey, type PackKey, type Tactic,
+  windowFromDays,
 } from './game.ts';
 import { rng, hashSeed } from './rng.ts';
 
@@ -450,22 +451,11 @@ export async function leaders(leagueId: number) {
 }
 
 // ---------------------------------------------------------------- transfer market
-// Open in pre-season and in the break after the first half of the league.
+// Open in pre-season and for 5 days at the start of each round (see windowFromDays).
 export async function windowFor(l: Row) {
-  if (l.status === 'setup') return { open: true, label: 'Pre-season window' };
-  if (l.status === 'finished') return { open: false, label: 'Season over' };
-  const r = await one<{ total: number; done: number; started: number }>(
-    `SELECT COUNT(DISTINCT matchday)::int AS total,
-       COUNT(DISTINCT matchday) FILTER (WHERE status='done')::int AS done,
-       COUNT(DISTINCT matchday) FILTER (WHERE status<>'scheduled')::int AS started
-     FROM fixtures WHERE league_id=$1 AND comp='league'`,
-    [l.id],
-  );
-  const half = (r?.total ?? 0) / 2;
-  if ((r?.started ?? 0) === 0) return { open: true, label: 'Pre-season window' };
-  if (r && r.done === half && r.started === half) return { open: true, label: 'Mid-season window' };
-  if (r && r.started < half) return { open: false, label: `Closed · opens after matchday ${half}` };
-  return { open: false, label: 'Closed until next season' };
+  if (l.status !== 'running') return windowFromDays(l.status, [], Date.now());
+  const days = await q('SELECT day, kind, kickoff_at FROM days WHERE league_id=$1 ORDER BY day', [l.id]);
+  return windowFromDays(l.status, days as any, Date.now());
 }
 
 // AI clubs put a few squad players up for sale. Two database requests in all (Cloudflare limits requests per visit).

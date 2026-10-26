@@ -162,7 +162,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'schedule': return L.updateSchedule(s.uid, lid, b);
     case 'pack': {
       const l = await L.getLeague(lid);
-      if (l.status !== 'setup' && !(await L.windowFor(l)).open) fail(400, 'Packs open in pre-season and in the mid-season window.');
+      if (l.status !== 'setup' && !(await L.windowFor(l)).open) fail(400, 'Packs open while the transfer window is open: pre-season and the first 5 days of each round.');
       if (b.pack === 'staff') return L.openStaffPack(s.uid, lid);
       if (!(b.pack in PACKS)) fail(400, 'Unknown pack.');
       return L.openPack(s.uid, lid, b.pack);

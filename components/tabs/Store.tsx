@@ -72,7 +72,7 @@ export default function StoreTab({ lid, d: ov, reload, toast }: TabProps) {
           {([['GK', 2], ['DEF', 5], ['MID', 5], ['FWD', 4]] as [string, number][]).map(([l, need]) => (
             <div key={l} className="row tiny" style={{ gap: 8, fontWeight: 900 }}><span style={{ width: 30 }}>{l}</span><div className="bar"><i style={{ width: `${Math.min(100, (count(l) / need) * 100)}%`, background: count(l) >= need ? '#7CE3A1' : '#E8438C' }} /></div><span style={{ width: 30, textAlign: 'right' }}>{count(l)}/{need}</span></div>
           ))}
-          <div className="tiny muted" style={{ marginTop: 'auto' }}>{canOpen ? '1000 coins at the start. Go for stars, balance or depth. You earn coins from every match too.' : 'Packs open in pre-season and in the mid-season window.'}</div>
+          <div className="tiny muted" style={{ marginTop: 'auto' }}>{canOpen ? '1000 coins at the start. Go for stars, balance or depth. You earn coins from every match too.' : 'Packs open while the transfer window is open: pre-season and the first 5 days of each round.'}</div>
         </aside>
       </div>
       {opening && (

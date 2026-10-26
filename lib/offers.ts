@@ -200,7 +200,8 @@ export async function offersView(uid: number, leagueId: number) {
     q(`${base} AND o.to_club=$2 ORDER BY (o.status IN ('pending','countered')) DESC, o.id DESC LIMIT 20`, [leagueId, me.id]),
     q(`${base} AND o.from_club=$2 ORDER BY (o.status IN ('pending','countered')) DESC, o.id DESC LIMIT 20`, [leagueId, me.id]),
   ]);
-  const deadline = win.open && win.label.startsWith('Mid') && !!(await one(`SELECT 1 FROM days WHERE league_id=$1 AND kind='break' AND processed=true`, [leagueId]));
+  // the last 24 hours before the window shuts
+  const deadline = win.open && !!win.closesAt && new Date(win.closesAt).getTime() - Date.now() < 86_400_000;
   return { window: win, deadline, incoming, outgoing, money: Number(me.money) };
 }
 

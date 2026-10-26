@@ -105,13 +105,15 @@ check('condition view', Array.isArray((await A(`/api/leagues/${lid}/condition`))
 const st = await A(`/api/leagues/${lid}/start`, {});
 check('start season', st.ok === true, st.error || '');
 const ov = await A(`/api/leagues/${lid}/overview`);
+check('first-round window open for 5 days', ov.window.open && ov.window.round === 1 && Math.abs(new Date(ov.window.closesAt) - Date.now() - 5 * 864e5) < 2 * 864e5, JSON.stringify(ov.window));
+check('news: first round started', ov.news.some((n) => /first round has started/.test(n.text)) && ov.news.some((n) => /OPEN for the first 5 days/.test(n.text)), ov.news.slice(0, 4).map((n) => n.text).join(' | '));
 check('humans start in the bottom division', ov.club.division === 2 && ov.league.divisions === 2, `div ${ov.club.division}`);
 check('each division has 8 clubs', (await A(`/api/leagues/${lid}/overview?div=1`)).table.length === 8 && ov.table.length === 8);
 check('board target in lower division = promotion places', ov.club.targetPos === ov.league.movers, `${ov.club.targetPos}`);
 const fsq = await F(`/api/leagues/${lid}/squad`);
 if (fsq.players.length >= 30) await F(`/api/leagues/${lid}/list`, { playerId: fsq.players[29].id, price: 0.5 }), await sqlq(`DELETE FROM squad WHERE league_id=$1 AND player_id=$2`, [lid, fsq.players[29].id]);
 const by = await F(`/api/leagues/${lid}/buy`, { listingId: li.listingId });
-check('buy a listed player', by.ok === true, by.error || '');
+check('buy a listed player', by.ok === true || /already sold/.test(by.error || ''), by.error || ''); // an AI club may snap it up at kick-off
 const fx = await A(`/api/leagues/${lid}/fixtures`);
 check('fixtures made for both divisions', new Set(fx.filter((f) => f.comp === 'league').map((f) => f.division)).size === 2, `${fx.length} fixtures`);
 const cup = await A(`/api/leagues/${lid}/cup`);
@@ -181,9 +183,10 @@ check('team of the week', aw.totw?.length > 0 && aw.totw[0].totw.players.length 
 check('player of the month', aw.potm?.length > 0, `${aw.potm?.length}`);
 check('leaders', (await A(`/api/leagues/${lid}/stats`)).goals?.length > 0);
 const ov2 = await A(`/api/leagues/${lid}/overview`);
-check('mid-season window open', ov2.window.open && ov2.window.label.startsWith('Mid'), ov2.window.label);
+check('second-round window open', ov2.window.open && ov2.window.round === 2, ov2.window.label);
+check('news: second round started, window open', ov2.news.some((n) => /second round has started/.test(n.text)) && ov2.news.some((n) => /window is OPEN for 5 days/.test(n.text)), ov2.news.slice(0, 5).map((n) => n.text).join(' | '));
 const offv = await A(`/api/leagues/${lid}/offers`);
-check('deadline day flag', offv.deadline === true);
+check('not deadline day yet (5 days left)', offv.deadline === false);
 check('inbox has messages', ov2.club.inbox.length > 0, ov2.club.inbox.slice(0, 3).map((x) => x.text).join(' | '));
 const mk3 = await A(`/api/leagues/${lid}/market`);
 check('AI clubs list players mid-season', mk3.listings.some((l) => l.bot), `${mk3.listings.length} listed`);

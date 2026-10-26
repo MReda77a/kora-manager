@@ -117,14 +117,31 @@ export function shortName(name: string) {
   return (w.length > 1 ? w[0].slice(0, 2) + w[1][0] : (w[0] || 'CLB').slice(0, 3)).toUpperCase();
 }
 
-// Transfer windows: before matchday 1 and during the break between halves.
-export function windowState(playedMatchdays: number, totalMatchdays: number, status: string) {
-  const half = totalMatchdays / 2;
-  if (status === 'setup' || playedMatchdays === 0) return { open: true, label: 'Pre-season window' };
-  if (playedMatchdays === half) return { open: true, label: 'Mid-season window' };
-  if (status === 'finished') return { open: false, label: 'Season over' };
-  const next = playedMatchdays < half ? half : null;
-  return { open: false, label: next ? `Closed · opens after matchday ${half}` : 'Closed until next season' };
+// Transfer windows: open in pre-season, then for WINDOW_DAYS days at the start of each round of
+// the league - the first round (everyone plays everyone once) and the second round (the return games).
+export const WINDOW_DAYS = 5;
+export type WindowInfo = {
+  open: boolean; label: string; round: 0 | 1 | 2;
+  phase: 'pre' | 'open1' | 'between' | 'open2' | 'after' | 'over';
+  closesAt?: string; opensAt?: string;
+};
+export function windowFromDays(status: string, days: { day: number; kind: string; kickoff_at: string | Date }[], now: number): WindowInfo {
+  if (status === 'setup') return { open: true, label: 'Pre-season window', round: 0, phase: 'pre' };
+  if (status !== 'running') return { open: false, label: 'Season over', round: 0, phase: 'over' };
+  if (!days.length) return { open: true, label: 'Pre-season window', round: 0, phase: 'pre' };
+  const t = (x: { kickoff_at: string | Date }) => new Date(x.kickoff_at).getTime();
+  const sorted = [...days].sort((a, b) => a.day - b.day);
+  const DAY = 86_400_000;
+  // the second round starts on the break day after the last game of the first round
+  const brk = sorted.find((x) => x.kind === 'break') || sorted[Math.floor(sorted.length / 2)];
+  const r2 = t(brk), last = t(sorted[sorted.length - 1]);
+  const w1End = Math.min(t(sorted[0]) + WINDOW_DAYS * DAY, r2);
+  const w2End = Math.min(r2 + WINDOW_DAYS * DAY, last);
+  const iso = (x: number) => new Date(x).toISOString();
+  if (now < w1End) return { open: true, label: 'First-round window', round: 1, phase: 'open1', closesAt: iso(w1End) };
+  if (now < r2) return { open: false, label: 'Closed · opens when the second round starts', round: 1, phase: 'between', opensAt: iso(r2) };
+  if (now < w2End) return { open: true, label: 'Second-round window', round: 2, phase: 'open2', closesAt: iso(w2End) };
+  return { open: false, label: 'Closed until next season', round: 2, phase: 'after' };
 }
 
 // ---------------------------------------------------------------- kits

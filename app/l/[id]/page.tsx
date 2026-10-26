@@ -20,6 +20,7 @@ import HistoryTab from '../../../components/tabs/History.tsx';
 import Tutorial from '../../../components/Tutorial.tsx';
 import LiveAlert from '../../../components/LiveAlert.tsx';
 import { SoundButton } from '../../../components/SoundButton.tsx';
+import WindowSplash from '../../../components/WindowSplash.tsx';
 import { crowdBed, music } from '../../../lib/sound.ts';
 import { SECTIONS, TABS, sectionOf, type Tab } from '../../../components/tabs/types.ts';
 
@@ -123,6 +124,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
       <LiveAlert live={d.live} club={club} />
+      {(club.tutorialDone || tutClosed) && !d.live?.length && league.status === 'running' && d.window && <WindowSplash lid={lid} season={league.season} win={d.window} go={go} />}
       {!club.tutorialDone && !tutClosed && !d.live?.length && <Tutorial lid={lid} league={league} club={club} go={(t) => { go(t); }} onDone={() => { setTutClosed(true); load(); }} />}
       {toast.node}
     </div>

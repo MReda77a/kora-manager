@@ -1,4 +1,5 @@
 'use client';
+import { timeLeft } from '../WindowSplash.tsx';
 import { useEffect, useState } from 'react';
 import { api, utcMinToLocal, localToUtcMin, shirt } from '../../lib/client.ts';
 import { Bar, Crest, Ring, lastName } from '../ui.tsx';
@@ -75,8 +76,8 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
       </div>
       {d.window?.open && league.status === 'running' && (
         <button className="row small" onClick={() => go('market')} style={{ gap: 10, padding: '8px 12px', background: 'linear-gradient(90deg, rgba(242,193,78,0.3), rgba(242,193,78,0.05))', color: '#F3EEFF', fontWeight: 800, textAlign: 'left' }}>
-          <span className="lz" style={{ fontSize: 18, color: '#F2C14E' }}>⏰ {d.window.label.startsWith('Mid') ? 'TRANSFER WINDOW OPEN' : 'PRE-SEASON WINDOW'}</span>
-          <span className="grow">It shuts at the next kick-off. Make offers in the Market.</span>
+          <span className="lz" style={{ fontSize: 18, color: '#F2C14E' }}>🔓 TRANSFER WINDOW OPEN</span>
+          <span className="grow">{d.window.round === 2 ? 'Second round' : 'First round'} · shuts in <b style={{ color: '#F2C14E' }}>{timeLeft(d.window.closesAt)}</b>. Buy, sell, loan and swap in the Market.</span>
           {club.offers > 0 && <span className="tag" style={{ background: '#E8438C' }}><span>{club.offers} offer{club.offers > 1 ? 's' : ''} for your players</span></span>}
         </button>
       )}

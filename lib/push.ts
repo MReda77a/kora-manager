@@ -59,3 +59,24 @@ export async function notify(userId: number | null | undefined, msg: { title: st
     console.error('notify failed', e);
   }
 }
+
+// The same message to several managers with one database read (Cloudflare counts every request).
+export async function notifyMany(userIds: (number | null | undefined)[], msg: { title: string; body: string; url?: string; tag?: string }) {
+  const ids = userIds.filter((x): x is number => !!x);
+  if (!ids.length) return;
+  try {
+    const subs = await q<{ endpoint: string; keys: { p256dh: string; auth: string } }>('SELECT endpoint, keys FROM push_subs WHERE user_id = ANY($1::int[])', [ids]);
+    if (!subs.length) return;
+    const keys = await vapidKeys();
+    const vapid = { subject: 'mailto:kora-manager@users.noreply.github.com', publicKey: keys.publicKey, privateKey: keys.privateKey };
+    await Promise.all(subs.map(async (s) => {
+      try {
+        const sub: PushSubscription = { endpoint: s.endpoint, expirationTime: null, keys: s.keys };
+        const payload = await buildPushPayload({ data: JSON.stringify(msg), options: { ttl: 3600, urgency: 'high', topic: msg.tag?.slice(0, 32) } }, sub, vapid);
+        await fetch(s.endpoint, payload);
+      } catch (e) { console.error('push failed', e); }
+    }));
+  } catch (e) {
+    console.error('notify failed', e);
+  }
+}

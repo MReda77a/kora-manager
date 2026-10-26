@@ -1,4 +1,5 @@
 'use client';
+import { timeLeft } from '../WindowSplash.tsx';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/client.ts';
 import { LINE } from '../../lib/game.ts';
@@ -25,7 +26,7 @@ function Listings({ lid, toast, reload }: TabProps) {
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Transfer Market" tag={<MarketModes />} right={<div className="row" style={{ gap: 8, padding: '4px 14px', transform: 'skewX(-12deg)', border: '1px solid #F2C14E' }}><span className="tiny" style={{ transform: 'skewX(12deg)', fontWeight: 900, color: 'var(--muted)' }}>BUDGET</span><span className="lz" style={{ fontSize: 22, color: '#F2C14E', transform: 'skewX(12deg)' }}>{d.money.toFixed(1)}M</span></div>} />
       <div className="row wrap" style={{ gap: 6 }}>
-        <span className="tag" style={{ background: d.window.open ? '#7CE3A1' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN · ${d.window.label}` : d.window.label.toUpperCase()}</span></span>
+        <span className="tag" style={{ background: d.window.open ? '#7CE3A1' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN${d.window.closesAt ? ` · shuts in ${timeLeft(d.window.closesAt)}` : ` · ${d.window.label}`}` : d.window.label.toUpperCase()}</span></span>
         <input placeholder="Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
         {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
         <span className="tiny muted" style={{ fontWeight: 900, marginLeft: 6 }}>SORT</span>
@@ -133,7 +134,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Transfer Market" tag={<MarketModes />} right={<span className="lz" style={{ fontSize: 22, color: '#F2C14E' }}>{money.toFixed(1)}M</span>} />
       <div className="row wrap" style={{ gap: 6 }}>
-        <span className="tag" style={{ background: win.open ? '#7CE3A1' : 'var(--red)', color: win.open ? '#0E3020' : '#fff' }}><span>{win.open ? `WINDOW OPEN · ${win.label}` : win.label.toUpperCase()}</span></span>
+        <span className="tag" style={{ background: win.open ? '#7CE3A1' : 'var(--red)', color: win.open ? '#0E3020' : '#fff' }}><span>{win.open ? `WINDOW OPEN${win.closesAt ? ` · shuts in ${timeLeft(win.closesAt)}` : ` · ${win.label}`}` : win.label.toUpperCase()}</span></span>
         <input placeholder="Player or club…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
         {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
       </div>

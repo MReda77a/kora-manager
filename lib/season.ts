@@ -4,11 +4,12 @@
 // A fixture goes: scheduled -> (kick-off time) live for LIVE_SECONDS -> done.
 // While live, both managers can change tactics or make subs; the match is re-simulated from that
 // minute with the same seed, so everything before the change stays exactly the same.
-import { batch, counter, q, one, type Row } from './db.ts';
+import { batch, counter, q, one, writes, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
   AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic,
+  windowFromDays, WINDOW_DAYS,
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -17,7 +18,7 @@ import { staffLevels } from './club.ts';
 import { moraleAfterMatch, randomEvents } from './people.ts';
 import { endSeason, startNextSeason } from './career.ts';
 import { botBids, botShopping } from './offers.ts';
-import { notify } from './push.ts';
+import { notify, notifyMany } from './push.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
 const LIVE_MS = LIVE_SECONDS * 1000;
@@ -46,6 +47,10 @@ export async function startSeason(uid: number, leagueId: number) {
   }
   await q(`UPDATE leagues SET status='running' WHERE id=$1`, [leagueId]);
   await news(leagueId, null, 'season', `The season kicks off! ${l.max_clubs} clubs, home and away, plus ${CUP_NAMES[l.pool]}.`);
+  await batch([
+    { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'round',$2)`, params: [leagueId, '🏁 The first round has started! Every team plays every other team once.'] },
+    { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'window',$2)`, params: [leagueId, `🔓 The transfer window stays OPEN for the first ${WINDOW_DAYS} days of the round, then it shuts.`] },
+  ]);
   return { ok: true };
 }
 
@@ -659,9 +664,7 @@ async function processDay(d: Row) {
     if (!paper.headline) paper.headline = `${table[0]?.name} lead the way`;
     if (d.matchday % 4 === 0) await playerOfTheMonth(l, d);
     if (d.matchday === totalMd / 2) {
-      await botListings(l);
-      await botShopping(l, d.day);
-      await news(l.id, null, 'window', 'Halfway! The mid-season transfer window is open until the next matchday.');
+      await news(l.id, null, 'round', `🏁 The first round is over! ${table[0]?.name} lead at the halfway mark. The second round starts tomorrow.`);
     }
   }
   if (d.kind === 'cup') {
@@ -679,12 +682,31 @@ async function processDay(d: Row) {
     }
   }
   if (d.kind === 'break') {
-    paper.label = 'Mid-season break';
-    paper.headline = 'DEADLINE DAY';
-    paper.sub = 'No matches today. The window slams shut at the next kick-off. Who will move?';
+    paper.label = 'Second round';
+    paper.headline = 'THE SECOND ROUND BEGINS';
+    paper.sub = `No matches today. The return games start tomorrow, and the transfer window is open for ${WINDOW_DAYS} days.`;
+    await botListings(l);
     await botBids(l, d.day);
     await botShopping(l, d.day);
-    await news(l.id, null, 'deadline', '⏰ DEADLINE DAY! The transfer window closes at the next kick-off. Get your offers in.');
+  }
+  // transfer window: opens for 5 days at the start of each round; tell everyone when it opens, on its last day and when it shuts
+  {
+    const at = new Date(d.kickoff_at).getTime();
+    const before = windowFromDays('running', days as any, at - 1000), after = windowFromDays('running', days as any, at + 1000);
+    const humans = (await q('SELECT user_id FROM clubs WHERE league_id=$1 AND user_id IS NOT NULL', [l.id])).map((h) => h.user_id);
+    const w = writes();
+    const say = (kind: string, text: string) => w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,$2,$3)`, [l.id, kind, text]);
+    if (after.open && after.round === 2 && before.round !== 2) {
+      say('round', '🔁 The second round has started! Every team now plays the return games.');
+      say('window', `🔓 The transfer window is OPEN for ${WINDOW_DAYS} days. Buy, sell, loan and swap before it shuts.`);
+      await notifyMany(humans, { title: '🔓 Transfer window open', body: `The second round has started. You have ${WINDOW_DAYS} days to do your deals.`, url: `/l/${l.id}?tab=market`, tag: `win-${l.id}` });
+    } else if (before.open && !after.open) {
+      say('window', `🔒 The transfer window is now CLOSED. ${after.phase === 'between' ? 'It opens again when the second round starts.' : 'It opens again next season.'}`);
+    } else if (after.open && after.closesAt && new Date(after.closesAt).getTime() - at <= 86_400_000 + 60_000) {
+      say('deadline', '⏰ DEADLINE DAY! The transfer window closes at the next kick-off. Get your offers in.');
+      await notifyMany(humans, { title: '⏰ Deadline day', body: 'The transfer window closes at the next kick-off.', url: `/l/${l.id}?tab=market`, tag: `win-${l.id}` });
+    }
+    await w.flush();
   }
   await q(
     `INSERT INTO papers (league_id, day, kind, data) VALUES ($1,$2,'paper',$3::jsonb) ON CONFLICT (league_id, day, kind) DO UPDATE SET data=EXCLUDED.data`,

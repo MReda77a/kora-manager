@@ -2,9 +2,9 @@
 // awards, reputation, history) and the roll-over into a new season (aging, retirement,
 // youth intake, loans returning, prize money and a fresh schedule).
 import { batch, q, one, writes, type Row } from './db.ts';
-import { notify } from './push.ts';
+import { notify, notifyMany } from './push.ts';
 import { fail } from './errors.ts';
-import { CLUB_TYPES, LINE, MAX_SQUAD, SPONSORS, type ClubTypeKey } from './game.ts';
+import { CLUB_TYPES, LINE, MAX_SQUAD, SPONSORS, WINDOW_DAYS, type ClubTypeKey } from './game.ts';
 import { getLeague, news, standings } from './league.ts';
 import { youthPlayer, type RawPlayer } from './academy.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -138,10 +138,12 @@ async function finishRollover(l: Row, schedule: (l: Row) => Promise<void>) {
   await schedule(next);
   await batch([
     { text: `UPDATE leagues SET status='running', season=season+1 WHERE id=$1`, params: [l.id] },
-    { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'season',$2)`, params: [l.id, `Season ${next.season} begins! The pre-season window is open until the first kick-off.`] },
+    { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'season',$2)`, params: [l.id, `Season ${next.season} begins!`] },
+    { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'round',$2)`, params: [l.id, '🏁 The first round has started! Every team plays every other team once.'] },
+    { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'window',$2)`, params: [l.id, `🔓 The transfer window is OPEN for ${WINDOW_DAYS} days, then it shuts.`] },
   ]);
   const humans = await q('SELECT user_id FROM clubs WHERE league_id=$1 AND user_id IS NOT NULL', [l.id]);
-  for (const h of humans) await notify(h.user_id, { title: `⚽ Season ${next.season} is here`, body: 'New fixtures, youth players and prize money. The pre-season window is open.', url: `/l/${l.id}` });
+  await notifyMany(humans.map((h) => h.user_id), { title: `⚽ Season ${next.season} is here`, body: `The first round starts. The transfer window is open for ${WINDOW_DAYS} days.`, url: `/l/${l.id}` });
   return { ok: true };
 }
 
