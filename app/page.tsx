@@ -132,8 +132,10 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
                   <span className="tiny dim">CODE {l.code}</span>
                 </div>
                 <div className="lz" style={{ fontSize: 20 }}>{l.name}</div>
-                <div className="row"><Crest c1={l.color1} c2={l.color2} size={28} /><span className="ellipsis" style={{ fontWeight: 800 }}>{l.club_name}</span></div>
-                <div className="tiny muted">{l.humans} managers · {l.clubs}/{l.max_clubs} clubs</div>
+                {l.club_id
+                  ? <div className="row"><Crest c1={l.color1} c2={l.color2} size={28} /><span className="ellipsis" style={{ fontWeight: 800 }}>{l.club_name}</span></div>
+                  : <div className="small" style={{ color: '#F2C14E', fontWeight: 800 }}>Create your club ›</div>}
+                <div className="tiny muted">{l.humans} manager{l.humans === 1 ? '' : 's'} · {l.status === 'setup' ? `up to ${l.max_clubs} clubs` : `${l.clubs} clubs`}{l.divisions > 1 ? ` · ${l.divisions} divisions` : ''}{l.season > 1 ? ` · season ${l.season}` : ''}</div>
               </a>
             ))}
           </div>

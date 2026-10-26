@@ -416,7 +416,11 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         }
         sd.pitch = [...placed, ...rest2];
       }
-      log('tactic', c.side, plan ? `${sd.s.name} switch to Plan ${plan} (${sd.tactic.formation})` : `${sd.s.name} switch to ${sd.tactic.preset === 'Custom' ? 'a new plan' : sd.tactic.preset}${rest.mentality === 2 ? ', all out attack' : rest.mentality === 0 ? ', shutting up shop' : ''}`);
+      // "switch to" marks a manager's own decision (the full-time screen tells it apart from the assistant)
+      const what = plan ? `Plan ${plan} (${sd.tactic.formation})`
+        : preset && PRESETS[preset] ? preset
+        : rest.mentality === 2 ? 'all-out attack' : rest.mentality === 0 && rest.line === 0 ? 'parking the bus' : rest.press === 3 ? 'a high press' : 'a new plan';
+      log('tactic', c.side, `${sd.s.name} switch to ${what}`);
       return;
     }
     if (sd.subsLeft <= 0) return;

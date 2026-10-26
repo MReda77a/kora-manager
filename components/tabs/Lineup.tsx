@@ -5,11 +5,13 @@ import { FORMATIONS, LINE, PRESETS, stripDesc, type Tactic } from '../../lib/gam
 import { BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
-export function autoXI(players: any[], formation: string, nextDay: number) {
+// Best XI for a formation. `keep` holds players already chosen per slot ('' = empty slot to fill).
+export function autoXI(players: any[], formation: string, nextDay: number, keep: string[] = []) {
   const slots = FORMATIONS[formation].slots;
   const avail = players.filter((p) => !(p.outUntil >= nextDay));
-  const used = new Set<string>();
-  const xi: string[] = slots.map(() => '');
+  const ids = new Set(players.map((p) => p.id));
+  const xi: string[] = slots.map((_, i) => (keep[i] && ids.has(keep[i]) ? keep[i] : ''));
+  const used = new Set<string>(xi.filter(Boolean));
   const score = (p: any) => (p.ovr + (p.form || 0)) * (0.6 + 0.4 * Math.min(100, p.fitness + 22) / 100);
   for (const strict of [true, false]) {
     slots.forEach((s, i) => {
@@ -54,7 +56,8 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
     const saved: string[] = d.club.lineup || [];
     const ids = new Set(d.players.map((p: any) => p.id));
     const ok = saved.length === 11 && saved.every((x) => ids.has(x));
-    setXi(ok ? saved : autoXI(d.players, tac.formation, d.nextDay));
+    // players who left the club leave a gap: fill only those slots
+    setXi(ok ? saved : autoXI(d.players, tac.formation, d.nextDay, saved.length === 11 ? saved : []));
   }, [d]);
   const byId = useMemo(() => new Map((d?.players || []).map((p: any) => [p.id, p])), [d]);
   if (!d || !t) return <Spinner />;
@@ -97,7 +100,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
     <div className="col" style={{ gap: 8, height: '100%' }}>
       <BackHead title="Lineup" tag={opp ? <span className="tag pink"><span>vs {opp}</span></span> : undefined}
         right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: '#7FE9F7' }}>{strength}</span></>} />
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
+      <div className="split" style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="col" style={{ gap: 8, minWidth: 0 }}>
           <Pitch>
             {F.xy.map(([x, y], i) => {
@@ -105,7 +108,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
               const wrong = p && (LINE[p.pos] || 'MID') !== F.slots[i];
               const on = sel?.kind === 'slot' && sel.v === i;
               return (
-                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={p?.name || 'Empty'}>
+                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(30px, ${x}%, calc(100% - 30px))`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={p?.name || 'Empty'}>
                   <i>{p ? shirt(p.id, p.natPos || p.pos) : ''}</i>
                   <b>{p ? p.ovr + (p.form || 0) : '–'}</b>
                   <small>{p ? (wrong ? `${p.pos}→${F.slots[i]}` : lastName(p.name)) : F.slots[i]}</small>

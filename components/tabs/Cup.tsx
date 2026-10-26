@@ -41,7 +41,7 @@ export default function CupTab({ lid }: TabProps) {
     <div className="theme-cup col" style={{ gap: 8, margin: '-8px -14px -16px', padding: '8px 14px 16px', minHeight: 'calc(100% + 24px)' }}>
       <BackHead title={cup.name.toUpperCase()} tag={<span className="tag" style={{ background: '#2FE6B0', color: '#0B2A33' }}><span>KNOCKOUT</span></span>}
         right={latest >= 0 && shown < cup.rounds[latest].pairs.length * 2 ? <><button className="seg on" onClick={() => setDrawing(true)} disabled={drawing}><span>{drawing ? 'Drawing…' : `Watch the ${cup.rounds[latest].name} draw`}</span></button><button className="seg" onClick={() => { setShown(999); try { localStorage.setItem(seenKey(lid, latest + 1), '1'); } catch {} }}><span>Skip</span></button></> : undefined} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px, 210px) minmax(0, 1fr)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(170px, 210px) minmax(0, 1fr)', gap: 12 }}>
         <section className="panel cut" style={{ alignItems: 'center', gap: 10 }}>
           <span className="kicker" style={{ alignSelf: 'flex-start' }}>The pot · {pot} left</span>
           <div style={{ position: 'relative', width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), rgba(255,255,255,0.03) 60%)', border: '2px solid rgba(230,238,242,0.4)' }}>

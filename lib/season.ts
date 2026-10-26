@@ -368,15 +368,24 @@ async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean, tone:
     pens: pens.length ? pens : xi.filter((p) => p.pos !== 'GK').sort((a, b) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure)).slice(0, 5).map((p) => p.id),
     homeBoost: home ? (club.club_type === 'fan' ? 1 : 0) + Math.min(1, (club.fans || 20000) / 40000) : 0,
     injuryRisk: 1 - lv.doctor * 0.08,
-    ...(club.user_id
-      ? { roles: club.roles || {}, setpieces: club.setpieces || {}, familiarity: familiarityOf(club, tactic.formation) }
-      : autoRoles(xi, tactic.formation)),
+    ...(club.user_id ? humanRoles(club, xi, tactic.formation) : autoRoles(xi, tactic.formation)),
   };
 }
 
 // How well a club knows a formation: 50 for a new shape, up to 100 after many matches in it.
 export function familiarityOf(club: Row, formation: string) {
   return Math.max(30, Math.min(100, (club.familiarity || {})[formation] ?? 50));
+}
+
+// A manager's own roles and set-piece takers; the assistant fills in anything left unset.
+function humanRoles(club: Row, xi: Row[], formation: string) {
+  const auto = autoRoles(xi, formation);
+  const sp = club.setpieces || {};
+  return {
+    roles: { ...auto.roles, ...(club.roles || {}) },
+    setpieces: { corner: sp.corner || auto.setpieces.corner, fk: sp.fk || auto.setpieces.fk, routine: sp.routine || 'far' },
+    familiarity: familiarityOf(club, formation),
+  };
 }
 
 // Bots pick sensible roles and set-piece takers for their line-up, and know their shape well.
@@ -392,7 +401,7 @@ function autoRoles(xi: Row[], formation: string) {
   });
   const outfield = xi.filter((p) => p.pos !== 'GK');
   const best = (k: string) => [...outfield].sort((x, y) => (y.attrs?.[k] ?? 0) - (x.attrs?.[k] ?? 0))[0]?.id;
-  return { roles, setpieces: { corner: best('Crossing'), fk: best('LongShots'), routine: 'far' }, familiarity: 75 };
+  return { roles, setpieces: { corner: best('Crossing'), fk: best('LongShots'), routine: 'far' }, familiarity: 62 };
 }
 
 const isDerby = (h: Row, a: Row) => h.club_type === 'fan' && a.club_type === 'fan' && !!h.user_id && !!a.user_id;

@@ -38,7 +38,7 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
   return (
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Squad" sub={`${d.players.length} players · average ${avg}`} right={<button className="seg" onClick={() => go('training')}><span>Training ›</span></button>} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(230px, 280px)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(230px, 280px)', gap: 12 }}>
         <div className="col" style={{ gap: 10 }}>
           {groups.map(([g, label]) => {
             const ps = d.players.filter((p: any) => (LINE[p.pos] || 'MID') === g);

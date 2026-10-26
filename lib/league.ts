@@ -61,11 +61,14 @@ export async function getLeague(id: number) {
 }
 
 export async function myLeagues(uid: number) {
+  // leagues with my club, plus leagues I created but have not made a club in yet
   return q(
-    `SELECT l.id, l.name, l.code, l.pool, l.status, l.max_clubs, c.id AS club_id, c.name AS club_name, c.color1, c.color2, c.short, c.shape, c.emblem,
+    `SELECT l.id, l.name, l.code, l.pool, l.status, l.season, l.divisions, l.max_clubs * l.divisions AS max_clubs, l.owner_id = $1 AS owner,
+       c.id AS club_id, c.name AS club_name, c.color1, c.color2, c.short, c.shape, c.emblem, c.division,
        (SELECT COUNT(*)::int FROM clubs x WHERE x.league_id=l.id) AS clubs,
        (SELECT COUNT(*)::int FROM clubs x WHERE x.league_id=l.id AND x.user_id IS NOT NULL) AS humans
-     FROM clubs c JOIN leagues l ON l.id=c.league_id WHERE c.user_id=$1 ORDER BY l.created_at DESC`,
+     FROM leagues l LEFT JOIN clubs c ON c.league_id=l.id AND c.user_id=$1
+     WHERE c.id IS NOT NULL OR l.owner_id=$1 ORDER BY l.created_at DESC`,
     [uid],
   );
 }
@@ -271,8 +274,8 @@ export async function squadOf(clubId: number, day = 0) {
 }
 
 const NO_GROW = new Set(['v', 'Academy', 'Youth', 'Consistency', 'BigMatch', 'InjuryProne']);
-// Morale moves a player's level a little: 70 is neutral, 100 is +2.5, 10 is -5.
-export const moraleMod = (m: number) => Math.round(((m ?? 70) - 70) / 12 * 10) / 10;
+// Morale moves a player's level a little: 70 is neutral, 100 is +1.5, 0 is -3.5.
+export const moraleMod = (m: number) => Math.round(((m ?? 70) - 70) / 20 * 10) / 10;
 
 export function applyMods(p: Row, day: number): Row {
   const attrs = { ...p.attrs };
@@ -297,8 +300,10 @@ export function pickXI(players: Row[], formation: string, saved: string[], day: 
   const slots = (FORMATIONS[formation] || FORMATIONS['4-3-3']).slots;
   const avail = players.filter((p) => (p.out_until ?? 0) < day);
   const used = new Set<string>();
-  const xi: (Row | null)[] = slots.map((_, i) => {
+  const xi: (Row | null)[] = slots.map((slot, i) => {
     const p = avail.find((x) => x.id === saved[i]);
+    // safety: a keeper never starts outfield and an outfield player never starts in goal
+    if (p && (p.pos === 'GK') !== (slot === 'GK')) return null;
     if (p && !used.has(p.id)) {
       used.add(p.id);
       return p;

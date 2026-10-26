@@ -34,7 +34,7 @@ export default function TrainingTab({ lid, toast }: TabProps) {
   return (
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Training" sub="Each player trains one thing: a skill or a new position" right={<span className="small muted" style={{ fontWeight: 700 }}>{d.active.length}/{d.slots} slots busy · Coach <Stars n={d.coach} /></span>} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 250px) minmax(0, 1fr)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 250px) minmax(0, 1fr)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 6, gap: 2, maxHeight: 330, overflowY: 'auto' }}>
           {sorted.map((x: any) => {
             const t = activeFor(x.id);

@@ -45,7 +45,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
             </div>
           </section>
           <section className="panel cut rise" style={{ gap: 4, animationDelay: '.08s' }}>
-            <div className="row between"><span className="tag"><span>{league.divisions > 1 ? league.divisionNames[club.division - 1] : `${league.poolName.replace(' League', '')} League`}</span></span><button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800 }} onClick={() => go('table')}>PTS ›</button></div>
+            <div className="row between"><span className="tag"><span>{league.divisions > 1 ? league.divisionNames[club.division - 1] : `${league.poolName.replace(' League', '')} League`}</span></span><button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800, minHeight: 30, padding: '0 8px' }} onClick={() => go('table')}>TABLE ›</button></div>
             {slice.map((t: any) => {
               const i = table.indexOf(t) + 1;
               const me = t.id === club.id;
@@ -88,7 +88,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
           {news.slice(0, 10).map((n: any, i: number) => <span key={i} className="row" style={{ gap: 10 }}><i style={{ width: 8, height: 8, background: '#7FE9F7', transform: 'rotate(45deg)', display: 'inline-block' }} />{n.text}</span>)}
         </div>
       </div>
-      <style>{`@media (max-width: 760px){ .home-grid{ grid-template-columns: 1fr 1fr !important; } }`}</style>
+      <style>{`@media (max-width: 760px){ .home-grid{ grid-template-columns: 1fr 1fr !important; } } @media (max-width: 480px){ .home-grid{ grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
     </div>
   );
 }
@@ -102,10 +102,10 @@ function Inbox({ club, go }: { club: any; go: TabProps['go'] }) {
       <div className="row between">
         <span className="row" style={{ gap: 8 }}>
           <span className="tag cyan"><span>Inbox</span></span>
-          {club.unhappy > 0 && <button className="tiny" style={{ color: '#FF9DA8', fontWeight: 900 }} onClick={() => go('players')}>{club.unhappy} unhappy player{club.unhappy > 1 ? 's' : ''} ›</button>}
-          {club.requests > 0 && <button className="tiny" style={{ color: '#FF6B7A', fontWeight: 900 }} onClick={() => go('players')}>{club.requests} transfer request{club.requests > 1 ? 's' : ''} ›</button>}
+          {club.unhappy > 0 && <button className="tiny" style={{ color: '#FF9DA8', fontWeight: 900, minHeight: 30 }} onClick={() => go('players')}>{club.unhappy} unhappy player{club.unhappy > 1 ? 's' : ''} ›</button>}
+          {club.requests > 0 && <button className="tiny" style={{ color: '#FF6B7A', fontWeight: 900, minHeight: 30 }} onClick={() => go('players')}>{club.requests} transfer request{club.requests > 1 ? 's' : ''} ›</button>}
         </span>
-        {items.length > 2 && <button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800 }} onClick={() => setOpen(!open)}>{open ? 'Less' : `All ${items.length}`} ›</button>}
+        {items.length > 2 && <button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800, minHeight: 30, padding: '0 6px' }} onClick={() => setOpen(!open)}>{open ? 'Less' : `All ${items.length}`} ›</button>}
       </div>
       {items.slice(0, open ? 30 : 2).map((m) => (
         <div key={m.id} className="row small" style={{ gap: 8, fontWeight: 700 }}>

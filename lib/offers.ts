@@ -215,7 +215,7 @@ export async function botBids(l: Row, day: number) {
        WHERE s.club_id=$1 AND s.loan_from IS NULL ORDER BY s.request DESC, p.ovr DESC LIMIT 15`,
       [h.id],
     );
-    const p = cands.find((c) => c.request) || (r.next() < 0.5 ? cands[Math.floor(r.next() * cands.length)] : null);
+    const p = cands.find((c) => c.request) || (r.next() < 0.75 ? cands[Math.floor(r.next() * cands.length)] : null);
     if (!p) continue;
     const bot = bots[Math.floor(r.next() * Math.min(5, bots.length))];
     const v = Math.max(0.3, p.attrs?.v ?? 2);

@@ -97,10 +97,10 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
   return (
     <div style={{ padding: '8px 14px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: '100dvh' }}>
       <header className="row between" style={{ minHeight: 44 }}>
-        <div className="row" style={{ gap: 12 }}><Back d={d} /><span className="lz" style={{ fontSize: 24, color: d.derby ? '#F2C14E' : undefined }}>{title}</span><span className="small muted" style={{ fontWeight: 700 }}>{d.home.stadium}</span></div>
+        <div className="row" style={{ gap: 12 }}><Back d={d} /><span className="lz" style={{ fontSize: 24, color: d.derby ? '#F2C14E' : undefined }}>{title}</span><span className="small muted hide-sm" style={{ fontWeight: 700 }}>{d.home.stadium}</span></div>
         <div className="row" style={{ gap: 8 }}><span className="tiny muted" style={{ fontWeight: 900 }}>KICK-OFF IN</span><span className="lz" style={{ fontSize: 26 }}>{cd}</span></div>
       </header>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(240px, 300px)', gap: 12, flex: 1 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(240px, 300px)', gap: 12, flex: 1 }}>
         <section className="panel cut" style={{ gap: 14, justifyContent: 'center' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16 }}>
             <TeamBlock c={d.home} size={72} />
@@ -276,17 +276,17 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const { on, bench } = mineSide >= 0 ? onPitch(mineSide as 0 | 1) : { on: [], bench: [] };
   const homeBig = mineSide !== 1;
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', padding: '6px 12px 8px', gap: 6, position: 'relative', overflow: 'hidden' }}>
+    <div className="live-root" style={{ height: '100dvh', display: 'flex', flexDirection: 'column', padding: '6px 12px 8px', gap: 6, position: 'relative', overflow: 'hidden' }}>
       <header className="row between" style={{ gap: 10 }}>
         <Back d={d} />
         <div className="row" style={{ gap: 10, minWidth: 0 }}>
           <Crest c1={d.home.color1} c2={d.home.color2} size={30} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} />
-          <b className="lz ellipsis" style={{ fontSize: 19, maxWidth: 170 }}>{d.home.name}</b>
+          <b className="lz ellipsis tname" style={{ fontSize: 19, maxWidth: 170 }}>{d.home.name}</b>
           <div className="col" style={{ alignItems: 'center', gap: 0 }}>
-            <span className="lz" style={{ fontSize: 34, lineHeight: 1 }}>{score[0]} – {score[1]}</span>
+            <span className="lz" style={{ fontSize: 34, lineHeight: 1, whiteSpace: 'nowrap' }}>{score[0]} – {score[1]}</span>
             <span className="tiny" style={{ color: live ? '#FF6B7A' : 'var(--cyan)', fontWeight: 900 }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))} · <span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon}</span></span>
           </div>
-          <b className="lz ellipsis" style={{ fontSize: 19, maxWidth: 170 }}>{d.away.name}</b>
+          <b className="lz ellipsis tname" style={{ fontSize: 19, maxWidth: 170 }}>{d.away.name}</b>
           <Crest c1={d.away.color1} c2={d.away.color2} size={30} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />
         </div>
         <div className="row" style={{ gap: 4 }}>
@@ -299,7 +299,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         <div style={{ flex: 1, height: 7, background: d.away.color1, transform: 'skewX(-20deg)' }}><i style={{ display: 'block', height: '100%', width: `${mom}%`, background: `linear-gradient(90deg, ${d.home.color1}, #EE7650)`, transition: 'width .8s' }} /></div>
         <span>{100 - mom}%</span>
       </div>
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(170px, 240px) minmax(0, 1fr)', gap: 10 }}>
+      <div className="live-grid" style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(150px, 240px) minmax(0, 1fr)', gap: 10 }}>
         <section className="panel" style={{ padding: 8, gap: 4, overflowY: 'auto', minHeight: 0 }}>
           <span className="kicker">Live commentary</span>
           {events.slice(0, revealed).slice().reverse().map((e, i) => (
@@ -323,6 +323,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </section>
       </div>
       <div className="row" style={{ gap: 6, minHeight: 44 }}>
+        <div className="row live-actions" style={{ gap: 6, flex: 1, minWidth: 0, overflowX: 'auto', flexWrap: 'nowrap', scrollbarWidth: 'none' }}>
         {canChange ? (
           <>
             <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ mentality: 2, press: 2 }, 'All out attack!')}><span>All-out attack</span></button>
@@ -335,15 +336,16 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         ) : (
           <span className="small" style={{ fontWeight: 800 }}><b style={{ color: 'var(--cyan)' }}>{lastEv ? fmtMin(lastEv.m) : ''}</b> {lastEv?.text}</span>
         )}
-        <button className="ghost" style={{ marginLeft: 'auto' }} onClick={() => setPhase('ft')}><span>{live ? 'Skip to result' : 'Skip'}</span></button>
+        </div>
+        <button className="ghost" style={{ marginLeft: 'auto', flex: 'none' }} onClick={() => setPhase('ft')}><span>{live ? 'Skip to result' : 'Skip'}</span></button>
       </div>
       {panel === 'tactic' && (
-        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, background: 'rgba(20,10,52,0.97)', boxShadow: '0 -8px 30px rgba(0,0,0,0.55)', maxHeight: 'calc(100% - 120px)', overflowY: 'auto', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {Object.keys(PRESETS).map((p) => <button key={p} className="seg" style={{ minHeight: 36 }} onClick={() => change({ preset: p }, `Switched to ${p}`)}><span>{p}</span></button>)}
         </div>
       )}
       {panel === 'sub' && (
-        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, gap: 6 }}>
+        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, background: 'rgba(20,10,52,0.97)', boxShadow: '0 -8px 30px rgba(0,0,0,0.55)', maxHeight: 'calc(100% - 120px)', overflowY: 'auto', gap: 6 }}>
           <span className="kicker">{subOut ? 'Who comes on?' : 'Who comes off?'}</span>
           <div className="row wrap" style={{ gap: 6 }}>
             {(subOut ? bench : on).map((id) => {
@@ -532,7 +534,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
     if (e.type === 'yellow' || e.type === 'red') return <span style={{ width: 10, height: 13, background: c, flex: 'none' }} />;
     if (e.type === 'sub') return <span style={{ color: c, fontWeight: 900, width: 12, flex: 'none' }}>⇅</span>;
     if (e.type === 'injury') return <span style={{ color: c, fontWeight: 900, width: 12, flex: 'none' }}>✚</span>;
-    if (e.type === 'var') return <span style={{ color: '#7FE9F7', fontWeight: 900, fontSize: 9, width: 12, flex: 'none' }}>VAR</span>;
+    if (e.type === 'var') return <span style={{ width: 12, flex: 'none', fontSize: 11 }} aria-label="VAR">📺</span>;
     return <span style={{ width: 11, height: 11, transform: 'rotate(45deg)', background: c, flex: 'none' }} />;
   };
   const isAst = (e: Ev) => (e.type === 'sub' && !e.text.startsWith("Manager")) || (e.type === 'tactic' && !e.text.includes('switch to'));
@@ -548,18 +550,18 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
   const so = rep.shootout;
   return (
     <div style={{ padding: '8px 14px 16px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
-      <header style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
+      <header className="ft-head" style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
         <Back d={d} />
-        <div className="row" style={{ justifyContent: 'flex-end', gap: 10, minWidth: 0 }}><span className="lz ellipsis" style={{ fontSize: 22 }}>{d.home.name}</span><Crest c1={d.home.color1} c2={d.home.color2} size={40} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} /></div>
+        <div className="row" style={{ justifyContent: 'flex-end', gap: 10, minWidth: 0 }}><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.home.name}</span><Crest c1={d.home.color1} c2={d.home.color2} size={40} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} /></div>
         <div className="col" style={{ alignItems: 'center', gap: 0 }}>
           <span className="lz" style={{ fontSize: 46, lineHeight: 1, animation: 'pop .6s both', whiteSpace: 'nowrap' }}>{hg} – {ag}</span>
           <span className="tiny" style={{ color: '#7CE3A1', fontWeight: 900 }}>{so ? `${rep.winner === 0 ? d.home.name : d.away.name} win ${Math.max(...so.score)}–${Math.min(...so.score)} on penalties` : res ? `FULL TIME · ${res}` : 'FULL TIME'}</span>
         </div>
-        <div className="row" style={{ gap: 10, minWidth: 0 }}><Crest c1={d.away.color1} c2={d.away.color2} size={40} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} /><span className="lz ellipsis" style={{ fontSize: 22 }}>{d.away.name}</span></div>
-        {skipped ? <span className="tag cyan"><span>SIMULATED · YOU SKIPPED</span></span> : <KitPair d={d} size={26} />}
+        <div className="row" style={{ gap: 10, minWidth: 0 }}><Crest c1={d.away.color1} c2={d.away.color2} size={40} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} /><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.away.name}</span></div>
+        {skipped ? <span className="tag cyan simtag"><span>SIMULATED · YOU SKIPPED</span></span> : <span className="simtag"><KitPair d={d} size={26} /></span>}
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.1fr) minmax(200px, 0.9fr)', gap: 10, flex: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, flex: 1 }}>
         <section className="panel cut" style={{ gap: 4, overflowY: 'auto', maxHeight: 330 }}>
           <span className="kicker">What happened · <span style={{ color: 'var(--cyan)' }}>AST</span> = your assistant</span>
           {key.length === 0 && <span className="small muted">A quiet one.</span>}

@@ -10,7 +10,7 @@ const LOOK: Record<string, { bg: string; icon: string; text: string }> = {
   legend: { bg: 'linear-gradient(160deg,#F2A65A,#E8438C)', icon: 'M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19l1-5.8L3.5 9.2l5.9-.9z', text: '1 player · top 3.5% of the league' },
   gold: { bg: 'linear-gradient(160deg,#5FB6D9,#8E7BE0)', icon: 'M12 3l8 5v8l-8 5-8-5V8z', text: '3 players · strong first-teamers' },
   silver: { bg: 'linear-gradient(160deg,#C9C3F0,#8E85C9)', icon: 'M12 6a6 6 0 110 12 6 6 0 010-12z', text: '4 players · solid squad depth' },
-  bronze: { bg: 'linear-gradient(160deg,#C98A5A,#8E5232)', icon: 'M7 7h10v10H7z', text: '5 players · always 1 keeper' },
+  bronze: { bg: 'linear-gradient(160deg,#C98A5A,#8E5232)', icon: 'M7 7h10v10H7z', text: '5 players · fills squad gaps' },
   staff: { bg: 'linear-gradient(160deg,#7CE3A1,#7FE9F7)', icon: 'M12 4a4 4 0 110 8 4 4 0 010-8zM5 20a7 7 0 0114 0z', text: 'Doctor, physio or coach · 1–5★' },
 };
 
@@ -44,7 +44,7 @@ export default function StoreTab({ lid, d: ov, reload, toast }: TabProps) {
           <span style={{ transform: 'skewX(12deg)' }} className="row"><Coin size={22} /><span className="lz" style={{ fontSize: 26, color: '#F2C14E', marginLeft: 6 }}>{coins}</span></span>
         </div>
       </header>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(210px, 240px)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(210px, 240px)', gap: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 10 }}>
           {packs.map(([k, name, price]) => {
             const L = LOOK[k];

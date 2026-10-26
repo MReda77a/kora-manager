@@ -45,14 +45,14 @@ export default function AwardsTab({ lid }: TabProps) {
         !t ? <div className="panel cut muted">The first Team of the Week comes after matchday 1.</div> : (
           <>
             <div className="row" style={{ gap: 4 }}>{d.totw.map((x: any, i: number) => <button key={x.day} className={`seg ${wk === i ? 'on' : ''}`} onClick={() => { setWk(i); setReveal(0); setSel(null); }}><span>{x.label}</span></button>)}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 240px)', gap: 12 }}>
+            <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 240px)', gap: 12 }}>
               <Pitch style={{ minHeight: 280 }}>
                 {placed.map((p: any, i: number) => {
                   const mine = p.clubId === d.myClub, isStar = p.id === t.totw.star;
                   if (i >= reveal) return null;
                   return (
-                    <button key={p.id} className="pc" onClick={() => setSel(p)} style={{ left: `${p.xy[0]}%`, top: `${p.xy[1]}%`, width: 70, height: 56, background: isStar ? 'linear-gradient(135deg,#FFE48A,#E0A22E)' : mine ? '#E8438C' : 'rgba(14,8,40,0.9)', color: isStar ? '#2A1A00' : undefined, animation: 'dropPc .45s both' }}>
-                      <b style={{ fontSize: 22 }}>{p.r.toFixed(1)}</b><small>{lastName(p.name)}</small>
+                    <button key={p.id} className="pc" onClick={() => setSel(p)} style={{ left: `clamp(32px, ${p.xy[0]}%, calc(100% - 32px))`, top: `${p.xy[1]}%`, width: 'clamp(54px, 14%, 70px)', height: 'clamp(44px, 15%, 56px)', background: isStar ? 'linear-gradient(135deg,#FFE48A,#E0A22E)' : mine ? '#E8438C' : 'rgba(14,8,40,0.9)', color: isStar ? '#2A1A00' : undefined, animation: 'dropPc .45s both' }}>
+                      <b style={{ fontSize: 'clamp(15px, 2.4vw, 22px)' }}>{p.r.toFixed(1)}</b><small>{lastName(p.name)}</small>
                     </button>
                   );
                 })}
@@ -78,7 +78,7 @@ export default function AwardsTab({ lid }: TabProps) {
       )}
       {view === 'potm' && (
         !potm ? <div className="panel cut muted">The first Player of the Month is picked after matchday 4.</div> : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(200px, 230px)', gap: 12 }}>
+          <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(200px, 230px)', gap: 12 }}>
             <div className="col" style={{ gap: 12, alignItems: 'center' }}>
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${potm.nominees.length}, minmax(0, 1fr))`, gap: 8, width: '100%', position: 'relative' }}>
                 {potm.nominees.map((n: any) => {

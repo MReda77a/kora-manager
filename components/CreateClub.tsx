@@ -36,7 +36,7 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
           <button className={`chip ${step === 1 ? 'on' : ''}`} onClick={() => setStep(1)}><span>2 · Club type</span></button>
         </div>
       </header>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 230px) 1fr', gap: 12, marginTop: 6 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 230px) 1fr', gap: 12, marginTop: 6 }}>
         <div className="glass cut pad col" style={{ alignItems: 'center', gap: 8, textAlign: 'center' }}>
           <div style={{ animation: 'pop .5s both' }} key={`${f.shape}${f.emblem}${f.color1}${f.color2}`}>
             <Crest c1={f.color1} c2={f.color2} shape={f.shape} emblem={f.emblem} size={96} />

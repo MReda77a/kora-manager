@@ -39,7 +39,7 @@ export default function PaperTab({ lid, d: ov, toast, go }: TabProps) {
           <>
             <h2 style={{ fontSize: 34, margin: '8px 0 2px', lineHeight: 1.05 }}>{ed.headline}</h2>
             {ed.sub && <p style={{ margin: '0 0 8px', fontFamily: 'Cairo, sans-serif', fontWeight: 700, color: '#5A4A3A' }}>{ed.sub}</p>}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 14, borderTop: '1px solid #1B1410', paddingTop: 8 }}>
+            <div className="split" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 14, borderTop: '1px solid #1B1410', paddingTop: 8 }}>
               <div>
                 <div className="kick">The managers spoke</div>
                 {ed.comments?.length ? ed.comments.map((c: any, i: number) => (
@@ -73,7 +73,7 @@ export default function PaperTab({ lid, d: ov, toast, go }: TabProps) {
           <>
             <h2 style={{ fontSize: 32, margin: '8px 0 2px', lineHeight: 1.05 }}>{pv.fixtures.find((f: any) => f.derby) ? `Tonight, only one can rule ${pv.fixtures.find((f: any) => f.derby).home.split(' ')[0]}` : pv.kind === 'cup' ? 'Cup night: win or go home' : pv.kind === 'break' ? 'The window is open' : 'Matchday is coming'}</h2>
             {pv.fixtures.some((f: any) => f.derby) && <span style={{ position: 'absolute', right: 40, top: 70, transform: 'rotate(-8deg)', border: '3px solid #8B1E2D', color: '#8B1E2D', padding: '2px 10px', fontSize: 22, fontWeight: 700, animation: 'stamp .5s both' }}>DERBY</span>}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, borderTop: '1px solid #1B1410', paddingTop: 8, marginTop: 6 }}>
+            <div className="split" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, borderTop: '1px solid #1B1410', paddingTop: 8, marginTop: 6 }}>
               <div>
                 <div className="kick">The managers speak</div>
                 {pv.comments.length ? pv.comments.map((c: any, i: number) => (

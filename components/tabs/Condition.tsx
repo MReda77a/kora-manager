@@ -14,25 +14,25 @@ export default function ConditionTab({ lid, go }: TabProps) {
   return (
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Squad Condition" sub={d.next ? `next: ${d.next.home ? 'vs' : 'at'} ${d.next.opponent} · ${clock(d.next.kickoff)}` : 'no match scheduled'} right={<span className="small" style={{ color: '#7CE3A1', fontWeight: 800 }}>{injured.length} out · recovery {d.recoveryPerDay}%/day</span>} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(170px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 0 }}>
           <div className="row tiny" style={{ color: '#B4A8E0', fontWeight: 900, padding: '0 8px 6px', gap: 8 }}>
-            <span className="grow">PLAYER</span><span style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>OVR</span><span style={{ width: 120 }}>FITNESS NOW</span><span style={{ width: 56 }}>MATCH</span><span style={{ width: 92 }}>STATUS</span>
+            <span className="grow" style={{ minWidth: 80 }}>PLAYER</span><span className="hide-sm" style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>OVR</span><span style={{ width: 76 }}>NOW</span><span style={{ width: 44 }}>MATCH</span><span style={{ width: 74 }}>STATUS</span>
           </div>
           <div className="col" style={{ gap: 2, maxHeight: 320, overflowY: 'auto' }}>
             {d.players.map((p: any) => (
               <div key={p.id} className="row small" style={{ gap: 8, padding: '4px 8px', background: p.out ? 'rgba(255,107,122,0.1)' : 'rgba(255,255,255,0.04)', fontWeight: 700 }}>
-                <span className="grow ellipsis"><b>{p.name}</b></span>
-                <span style={{ width: 36 }} className="muted">{p.pos}</span>
+                <span className="grow ellipsis" style={{ minWidth: 80 }}><b>{p.name}</b></span>
+                <span style={{ width: 36 }} className="muted hide-sm">{p.pos}</span>
                 <span className="lz" style={{ width: 30, fontSize: 17 }}>{p.ovr + (p.form || 0)}</span>
-                <span className="row" style={{ width: 120, gap: 6 }}>
+                <span className="row" style={{ width: 76, gap: 4 }}>
                   <span className="bar" style={{ height: 6 }}><i style={{ width: `${p.fitness}%`, background: fitColor(p.fitness) }} /></span>
                   <b style={{ width: 34, textAlign: 'right', color: fitColor(p.fitness) }}>{p.fitness}%</b>
                 </span>
-                <b style={{ width: 56, color: fitColor(p.expected) }}>{p.out ? '—' : `${p.expected}%`}</b>
-                <span style={{ width: 92 }}>
-                  {p.out ? <span className="status bad">{p.out.reason === 'Suspended' ? 'SUSPENDED' : `INJURED ${p.out.days}d`}</span>
-                    : p.form > 0 ? <span className="status ok">IN FORM +{p.form}</span>
+                <b style={{ width: 44, color: fitColor(p.expected) }}>{p.out ? '—' : `${p.expected}%`}</b>
+                <span style={{ width: 74 }}>
+                  {p.out ? <span className="status bad" title={p.out.reason}>{p.out.reason === 'Suspended' ? 'BANNED' : `INJ ${p.out.days}d`}</span>
+                    : p.form > 0 ? <span className="status ok">FORM +{p.form}</span>
                     : p.form < 0 ? <span className="status bad">UPSET {p.form}</span>
                     : p.expected < 75 ? <span className="status risk">TIRED</span> : <span className="status ok">OK</span>}
                 </span>

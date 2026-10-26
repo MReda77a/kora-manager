@@ -257,3 +257,33 @@ table.t td.num, table.t th.num { text-align: right; }
   .pc i { font-size: 8px; top: 2px; left: 4px; }
   .content { padding: 4px 10px 14px; }
 }
+
+/* hide secondary columns on small phones */
+@media (max-width: 760px) { .hide-sm { display: none !important; } }
+/* small screens: side-by-side panels stack (small phones in landscape, any phone held upright) */
+@media (max-width: 640px) {
+  .split { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  .split3 { grid-template-columns: minmax(0, 1fr) !important; }
+  .home-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}
+/* the "turn sideways" strip sits above the page instead of covering its header */
+@media (orientation: portrait) and (max-width: 600px) {
+  body { padding-top: 26px; }
+  .shell, .live-root { height: calc(100dvh - 26px) !important; }
+}
+/* live match: action buttons scroll sideways on small screens instead of being cut off */
+.live-actions { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+.live-actions > * { flex: none; }
+/* phone held upright: the pitch goes on top of the commentary */
+@media (orientation: portrait) and (max-width: 640px) {
+  .live-grid { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: minmax(220px, 1fr) minmax(120px, 0.6fr); }
+  .live-grid > .field { order: -1; }
+  .ft-head .simtag { display: none; }
+}
+@media (max-width: 640px) { .ft-head .simtag { display: none; } }
+/* phone held upright: match headers show crests and the score, names are on the pitch and in the commentary */
+@media (orientation: portrait) and (max-width: 640px) { .tname { display: none; } }
+
+.live-actions::-webkit-scrollbar { display: none; }

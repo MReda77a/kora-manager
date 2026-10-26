@@ -31,21 +31,21 @@ function Listings({ lid, toast, reload }: TabProps) {
         <span className="tiny muted" style={{ fontWeight: 900, marginLeft: 6 }}>SORT</span>
         {(['ovr', 'pot', 'price', 'age'] as const).map((s) => <button key={s} className={`seg ${sort === s ? 'on' : ''}`} onClick={() => setSort(s)}><span>{s.toUpperCase()}</span></button>)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 2 }}>
           <div className="row tiny" style={{ color: '#B4A8E0', fontWeight: 900, padding: '0 8px 4px', gap: 8 }}>
-            <span style={{ width: 30 }}>OVR</span><span className="grow">PLAYER</span><span style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>AGE</span><span style={{ width: 110 }}>SELLER</span><span style={{ width: 30 }}>POT</span><span style={{ width: 56, textAlign: 'right' }}>PRICE</span>
+            <span style={{ width: 30 }}>OVR</span><span style={{ flex: '2 1 0', minWidth: 70 }}>PLAYER</span><span style={{ width: 36 }}>POS</span><span className="hide-sm" style={{ width: 30 }}>AGE</span><span className="hide-sm" style={{ width: 110 }}>SELLER</span><span className="hide-sm" style={{ width: 30 }}>POT</span><span style={{ width: 56, textAlign: 'right' }}>PRICE</span>
           </div>
           {rows.length === 0 && <div className="small muted" style={{ padding: 12 }}>No players listed. Only players other managers or AI clubs put up for sale appear here. Sell your own from the Squad screen.</div>}
           <div className="col" style={{ gap: 2, maxHeight: 300, overflowY: 'auto' }}>
             {rows.map((l: any) => (
               <button key={l.listingId} className={`row-item ${sel?.listingId === l.listingId ? 'sel' : ''}`} style={{ textAlign: 'left', fontWeight: 700, fontSize: 13 }} onClick={() => setSel(l)}>
                 <span className="lz" style={{ width: 30, fontSize: 18, color: l.ovr >= 85 ? '#F2C14E' : undefined }}>{l.ovr}</span>
-                <b className="grow ellipsis">{l.name}</b>
+                <b className="ellipsis" style={{ flex: '2 1 0', minWidth: 70 }}>{l.name}</b>
                 <span style={{ width: 36 }} className="muted">{l.pos}</span>
-                <span style={{ width: 30 }}>{l.age}</span>
-                <span style={{ width: 110 }} className="ellipsis muted">{l.seller}{l.bot ? ' (AI)' : ''}</span>
-                <span style={{ width: 30 }}>{l.pot}</span>
+                <span className="hide-sm" style={{ width: 30 }}>{l.age}</span>
+                <span style={{ width: 110 }} className="ellipsis muted hide-sm">{l.seller}{l.bot ? ' (AI)' : ''}</span>
+                <span className="hide-sm" style={{ width: 30 }}>{l.pot}</span>
                 <b style={{ width: 56, textAlign: 'right', color: '#7FE9F7' }}>{l.price.toFixed(1)}M</b>
               </button>
             ))}
@@ -73,7 +73,7 @@ let modeGlobal = 'list';
 let offersCount = 0;
 function MarketModes() {
   return (
-    <div className="row" style={{ gap: 4 }}>
+    <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
       {[['list', 'Listed'], ['offer', 'Make an offer'], ['inbox', `Offers${offersCount ? ` (${offersCount})` : ''}`]].map(([k, l]) => (
         <button key={k} className={`seg ${modeGlobal === k ? 'on' : ''}`} onClick={() => setModeGlobal(k)}><span>{l}</span></button>
       ))}
@@ -137,16 +137,16 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
         <input placeholder="Player or club…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
         {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(230px, 270px)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(230px, 270px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 2 }}>
           <div className="col" style={{ gap: 2, maxHeight: 330, overflowY: 'auto' }}>
             {rows.map((p) => (
               <button key={p.id} className={`row-item ${sel?.id === p.id ? 'sel' : ''}`} style={{ textAlign: 'left', fontWeight: 700, fontSize: 13 }} onClick={() => { setSel(p); setAmount(suggest(p, kind)); }}>
                 <span className="lz" style={{ width: 30, fontSize: 18, color: p.ovr >= 85 ? '#F2C14E' : undefined }}>{p.ovr}</span>
-                <b className="grow ellipsis">{p.name}{p.request && <span className="tiny" style={{ color: '#FF6B7A' }}> · wants out</span>}</b>
+                <b className="ellipsis" style={{ flex: '2 1 0', minWidth: 70 }}>{p.name}{p.request && <span className="tiny" style={{ color: '#FF6B7A' }}> · wants out</span>}</b>
                 <span style={{ width: 36 }} className="muted">{p.pos}</span>
-                <span style={{ width: 28 }}>{p.age}</span>
-                <span style={{ width: 120 }} className="ellipsis muted"><i style={{ display: 'inline-block', width: 7, height: 7, background: p.color1, transform: 'rotate(45deg)', marginRight: 5 }} />{p.club}{p.human ? '' : ' (AI)'}</span>
+                <span className="hide-sm" style={{ width: 28 }}>{p.age}</span>
+                <span style={{ flex: '1.4 1 0', minWidth: 0, maxWidth: 140 }} className="ellipsis muted"><i style={{ display: 'inline-block', width: 7, height: 7, background: p.color1, transform: 'rotate(45deg)', marginRight: 5 }} />{p.club}{p.human ? '' : ' (AI)'}</span>
                 <b style={{ width: 48, textAlign: 'right', color: '#7FE9F7' }}>{p.v.toFixed(1)}M</b>
               </button>
             ))}

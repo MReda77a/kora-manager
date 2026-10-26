@@ -53,7 +53,9 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
   }
   const F = FORMATIONS[t.formation];
   const fam = Math.max(30, Math.min(100, d.club.familiarity?.[t.formation] ?? 50));
-  const saved: string[] = plan === 'A' && d.club.lineup?.length === 11 && t.formation === d.club.tactic?.formation ? d.club.lineup : autoXI(d.players, t.formation, d.nextDay);
+  // the saved line-up, unless players in it have left (sold, swapped, retired): then the best XI
+  const sameShape = plan === 'A' && d.club.lineup?.length === 11 && t.formation === d.club.tactic?.formation;
+  const saved: string[] = autoXI(d.players, t.formation, d.nextDay, sameShape ? d.club.lineup : []);
   const change = (fn: () => void) => { fn(); setDirty(true); };
   const setField = (k: keyof Tactic, v: number) => change(() => setT({ ...t, [k]: v, preset: 'Custom' }));
   const save = async () => {
@@ -80,7 +82,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
           <span className="row tiny" title="Familiarity grows each match you play this shape" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Familiarity</span><div style={{ width: 70 }}><Bar v={fam} color={fam >= 80 ? '#7CE3A1' : fam >= 60 ? '#7FE9F7' : '#F2C14E'} /></div><b>{fam}</b></span>
           {scout?.opponent ? <span className="tag"><span>vs {scout.opponent.name}</span></span> : null}
         </>} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(280px, 1.05fr)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(280px, 1.05fr)', gap: 12 }}>
         <Pitch style={{ minHeight: 250 }}>
           <div style={{ position: 'absolute', top: 8, bottom: 8, left: `${lineX}%`, borderLeft: '2px dashed rgba(127,233,247,0.8)' }} />
           <span className="tiny" style={{ position: 'absolute', top: 10, left: `calc(${lineX}% + 4px)`, color: '#7FE9F7', fontWeight: 900 }}>DEF LINE</span>
@@ -89,7 +91,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
             const push = i === 0 ? 0 : (t.mentality - 1) * 4 + (F.slots[i] === 'DEF' ? (t.line - 1) * 4 : 0);
             const wide = F.slots[i] === 'GK' ? 0 : (y - 50) * (t.width - 1) * 0.15;
             return (
-              <div key={i} className="pc" style={{ left: `${Math.max(5, Math.min(95, x + push))}%`, top: `${Math.max(6, Math.min(94, y + wide))}%`, width: 58, height: 42, transition: 'left .3s, top .3s' }}>
+              <div key={i} className="pc" style={{ left: `clamp(31px, ${Math.max(5, Math.min(95, x + push))}%, calc(100% - 31px))`, top: `${Math.max(6, Math.min(94, y + wide))}%`, width: 58, height: 42, transition: 'left .3s, top .3s' }}>
                 <b style={{ fontSize: 17 }}>{p && roles[p.id] && ROLES[roles[p.id]]?.line === F.slots[i] ? roleShort(roles[p.id]) : F.slots[i]}</b><small>{p ? lastName(p.name) : '—'}</small>
               </div>
             );
@@ -142,9 +144,9 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
                 return (
                   <div key={p.id} className="row small" style={{ gap: 8, fontWeight: 700 }}>
                     <span className="tiny" style={{ width: 30, color: '#7FE9F7', fontWeight: 900 }}>{slot}</span>
-                    <span className="grow ellipsis">{p.name}</span>
-                    <select value={cur} onChange={(e) => change(() => setRoles({ ...roles, [p.id]: e.target.value }))} style={{ width: 130, height: 28 }} title={cur ? ROLES[cur].desc : ''}>
-                      <option value="">No role</option>
+                    <span className="grow ellipsis" style={{ minWidth: 60 }}>{lastName(p.name)}</span>
+                    <select value={cur} onChange={(e) => change(() => setRoles({ ...roles, [p.id]: e.target.value }))} style={{ width: 'clamp(104px, 40%, 140px)', height: 30 }} title={cur ? ROLES[cur].desc : ''}>
+                      <option value="">Auto (assistant)</option>
                       {opts.map(([k]) => <option key={k} value={k}>{k}</option>)}
                     </select>
                     <b className="tiny" style={{ width: 26, textAlign: 'right', color: fit >= 80 ? '#7CE3A1' : fit >= 70 ? '#7FE9F7' : fit ? '#F2C14E' : '#8A7FB8' }}>{fit || '–'}</b>
@@ -208,8 +210,8 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
           </div>
         </section>
       </div>
-      <div className="row" style={{ gap: 10 }}>
-        <div className="panel grow" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+        <div className="panel grow" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '8px 12px', minWidth: 240, flexBasis: 300 }}>
           <span className="tag" style={{ background: '#F29BC2', color: '#1B1048' }}><span>SCOUT</span></span>
           <span className="small" style={{ fontWeight: 700 }}>{scoutLine(scout)}</span>
         </div>
@@ -227,7 +229,7 @@ const roleShort = (r: string) => SHORT[r] || r.slice(0, 3).toUpperCase();
 
 function PlanTabs({ plan, plans, setPlan }: { plan: string; plans: Record<string, any>; setPlan: (p: any) => void }) {
   return (
-    <div className="row" style={{ gap: 4 }}>
+    <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
       {(['A', 'B', 'C'] as const).map((k) => (
         <button key={k} className={`seg ${plan === k ? 'on' : ''}`} onClick={() => setPlan(k)} style={{ opacity: plans[k] ? 1 : 0.6 }}>
           <span>Plan {k}{plans[k] ? ` · ${plans[k].formation}` : ' +'}</span>

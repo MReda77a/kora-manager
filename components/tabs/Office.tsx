@@ -23,12 +23,12 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
       <BackHead title="Club Office" tag={<span className="tag" style={{ background: 'rgba(232,67,140,0.3)', color: '#F29BC2' }}><span>{c.typeName.toUpperCase()}</span></span>}
         sub={ov.club.pos ? `${ov.club.pos}${['', 'st', 'nd', 'rd'][ov.club.pos] || 'th'} place` : 'Pre-season'}
         right={<><span className="tiny muted" style={{ fontWeight: 900, letterSpacing: 1 }}>PROJECTED GRADE</span><span className="lz" style={{ fontSize: 28, color: '#7CE3A1' }}>{d.grade}</span></>} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+      <div className="split3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
         <Gauge v={c.board} color="#F2C14E" title="Board confidence" note={c.board >= 60 ? 'They back you' : 'Patience is wearing thin'} good={c.board >= 60} />
         <Gauge v={fanPct} color="#E8438C" title="Fans" note={`${c.fans.toLocaleString()} supporters`} good={fanPct >= 70} />
         <Gauge v={Math.round(d.objectives.reduce((a: number, o: any) => a + o.progress, 0) / d.objectives.length * 100)} color="#7FE9F7" title="Targets" note={d.objectives.filter((o: any) => o.status === 'ON TRACK' || o.status === 'DONE').length + '/' + d.objectives.length + ' on track'} good />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ gap: 6 }}>
           <span className="kicker">Season objectives</span>
           {d.objectives.map((o: any, i: number) => (

@@ -134,14 +134,14 @@ export function MiniCard({ p, selected, dim }: { p: P; selected?: boolean; dim?:
 export function BackHead({ title, sub, onBack, href, right, tag }: { title: string; sub?: React.ReactNode; onBack?: () => void; href?: string; right?: React.ReactNode; tag?: React.ReactNode }) {
   const arrow = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3EEFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>;
   return (
-    <header className="row between" style={{ minHeight: 44, flex: 'none', gap: 12 }}>
-      <div className="row" style={{ gap: 12, minWidth: 0 }}>
+    <header className="row between backhead" style={{ minHeight: 44, flex: 'none', gap: 12, flexWrap: 'wrap', rowGap: 6 }}>
+      <div className="row" style={{ gap: 12, minWidth: 0, flex: '1 1 auto' }}>
         {href ? <a className="back" href={href} aria-label="Back">{arrow}</a> : onBack ? <button className="back" onClick={onBack} aria-label="Back">{arrow}</button> : null}
         <span className="lz" style={{ fontSize: 24, whiteSpace: 'nowrap', flex: 'none' }}>{title}</span>
         {tag}
         {sub && <span className="small muted ellipsis" style={{ fontWeight: 700 }}>{sub}</span>}
       </div>
-      {right && <div className="row" style={{ gap: 8, flex: 'none' }}>{right}</div>}
+      {right && <div className="row" style={{ gap: 8, flex: '0 1 auto', flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto', rowGap: 6 }}>{right}</div>}
     </header>
   );
 }

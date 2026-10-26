@@ -100,7 +100,7 @@ export function LeadersTab({ lid, d: ov }: TabProps) {
   return (
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Stats Leaders" sub={`After ${ov.matchdays.played} rounds`} right={<>{([['goals', 'Goals'], ['assists', 'Assists'], ['cleanSheets', 'Clean sheets'], ['rating', 'Ratings']] as const).map(([k, l]) => <button key={k} className={`seg ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}><span>{l}</span></button>)}</>} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(210px, 240px)', gap: 12 }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(210px, 240px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 2 }}>
           {rows.length === 0 && <div className="small muted" style={{ padding: 10 }}>No data yet. Play some matches.</div>}
           {rows.map((r, i) => {
@@ -108,9 +108,9 @@ export function LeadersTab({ lid, d: ov }: TabProps) {
             return (
               <div key={r.player_id} className="row small" style={{ gap: 10, padding: '5px 10px', background: mine ? 'rgba(232,67,140,0.2)' : undefined, fontWeight: 800 }}>
                 <span className="lz" style={{ width: 22, fontSize: 18, color: i === 0 ? '#F2C14E' : i === 2 ? '#EE7650' : '#B4A8E0' }}>{i + 1}</span>
-                <span className="grow ellipsis">{r.name} {mine && <span className="tiny" style={{ color: '#F29BC2' }}>YOURS</span>}</span>
-                <span className="tiny ellipsis" style={{ width: 130, color: '#CFC6F0' }}><i style={{ display: 'inline-block', width: 8, height: 8, background: r.color1, transform: 'rotate(45deg)', marginRight: 6 }} />{r.club}</span>
-                <div style={{ width: 150 }}><div className="bar" style={{ height: 8 }}><i style={{ width: `${(val(r) / max) * 100}%`, background: i === 0 ? '#F2C14E' : mine ? '#E8438C' : '#7FE9F7' }} /></div></div>
+                <span className="grow col" style={{ minWidth: 0, gap: 0 }}><span className="ellipsis">{r.name} {mine && <span className="tiny" style={{ color: '#F29BC2' }}>YOURS</span>}</span><span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{r.club}</span></span>
+                <span className="tiny ellipsis hide-sm" style={{ width: 130, color: '#CFC6F0' }}><i style={{ display: 'inline-block', width: 8, height: 8, background: r.color1, transform: 'rotate(45deg)', marginRight: 6 }} />{r.club}</span>
+                <div className="hide-sm" style={{ width: 150 }}><div className="bar" style={{ height: 8 }}><i style={{ width: `${(val(r) / max) * 100}%`, background: i === 0 ? '#F2C14E' : mine ? '#E8438C' : '#7FE9F7' }} /></div></div>
                 <span className="lz" style={{ width: 40, textAlign: 'right', fontSize: 20 }}>{val(r)}</span>
               </div>
             );
