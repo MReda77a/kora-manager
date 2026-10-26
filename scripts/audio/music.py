@@ -103,44 +103,62 @@ def drums(s, bar, kind, fill=False, crash=False):
 
 
 def anthem():
-    """the menu theme: bright and hopeful, a matchday-morning feeling (D major, 112 bpm)"""
-    s = Song(112)
-    STR, HORN, BRASS, BASS, PIANO, BELL = 0, 1, 2, 3, 4, 5
-    s.instrument(STR, 48); s.instrument(HORN, 60); s.instrument(BRASS, 61); s.instrument(BASS, 33); s.instrument(PIANO, 0); s.instrument(BELL, 10)
-    chords = ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A', 'G', 'A', 'F#m', 'Bm', 'G', 'A', 'Em', 'A']
-    melA = [[('A4', 1), ('D5', 1), ('F#5', 1.5), ('E5', .5)], [('E5', 2), ('C#5', 1), ('A4', 1)], [('B4', 1), ('D5', 1), ('F#5', 1.5), ('E5', .5)], [('D5', 2), ('B4', 1), ('D5', 1)],
-            [('A4', 1), ('D5', 1), ('F#5', 1.5), ('A5', .5)], [('A5', 1), ('G5', .5), ('F#5', .5), ('E5', 2)], [('D5', 1), ('E5', 1), ('F#5', 1), ('G5', 1)], [('E5', 3), (None, 1)]]
-    melB = [[('B5', 1.5), ('A5', .5), ('G5', 1), ('D5', 1)], [('A5', 1.5), ('G5', .5), ('F#5', 1), ('E5', 1)], [('F#5', 1.5), ('E5', .5), ('C#5', 1), ('A4', 1)], [('B4', 1), ('C#5', 1), ('D5', 1), ('F#5', 1)],
-            [('G5', 1.5), ('F#5', .5), ('G5', 1), ('B5', 1)], [('A5', 2), ('E5', 1), ('C#5', 1)], [('G5', 1), ('F#5', 1), ('E5', 1), ('D5', 1)], [('E5', 2), ('A4', 2)]]
+    """the menu theme: a driving sports-broadcast rock anthem (E minor, 126 bpm) -
+    distorted guitar chugs, synth bass, big drums, a brass hook in the second half"""
+    s = Song(126)
+    GTR, LEAD, BRASS, BASS, PAD, STR = 0, 1, 2, 3, 4, 5
+    s.instrument(GTR, 29); s.instrument(LEAD, 30); s.instrument(BRASS, 61); s.instrument(BASS, 38); s.instrument(PAD, 89); s.instrument(STR, 48)
+    chords = ['Em', 'Em', 'C', 'D', 'Em', 'Em', 'C', 'D', 'Em', 'C', 'G', 'D', 'Em', 'C', 'G', 'D']
+    hook = [[('B4', .5), ('E5', 1), ('E5', .5), ('F#5', .5), ('G5', 1.5)], [('G5', 1), ('F#5', .5), ('E5', .5), ('E5', 2)],
+            [('D5', .5), ('D5', .5), ('E5', .5), ('G5', 1), ('B5', 1.5)], [('A5', 1.5), ('G5', .5), ('F#5', 2)],
+            [('B4', .5), ('E5', 1), ('E5', .5), ('F#5', .5), ('G5', 1.5)], [('G5', 1), ('A5', .5), ('G5', .5), ('E5', 2)],
+            [('D5', 1), ('G5', 1), ('B5', 1), ('A5', 1)], [('F#5', 3), (None, 1)]]
     BARS = 16
     for rep in range(2):
         for i, c in enumerate(chords):
             bar = rep * BARS + i
             b = bar * 4
-            tri = chord(c, 4 if c[0] in 'CDE' else 3)
-            for p in tri:
-                s.note(STR, p, b, 4, 62)
             root = chord(c, 2)[0]
+            # power chords, palm-muted 8ths with accents; open and ringing in the hook
+            pw = [root + 12, root + 19, root + 24]
             for k in range(8):
-                s.note(BASS, root + (12 if k in (3, 7) else 0), b + k * 0.5, 0.5, 92 if k % 2 == 0 else 78)
-            arp = tri + [tri[0] + 12]
+                acc = k in (0, 3, 6)
+                for p in pw:
+                    s.note(GTR, p, b + k * 0.5, 0.45 if (i >= 8 or acc) else 0.25, 112 if acc else 88)
             for k in range(8):
-                s.note(PIANO, arp[[0, 1, 2, 3, 2, 1, 2, 3][k]] + 12, b + k * 0.5, 0.5, 58)
-            drums(s, bar, 'pop', fill=i in (7, 15), crash=i in (0, 8))
-            mel = (melA + melB)[i]
-            t = b
-            for p, d in mel:
-                if p:
-                    if i < 8:
-                        s.note(HORN, n(p), t, d, 96)
-                        s.note(BELL, n(p) + 12, t, min(d, 1), 50)
-                    else:
-                        s.note(BRASS, n(p), t, d, 104)
-                        s.note(STR, n(p), t, d, 70)
-                t += d
-    # a held chord after the second pass so the cut lands inside ringing sound
-    for p in chord('D', 4):
-        s.note(STR, p, 2 * BARS * 4, 4, 60)
+                s.note(BASS, root + (12 if k % 2 else 0), b + k * 0.5, 0.45, 100 if k % 2 == 0 else 84)
+            for p in chord(c, 4 if c[0] in 'CDE' else 3):
+                s.note(PAD, p, b, 4, 58 if i < 8 else 70)
+            # four on the floor, snare on 2 and 4, open hats off the beat; bigger in the hook
+            K, SN, CL, OH, CH, CR = 36, 38, 39, 46, 42, 49
+            for k in range(4):
+                s.note(9, K, b + k, 0.5, 115)
+                s.note(9, OH if i >= 8 else CH, b + k + 0.5, 0.5, 80)
+            for k in (1, 3):
+                s.note(9, SN, b + k, 0.5, 110)
+                if i >= 8:
+                    s.note(9, CL, b + k, 0.5, 90)
+            if i in (0, 8):
+                s.note(9, CR, b, 1, 105)
+            if i in (7, 15):
+                for k, t in ((3, 38), (3.25, 38), (3.5, 45), (3.75, 41)):
+                    s.note(9, t, b + k, 0.25, 110)
+            if i >= 8:
+                t = b
+                for p, d in hook[i - 8]:
+                    if p:
+                        s.note(BRASS, n(p), t, d, 112)
+                        s.note(LEAD, n(p) - 12, t, d, 84)
+                        s.note(STR, n(p) + 12, t, d, 64)
+                    t += d
+            else:
+                # first half: a guitar answer phrase every other bar
+                if i % 2 == 1:
+                    for k, p in ((2, 'E4'), (2.5, 'G4'), (3, 'A4'), (3.5, 'B4')):
+                        s.note(LEAD, n(p) + (2 if c == 'D' else 0), b + k, 0.5, 90)
+    for p in [n('E3'), n('B3'), n('E4')]:
+        s.note(GTR, p, 2 * BARS * 4, 2, 100)
+    s.note(9, 49, 2 * BARS * 4, 1, 100)
     render(s, BARS * 4, 'music-menu')
 
 
@@ -191,5 +209,6 @@ def derby():
 
 
 if __name__ == '__main__':
-    anthem()
-    derby()
+    import sys
+    if 'derby' not in sys.argv[1:]: anthem()
+    if 'menu' not in sys.argv[1:]: derby()
