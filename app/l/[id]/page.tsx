@@ -16,6 +16,7 @@ import CupTab from '../../../components/tabs/Cup.tsx';
 import PaperTab from '../../../components/tabs/Paper.tsx';
 import AwardsTab from '../../../components/tabs/Awards.tsx';
 import { FixturesTab, LeadersTab, TableTab } from '../../../components/tabs/LeagueTabs.tsx';
+import HistoryTab from '../../../components/tabs/History.tsx';
 import LiveAlert from '../../../components/LiveAlert.tsx';
 import { TABS, type Tab } from '../../../components/tabs/types.ts';
 
@@ -73,7 +74,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
             <Crest c1={club.color1} c2={club.color2} shape={club.shape} emblem={club.emblem} size={38} />
             <div className="col grow" style={{ gap: 0, lineHeight: 1.1, minWidth: 0 }}>
               <span className="lz ellipsis" style={{ fontSize: 22 }}>{club.name}</span>
-              <span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{league.name} · {league.poolName} · {league.status === 'setup' ? 'Pre-season' : league.status === 'finished' ? 'Season over' : `Matchday ${d.matchdays.played}/${d.matchdays.total}`}</span>
+              <span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{league.name} · {league.poolName} · {league.status === 'setup' ? 'Pre-season' : league.status === 'finished' ? `Season ${league.season} over` : `S${league.season} · Matchday ${d.matchdays.played}/${d.matchdays.total}`}</span>
             </div>
             <div className="coin" title="Coins for packs"><Coin /><b>{club.coins}</b></div>
             <div className="coin" title="Club money"><Cash /><b>{Number(club.money).toFixed(1)}M</b></div>
@@ -95,6 +96,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'paper' && <PaperTab {...props} />}
           {tab === 'awards' && <AwardsTab {...props} />}
           {tab === 'leaders' && <LeadersTab {...props} />}
+          {tab === 'history' && <HistoryTab {...props} />}
         </div>
       </div>
       <LiveAlert live={d.live} club={club} />

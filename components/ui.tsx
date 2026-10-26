@@ -105,6 +105,7 @@ const ICONS: Record<string, string> = {
   paper: 'M5 4h12v16H7a2 2 0 01-2-2zM17 8h2v10a2 2 0 01-2 2M8 8h6M8 12h6M8 16h4',
   awards: 'M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19l1-5.8L3.5 9.2l5.9-.9z',
   players: 'M9 7a3 3 0 106 0 3 3 0 00-6 0M5 21v-2a5 5 0 015-5h4a5 5 0 015 5v2',
+  history: 'M3 12a9 9 0 103-6.7M3 4v4h4M12 7v5l3 2',
   bell: 'M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20a2 2 0 004 0',
 };
 export function Icon({ name, size = 22, color = 'currentColor' }: { name: string; size?: number; color?: string }) {
@@ -177,3 +178,24 @@ export function Stars({ n }: { n: number }) {
 }
 
 export const lastName = (n: string) => n.split(' ').slice(-1)[0];
+
+// A football shirt in a club's colours. pattern: 0 plain, 1 stripes, 2 halves, 3 hoops, 4 sash.
+export function Kit({ c1, c2, pattern = 0, size = 40, label }: { c1: string; c2: string; pattern?: number; size?: number; label?: string }) {
+  const id = `k${(c1 + c2 + pattern).replace(/[^a-z0-9]/gi, '')}`;
+  const body = 'M14 6l6-3h8l6 3 9 6-5 8-5-3v24H14V17l-5 3-5-8z';
+  return (
+    <svg width={size} height={size * 0.9} viewBox="0 0 48 44" aria-label={label} role={label ? 'img' : undefined}>
+      <defs><clipPath id={id}><path d={body} /></clipPath></defs>
+      <g clipPath={`url(#${id})`}>
+        <rect width="48" height="44" fill={c1} />
+        {pattern === 1 && [12, 20, 28, 36].map((x) => <rect key={x} x={x} y="0" width="4" height="44" fill={c2} />)}
+        {pattern === 2 && <rect x="24" y="0" width="24" height="44" fill={c2} />}
+        {pattern === 3 && [12, 22, 32].map((y) => <rect key={y} x="0" y={y} width="48" height="5" fill={c2} />)}
+        {pattern === 4 && <path d="M8 4l8-2 28 38-8 3z" fill={c2} />}
+        <path d="M20 3h8l-4 5z" fill={c2} />
+        <path d="M4 12l5 8 3-2-4-9zM44 12l-5 8-3-2 4-9z" fill={c2} opacity="0.85" />
+      </g>
+      <path d={body} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1" />
+    </svg>
+  );
+}

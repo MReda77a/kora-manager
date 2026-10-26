@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/client.ts';
-import { BackHead, Ring, Spinner } from '../ui.tsx';
+import { BackHead, COLORS, Kit, Ring, Spinner } from '../ui.tsx';
+import { PATTERNS } from '../../lib/game.ts';
 import type { TabProps } from './types.ts';
 
 export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
@@ -40,6 +41,11 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
               <span className={`status ${statusCls(o.status)}`}>{o.status}</span>
             </div>
           ))}
+          <span className="kicker" style={{ marginTop: 6 }}>Manager's inbox</span>
+          {!d.inbox.length && <span className="small muted">Nothing yet. Player complaints, offers, club events and board messages land here.</span>}
+          <div className="col" style={{ gap: 3, maxHeight: 220, overflowY: 'auto' }}>
+            {d.inbox.map((m: any) => <div key={m.id} className="row small" style={{ gap: 8, fontWeight: 700, padding: '4px 8px', background: 'rgba(255,255,255,0.04)' }}><span className="grow">{m.text}</span><span className="tiny dim">{new Date(m.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span></div>)}
+          </div>
           <div className="small" style={{ padding: '6px 10px', background: 'rgba(10,4,30,0.4)' }}><b style={{ color: '#F2C14E' }}>Club perk:</b> {d.perk} <b style={{ color: '#FF9AA8' }}>Weakness:</b> {d.weak}</div>
         </section>
         <section className="col" style={{ gap: 10 }}>
@@ -55,6 +61,7 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
               );
             })}
           </div>
+          <KitPanel kit={d.kit} save={(kit: any) => act('setup', { kit }, 'Kits saved')} />
           <div className="panel cut" style={{ gap: 6 }}>
             <span className="kicker">Stadium</span>
             {editing ? (
@@ -67,6 +74,31 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function KitPanel({ kit, save }: { kit: any; save: (k: any) => void }) {
+  const [k, setK] = useState(kit);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="panel cut" style={{ gap: 6 }}>
+      <div className="row between"><span className="kicker">Kits</span><button className="seg" onClick={() => (open ? (save(k), setOpen(false)) : setOpen(true))}><span>{open ? 'Save' : 'Edit'}</span></button></div>
+      <div className="row" style={{ gap: 16 }}>
+        <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={k.color1} c2={k.color2} pattern={k.pattern} size={46} label="Home kit" /><span className="tiny muted">Home</span></div>
+        <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={k.away1} c2={k.away2} size={46} label="Away kit" /><span className="tiny muted">Away</span></div>
+        <span className="tiny muted grow">When both teams' shirts look alike, the away side changes to its away kit (or a white or black third kit).</span>
+      </div>
+      {open && (
+        <div className="col" style={{ gap: 4 }}>
+          <div className="row wrap" style={{ gap: 4 }}>{PATTERNS.map((p, i) => <button key={p} className={`seg ${k.pattern === i ? 'on' : ''}`} onClick={() => setK({ ...k, pattern: i })}><span>{p}</span></button>)}</div>
+          {(['away1', 'away2'] as const).map((key, j) => (
+            <div key={key} className="row wrap" style={{ gap: 3 }}><span className="tiny muted" style={{ width: 54 }}>{j ? 'Away 2nd' : 'Away'}</span>
+              {COLORS.map((c: string) => <button key={c} aria-label={c} onClick={() => setK({ ...k, [key]: c })} style={{ width: 20, height: 20, background: c, boxShadow: k[key] === c ? '0 0 0 2px #1E1250, 0 0 0 3px #F3EEFF' : 'inset 0 0 0 1px rgba(255,255,255,0.25)' }} />)}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

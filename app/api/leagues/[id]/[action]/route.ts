@@ -3,19 +3,22 @@ import { body, fail, handle, requireUser } from '../../../../../lib/http.ts';
 import * as L from '../../../../../lib/league.ts';
 import * as S from '../../../../../lib/season.ts';
 import * as C from '../../../../../lib/club.ts';
-import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, type ClubTypeKey } from '../../../../../lib/game.ts';
+import * as P from '../../../../../lib/people.ts';
+import * as O from '../../../../../lib/offers.ts';
+import * as K from '../../../../../lib/career.ts';
+import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, traitOf, type ClubTypeKey } from '../../../../../lib/game.ts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string; action: string }> };
 
-const FX_SELECT = `SELECT f.id, f.matchday, f.day, f.comp, f.round, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.home_id, f.away_id, f.winner_id, f.live_from,
+const FX_SELECT = `SELECT f.id, f.matchday, f.day, f.comp, f.round, f.division, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.home_id, f.away_id, f.winner_id, f.live_from,
   h.name AS home, h.short AS hs, h.color1 AS hc, h.color2 AS hc2, h.shape AS hsh, h.emblem AS hem, h.club_type AS ht, h.user_id AS hu,
   a.name AS away, a.short AS as_, a.color1 AS ac, a.color2 AS ac2, a.shape AS ash, a.emblem AS aem, a.club_type AS at, a.user_id AS au
   FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id`;
 
-export const GET = handle(async (_req: Request, ctx: Ctx) => {
+export const GET = handle(async (req: Request, ctx: Ctx) => {
   const s = await requireUser();
   const { id, action } = await ctx.params;
   const lid = Number(id);
@@ -27,10 +30,14 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
     const run = l.status === 'running' ? await S.runDue(lid) : { remaining: 0 };
     await C.applyTrainings(lid);
     const fresh = await L.getLeague(lid);
-    const table = fresh.status === 'setup' ? [] : await L.standings(lid);
+    const divParam = Number(new URL(req.url).searchParams.get('div')) || 0;
+    const myDiv = club?.division || 1;
+    const division = divParam >= 1 && divParam <= (fresh.divisions || 1) ? divParam : myDiv;
+    const table = fresh.status === 'setup' ? [] : await L.standings(lid, division);
+    const myTable = division === myDiv ? table : fresh.status === 'setup' ? [] : await L.standings(lid, myDiv);
     const win = await L.windowFor(fresh);
     const mine = club ? await q(`${FX_SELECT} WHERE f.league_id=$1 AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.day`, [lid, club.id]) : [];
-    const newsRows = await q('SELECT kind, text, created_at FROM news WHERE league_id=$1 ORDER BY id DESC LIMIT 20', [lid]);
+    const newsRows = await q(`SELECT kind, text, created_at FROM news WHERE league_id=$1 AND kind<>'inbox' ORDER BY id DESC LIMIT 20`, [lid]);
     const md = await one<{ played: number; total: number }>(
       `SELECT COUNT(DISTINCT matchday) FILTER (WHERE status='done')::int AS played, COUNT(DISTINCT matchday)::int AS total FROM fixtures WHERE league_id=$1 AND comp='league'`, [lid]);
     let extra: Record<string, unknown> = {};
@@ -44,17 +51,23 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
         squadSize: sq.length, gks: sq.filter((p) => p.nat_pos === 'GK').length,
         strength: Math.round(xiFit.reduce((a, p) => a + p.ovr, 0) / Math.max(1, xiFit.length)),
         fitness: Math.round(xiFit.reduce((a, p) => a + Math.min(100, p.fitness + 22), 0) / Math.max(1, xiFit.length)),
-        morale: Math.max(0, Math.min(100, 60 + Math.round(sq.reduce((a, p) => a + (p.mod || 0), 0) * 3) + Math.round((club.board - 60) / 2))),
+        morale: Math.round(sq.reduce((a, p) => a + (p.morale ?? 70), 0) / Math.max(1, sq.length)),
+        unhappy: sq.filter((p) => (p.morale ?? 70) < 40).length,
+        requests: sq.filter((p) => p.request).length,
+        inbox: await P.inboxOf(lid, club.id),
+        offers: (await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM offers WHERE to_club=$1 AND status='pending'`, [club.id]))?.n ?? 0,
+        reputation: (await one<{ r: number }>('SELECT reputation AS r FROM users WHERE id=$1', [s.uid]))?.r ?? 0,
         star: star ? { ...L.pub(star), goals: stats?.goals ?? 0, assists: stats?.assists ?? 0 } : null,
         staff: await C.staffLevels(club.id),
       };
     }
-    const pos = club ? table.findIndex((t) => t.id === club.id) + 1 : 0;
+    const pos = club ? myTable.findIndex((t) => t.id === club.id) + 1 : 0;
     const live = mine.filter((f) => f.status === 'live');
     return {
-      league: { id: fresh.id, name: fresh.name, code: fresh.code, pool: fresh.pool, poolName: POOLS[fresh.pool], cupName: CUP_NAMES[fresh.pool], status: fresh.status, kickoffUtcMin: fresh.kickoff_utc_min, maxClubs: fresh.max_clubs, aiLevel: fresh.ai_level, isOwner: fresh.owner_id === s.uid },
-      club: club ? { ...club, money: Number(club.money), type: CLUB_TYPES[club.club_type as ClubTypeKey], pos, targetPos: CLUB_TYPES[club.club_type as ClubTypeKey].targetPos(fresh.max_clubs), ...extra } : null,
-      table, window: win, fixtures: mine, live, news: newsRows, matchdays: md, pending: run.remaining, now: new Date().toISOString(),
+      league: { id: fresh.id, name: fresh.name, code: fresh.code, pool: fresh.pool, poolName: POOLS[fresh.pool], cupName: CUP_NAMES[fresh.pool], status: fresh.status, kickoffUtcMin: fresh.kickoff_utc_min, maxClubs: fresh.max_clubs, aiLevel: fresh.ai_level, isOwner: fresh.owner_id === s.uid,
+        season: fresh.season, divisions: fresh.divisions || 1, divisionNames: Array.from({ length: fresh.divisions || 1 }, (_, i) => K.divisionName(i + 1)), movers: K.movers(fresh.max_clubs), startDivision: fresh.start_division },
+      club: club ? { ...club, money: Number(club.money), type: CLUB_TYPES[club.club_type as ClubTypeKey], pos, targetPos: (club.division || 1) > 1 ? K.movers(fresh.max_clubs) : CLUB_TYPES[club.club_type as ClubTypeKey].targetPos(fresh.max_clubs), ...extra } : null,
+      table, division, window: win, fixtures: mine, live, news: newsRows, matchdays: md, pending: run.remaining, now: new Date().toISOString(),
     };
   }
   if (action === 'squad') {
@@ -68,10 +81,26 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
     const li = new Map(listed.map((x) => [x.player_id, x]));
     const next = await one(`${FX_SELECT} WHERE f.league_id=$1 AND f.status='scheduled' AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.day LIMIT 1`, [lid, c.id]);
     return {
-      club: { id: c.id, name: c.name, short: c.short, color1: c.color1, color2: c.color2, tactic: c.tactic, lineup: c.lineup, pens: c.pens, assistant: c.assistant, coins: c.coins, money: Number(c.money) },
+      club: {
+        id: c.id, name: c.name, short: c.short, color1: c.color1, color2: c.color2, tactic: c.tactic, lineup: c.lineup, pens: c.pens, assistant: c.assistant, coins: c.coins, money: Number(c.money),
+        plans: c.plans || {}, roles: c.roles || {}, setpieces: c.setpieces || {}, familiarity: c.familiarity || {},
+      },
       nextDay: day, next,
-      players: players.map((p) => ({ ...L.pub(p), fitness: Math.round(p.fitness), outUntil: p.out_until, outReason: p.out_reason, form: p.mod, formNote: p.mod ? p.form_note : null, stats: st.get(p.id) || null, listing: li.get(p.id) || null })),
+      players: players.map((p) => ({ ...L.pub(p), fitness: Math.round(p.fitness), outUntil: p.out_until, outReason: p.out_reason, form: p.form, formNote: p.form ? p.form_note : null, stats: st.get(p.id) || null, listing: li.get(p.id) || null,
+        morale: p.morale ?? 70, trait: traitOf(p.id), request: !!p.request, loan: !!p.loan_from, promised: !!p.promise_day, ovrDelta: p.ovr_delta || 0 })),
     };
+  }
+  if (action === 'offers') return O.offersView(s.uid, lid);
+  if (action === 'history') return { ...(await K.historyView(lid)), season: l.season, myClub: club?.id ?? null };
+  if (action === 'players') {
+    // every club's players, for making offers
+    const rows = await q(
+      `SELECT p.id, p.name, p.pos, p.age + s.age_add AS age, p.ovr + s.ovr_delta AS ovr, p.attrs->>'v' AS v, s.request, s.loan_from IS NOT NULL AS loan,
+         c.id AS club_id, c.name AS club, c.color1, c.user_id IS NOT NULL AS human
+       FROM squad s JOIN players p ON p.id=s.player_id JOIN clubs c ON c.id=s.club_id WHERE s.league_id=$1 AND c.id<>$2 ORDER BY p.ovr + s.ovr_delta DESC`,
+      [lid, club?.id ?? 0],
+    );
+    return rows.map((r) => ({ ...r, v: Number(r.v) || 1 }));
   }
   if (action === 'fixtures') return q(`${FX_SELECT} WHERE f.league_id=$1 ORDER BY f.day, f.id`, [lid]);
   if (action === 'stats') return L.leaders(lid);
@@ -144,6 +173,10 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'stadium': return C.renameStadium(s.uid, lid, String(b.name));
     case 'expand': return C.expandStadium(s.uid, lid);
     case 'comment': return C.postComment(s.uid, lid, b);
+    case 'nextseason': return S.nextSeason(s.uid, lid);
+    case 'offer': return O.makeOffer(s.uid, lid, b);
+    case 'respond': return O.respondOffer(s.uid, lid, Number(b.id), String(b.action), Number(b.amount));
+    case 'talk': return P.talkTo(s.uid, lid, String(b.playerId), String(b.kind));
   }
   fail(404, 'Unknown action.');
 });

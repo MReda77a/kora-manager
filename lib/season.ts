@@ -7,13 +7,16 @@
 import { q, one, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  AI_COLORS, AI_NAMES_BY_POOL, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
+  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, conditionsFor, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic,
 } from './game.ts';
 import { aiTactic, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
 import { AI_SQUAD, botListings, checkSquads, cleanTactic, getLeague, myClub, news, pickXI, squadOf, standings } from './league.ts';
 import { staffLevels } from './club.ts';
+import { moraleAfterMatch, randomEvents } from './people.ts';
+import { endSeason, startNextSeason } from './career.ts';
+import { botBids } from './offers.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
 const LIVE_MS = LIVE_SECONDS * 1000;
@@ -48,8 +51,14 @@ export async function startSeason(uid: number, leagueId: number) {
 // Bots build their squads the way a manager does with packs: a few stars, a solid core and depth,
 // drawn from the same percentile bands of the pool. Harder bots get a little more quality.
 async function fillWithBots(l: Row, humanCount: number) {
-  const need = l.max_clubs - humanCount;
+  const D = l.divisions || 1;
+  const humanDiv = l.start_division === 'top' ? 1 : D;
+  await q('UPDATE clubs SET division=$2 WHERE league_id=$1 AND user_id IS NOT NULL', [l.id, humanDiv]);
+  const need = l.max_clubs * D - humanCount;
   if (need <= 0) return;
+  // which division each bot plays in: top flight first, so stronger bots draft first
+  const botDiv: number[] = [];
+  for (let d = 1; d <= D; d++) for (let k = 0; k < l.max_clubs - (d === humanDiv ? humanCount : 0); k++) botDiv.push(d);
   const all = await q(`SELECT p.id, p.pos, p.ovr, EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$2 AND s.player_id=p.id) AS taken FROM players p WHERE pool=$1 ORDER BY ovr DESC, id`, [l.pool, l.id]);
   const r = rng(hashSeed('bots', l.id));
   const n = all.length;
@@ -74,9 +83,10 @@ async function fillWithBots(l: Row, humanCount: number) {
     const type = (['fan', 'invest', 'academy', 'commercial', 'historic'] as ClubTypeKey[])[i % 5];
     const t = aiTactic(0, [], hashSeed(l.id, i));
     const c = await q(
-      `INSERT INTO clubs (league_id, user_id, name, short, color1, color2, shape, emblem, stadium, club_type, coins, money, tactic, fans)
-       VALUES ($1,NULL,$2,$3,$4,'#F3EEFF',$5,$6,$7,$8,0,$9,$10::jsonb,$11) RETURNING id`,
-      [l.id, name, shortName(name), AI_COLORS[i % AI_COLORS.length], i % 4, i % 6, `${name.split(' ').slice(-1)[0]} Stadium`, type, CLUB_TYPES[type].money, JSON.stringify(t), 18000 + Math.floor(r.next() * 14000)],
+      `INSERT INTO clubs (league_id, user_id, name, short, color1, color2, shape, emblem, stadium, club_type, coins, money, tactic, fans, division, away1, away2, pattern)
+       VALUES ($1,NULL,$2,$3,$4,'#F3EEFF',$5,$6,$7,$8,0,$9,$10::jsonb,$11,$12,'#F3EEFF',$13,$14) RETURNING id`,
+      [l.id, name, shortName(name), AI_COLORS[i % AI_COLORS.length], i % 4, i % 6, `${name.split(' ').slice(-1)[0]} Stadium`, type, CLUB_TYPES[type].money, JSON.stringify(t),
+        (18000 + Math.floor(r.next() * 14000)) >> (botDiv[i] - 1), botDiv[i], '#151018', i % 3 === 0 ? 1 : 0],
     );
     botIds.push(c[0].id);
   }
@@ -93,8 +103,10 @@ async function fillWithBots(l: Row, humanCount: number) {
     return null;
   };
   // each bot shuffles its bands over its 18 places; places are filled in rounds so bots stay even
-  const shuffled = botIds.map(() => {
-    const bands = [...plan[l.ai_level] || plan[2]].sort(() => r.next() - 0.5);
+  const shuffled = botIds.map((_, bi) => {
+    // lower divisions draft one band lower per step down
+    const shift = botDiv[bi] - 1;
+    const bands = [...plan[l.ai_level] || plan[2]].map((b) => order[Math.min(3, order.indexOf(b) + shift)]).sort(() => r.next() - 0.5);
     // a keeper never gets the single star pick
     const li = bands.indexOf('L');
     if (li >= 0 && li < 2) { const j = 2 + Math.floor(r.next() * 16); [bands[li], bands[j]] = [bands[j], bands[li]]; }
@@ -127,22 +139,29 @@ const roundName = (teams: number, prelim: boolean) =>
 // One match day per calendar day: league matchdays, a free day at the halfway break (transfer window),
 // and cup rounds spread through the season.
 async function makeSchedule(l: Row) {
-  const clubs = (await q('SELECT id FROM clubs WHERE league_id=$1 ORDER BY id', [l.id])).map((c) => c.id as number);
-  const r = rng(hashSeed('fixtures', l.id));
-  const ids: (number | null)[] = [...clubs].sort(() => r.next() - 0.5);
-  if (ids.length % 2) ids.push(null);
-  const n = ids.length;
-  const rounds: [number, number][][] = [];
-  for (let rd = 0; rd < n - 1; rd++) {
-    const games: [number, number][] = [];
-    for (let i = 0; i < n / 2; i++) {
-      const a = ids[i], b = ids[n - 1 - i];
-      if (a != null && b != null) games.push(rd % 2 === 0 ? [a, b] : [b, a]);
+  const all = await q('SELECT id, division FROM clubs WHERE league_id=$1 ORDER BY id', [l.id]);
+  const clubs = all.map((c) => c.id as number);
+  const r = rng(hashSeed('fixtures', l.id, l.season || 1));
+  // a double round robin per division; every division has the same number of clubs
+  const roundRobin = (members: number[]) => {
+    const ids: (number | null)[] = [...members].sort(() => r.next() - 0.5);
+    if (ids.length % 2) ids.push(null);
+    const n = ids.length;
+    const rounds: [number, number][][] = [];
+    for (let rd = 0; rd < n - 1; rd++) {
+      const games: [number, number][] = [];
+      for (let i = 0; i < n / 2; i++) {
+        const a = ids[i], b = ids[n - 1 - i];
+        if (a != null && b != null) games.push(rd % 2 === 0 ? [a, b] : [b, a]);
+      }
+      rounds.push(games);
+      ids.splice(1, 0, ids.pop()!);
     }
-    rounds.push(games);
-    ids.splice(1, 0, ids.pop()!);
-  }
-  const league = [...rounds, ...rounds.map((g) => g.map(([a, b]) => [b, a] as [number, number]))];
+    return [...rounds, ...rounds.map((g) => g.map(([a, b]) => [b, a] as [number, number]))];
+  };
+  const divs = [...new Set(all.map((c) => c.division as number))].sort();
+  const perDiv = divs.map((d) => ({ d, rounds: roundRobin(all.filter((c) => c.division === d).map((c) => c.id)) }));
+  const league = perDiv[0].rounds.map((_, i) => perDiv.flatMap((x) => (x.rounds[i] || []).map(([h, a]) => [h, a, x.d] as [number, number, number])));
   const L = league.length, half = L / 2;
 
   // cup rounds
@@ -175,11 +194,11 @@ async function makeSchedule(l: Row) {
   );
   const fx = league.flatMap((games, i) => {
     const d = dayRows.find((x) => x.kind === 'league' && x.md === i + 1)!;
-    return games.map(([h, a]) => ({ md: i + 1, h, a, day: d.day, at: d.at }));
+    return games.map(([h, a, dv]) => ({ md: i + 1, h, a, dv, day: d.day, at: d.at }));
   });
   await q(
-    `INSERT INTO fixtures (league_id, matchday, home_id, away_id, kickoff_at, day, comp)
-     SELECT $1, x.md, x.h, x.a, x.at::timestamptz, x.day, 'league' FROM jsonb_to_recordset($2::jsonb) AS x(md int, h int, a int, day int, at text)`,
+    `INSERT INTO fixtures (league_id, matchday, home_id, away_id, kickoff_at, day, comp, division)
+     SELECT $1, x.md, x.h, x.a, x.at::timestamptz, x.day, 'league', x.dv FROM jsonb_to_recordset($2::jsonb) AS x(md int, h int, a int, day int, at text, dv int)`,
     [l.id, JSON.stringify(fx)],
   );
   await q(
@@ -327,7 +346,11 @@ async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean, tone:
   }
   const { xi, bench } = pickXI(players, tactic.formation, club.user_id ? club.lineup || [] : [], day);
   const toneMod = tone === 'provocative' ? 2 : tone === 'confident' ? 1 : 0;
-  const toE = (p: Row): EPlayer => ({ id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), a: p.attrs, mod: (p.mod || 0) + toneMod });
+  const bigGame = f.comp === 'cup' || (home ? isDerby(club, opp) : isDerby(opp, club));
+  const toE = (p: Row): EPlayer => ({
+    id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), a: p.attrs,
+    mod: Math.round(((p.mod || 0) + toneMod + (bigGame && traitOf(p.id) === 'Big-game player' ? 2 : 0)) * 10) / 10,
+  });
   const pens = (club.pens || []).filter((id: string) => xi.some((p) => p.id === id));
   let boost = 0;
   if (!club.user_id) {
@@ -345,7 +368,31 @@ async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean, tone:
     pens: pens.length ? pens : xi.filter((p) => p.pos !== 'GK').sort((a, b) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure)).slice(0, 5).map((p) => p.id),
     homeBoost: home ? (club.club_type === 'fan' ? 1 : 0) + Math.min(1, (club.fans || 20000) / 40000) : 0,
     injuryRisk: 1 - lv.doctor * 0.08,
+    ...(club.user_id
+      ? { roles: club.roles || {}, setpieces: club.setpieces || {}, familiarity: familiarityOf(club, tactic.formation) }
+      : autoRoles(xi, tactic.formation)),
   };
+}
+
+// How well a club knows a formation: 50 for a new shape, up to 100 after many matches in it.
+export function familiarityOf(club: Row, formation: string) {
+  return Math.max(30, Math.min(100, (club.familiarity || {})[formation] ?? 50));
+}
+
+// Bots pick sensible roles and set-piece takers for their line-up, and know their shape well.
+function autoRoles(xi: Row[], formation: string) {
+  const slots = (FORMATIONS[formation] || FORMATIONS['4-3-3']).slots;
+  const roles: Record<string, string> = {};
+  xi.forEach((p, i) => {
+    const slot = slots[i], a = p.attrs || {};
+    if (slot === 'GK') roles[p.id] = (a.Distribution ?? 0) > (a.Reflexes ?? 0) ? 'Sweeper keeper' : 'Shot stopper';
+    else if (slot === 'DEF') roles[p.id] = ['LB', 'RB'].includes(p.pos) ? 'Wing-back' : (a.Passing ?? 0) > (a.Tackling ?? 0) ? 'Ball-playing' : 'Stopper';
+    else if (slot === 'MID') roles[p.id] = p.pos === 'DM' ? 'Anchor' : p.pos === 'CAM' || (a.Vision ?? 0) > 78 ? 'Playmaker' : 'Box-to-box';
+    else roles[p.id] = p.pos === 'ST' ? ((a.Heading ?? 0) > (a.Finishing ?? 0) ? 'Target man' : 'Poacher') : 'Inside forward';
+  });
+  const outfield = xi.filter((p) => p.pos !== 'GK');
+  const best = (k: string) => [...outfield].sort((x, y) => (y.attrs?.[k] ?? 0) - (x.attrs?.[k] ?? 0))[0]?.id;
+  return { roles, setpieces: { corner: best('Crossing'), fk: best('LongShots'), routine: 'far' }, familiarity: 75 };
 }
 
 const isDerby = (h: Row, a: Row) => h.club_type === 'fan' && a.club_type === 'fan' && !!h.user_id && !!a.user_id;
@@ -358,9 +405,12 @@ async function kickOff(f: Row) {
   const tones = await q('SELECT club_id, tone FROM comments WHERE league_id=$1 AND day=$2 AND club_id IN ($3,$4)', [l.id, f.day, home.id, away.id]);
   const toneOf = (id: number) => tones.find((t) => t.club_id === id)?.tone ?? null;
   const derby = isDerby(home, away);
-  const hs = await sideFor(home, l, f, away, true, derby ? toneOf(home.id) : null);
-  const as = await sideFor(away, l, f, home, false, derby ? toneOf(away.id) : null);
-  const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby });
+  // mind games: pre-match words count whenever two managers meet, not only in derbies
+  const rivals = derby || (!!home.user_id && !!away.user_id);
+  const hs = await sideFor(home, l, f, away, true, rivals ? toneOf(home.id) : null);
+  const as = await sideFor(away, l, f, home, false, rivals ? toneOf(away.id) : null);
+  const cond = conditionsFor(f.id, l.pool, f.day);
+  const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, weather: cond.weather, strict: cond.referee.strict });
   await q(
     `UPDATE fixtures SET status='live', sides=$2::jsonb, report=$3::jsonb, changes='[]'::jsonb,
        live_from=now(), live_until=now() + make_interval(secs => $4) WHERE id=$1 AND status='playing'`,
@@ -389,6 +439,11 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   let ch: Change;
   if (b.kind === 'sub') {
     ch = { m: minute, side: side as 0 | 1, kind: 'sub', out: String(b.out), in: String(b.in) };
+  } else if (b.plan) {
+    const key = String(b.plan).toUpperCase();
+    const plan = (club.plans || {})[key] || (key === 'A' ? club.tactic : null);
+    if (!plan || !plan.formation) fail(400, `Plan ${key} is empty. Save it in Tactics first.`);
+    ch = { m: minute, side: side as 0 | 1, kind: 'tactic', tactic: { ...cleanTactic(plan), plan: key } };
   } else {
     const t: Record<string, unknown> = {};
     if (b.preset && PRESETS[b.preset]) t.preset = b.preset;
@@ -399,7 +454,8 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   const all = [...changes, ch];
   const [hs, as] = f.sides as [ESide, ESide];
   const derby = !!f.report?.derby;
-  const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, changes: all });
+  const cond = conditionsFor(f.id, (await getLeague(f.league_id)).pool, f.day);
+  const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, changes: all, weather: cond.weather, strict: cond.referee.strict });
   await q(`UPDATE fixtures SET changes=$2::jsonb, report=$3::jsonb WHERE id=$1 AND status='live'`, [f.id, JSON.stringify(all), JSON.stringify(rep)]);
   return { report: rep, minute };
 }
@@ -478,6 +534,17 @@ async function finalizeFixture(f: Row) {
       `UPDATE clubs SET coins=coins+$1, money=money+$2, fans=GREATEST(3000, fans+$3), board=LEAST(100, GREATEST(0, board+$4)) WHERE id=$5`,
       [coins, money.toFixed(2), fans, board, c.id],
     );
+    if (c.user_id) {
+      // manager reputation, squad morale and how well the team knows its shape
+      await q('UPDATE users SET reputation=reputation+$1 WHERE id=$2', [won ? 3 : lost ? 0 : 1, c.user_id]);
+      const si = isHome ? 0 : 1;
+      await moraleAfterMatch(l.id, f.day, c.id, sides[si], rep, won, lost);
+      const used = rep.lineups?.[si]?.formation || sides[si].tactic.formation;
+      const fam: Record<string, number> = { ...(c.familiarity || {}) };
+      for (const k of Object.keys(fam)) if (k !== used) fam[k] = Math.max(40, fam[k] - 2);
+      fam[used] = Math.min(100, (fam[used] ?? 50) + (c.club_type === 'historic' ? 12 : 8));
+      await q('UPDATE clubs SET familiarity=$2::jsonb WHERE id=$1', [c.id, JSON.stringify(fam)]);
+    }
   }
   if (derby) {
     const w = winnerId === home.id || hg > ag ? home.name : winnerId === away.id || ag > hg ? away.name : null;
@@ -528,9 +595,11 @@ async function processDay(d: Row) {
   }
 
   if (d.kind === 'league') {
+    await randomEvents(l, d.day);
     paper.label = `Matchday ${d.matchday}`;
     paper.totw = await teamOfTheWeek(l, d, fx);
-    const table = await standings(l.id);
+    const hd = (await one<{ d: number }>('SELECT MIN(division)::int AS d FROM clubs WHERE league_id=$1 AND user_id IS NOT NULL', [l.id]))?.d || 1;
+    const table = await standings(l.id, hd);
     paper.top = table.slice(0, 3).map((t) => ({ name: t.name, pts: t.pts, p: t.p }));
     if (!paper.headline) paper.headline = `${table[0]?.name} lead the way`;
     if (d.matchday % 4 === 0) await playerOfTheMonth(l, d);
@@ -555,8 +624,10 @@ async function processDay(d: Row) {
   }
   if (d.kind === 'break') {
     paper.label = 'Mid-season break';
-    paper.headline = 'The window is open';
-    paper.sub = 'No matches today. Clubs are busy on the market.';
+    paper.headline = 'DEADLINE DAY';
+    paper.sub = 'No matches today. The window slams shut at the next kick-off. Who will move?';
+    await botBids(l, d.day);
+    await news(l.id, null, 'deadline', '⏰ DEADLINE DAY! The transfer window closes at the next kick-off. Get your offers in.');
   }
   await q(
     `INSERT INTO papers (league_id, day, kind, data) VALUES ($1,$2,'paper',$3::jsonb) ON CONFLICT (league_id, day, kind) DO UPDATE SET data=EXCLUDED.data`,
@@ -567,22 +638,7 @@ async function processDay(d: Row) {
   if (left?.n === 0) await endSeason(l);
 }
 
-async function endSeason(l: Row) {
-  const done = await q(`UPDATE leagues SET status='finished' WHERE id=$1 AND status='running' RETURNING id`, [l.id]);
-  if (!done[0]) return;
-  const table = await standings(l.id);
-  if (table[0]) await news(l.id, table[0].id, 'champion', `${table[0].name} are the champions!`);
-  for (const [i, c] of table.entries()) {
-    const club = await one('SELECT * FROM clubs WHERE id=$1', [c.id]);
-    if (!club?.user_id) continue;
-    const target = CLUB_TYPES[club.club_type as ClubTypeKey].targetPos(table.length);
-    if (club.sponsor === 'target' && i + 1 <= target) {
-      await q('UPDATE clubs SET money=money+$1 WHERE id=$2', [SPONSORS.target.bonus, club.id]);
-      await news(l.id, club.id, 'sponsor', `${club.name} hit the sponsor target: +${SPONSORS.target.bonus}M bonus.`);
-    }
-    await news(l.id, club.id, 'board', i + 1 <= target ? `${club.name}'s board is delighted: ${i + 1}${i === 0 ? 'st' : 'th'} place met the target.` : `${club.name}'s board expected top ${target}. They finished ${i + 1}th.`);
-  }
-}
+export const nextSeason = (uid: number, leagueId: number) => startNextSeason(uid, leagueId, makeSchedule);
 
 // Best XI of the day (4-3-3) by match rating. Picked players get "In form" (+2) for 2 days.
 async function teamOfTheWeek(l: Row, d: Row, fx: Row[]) {

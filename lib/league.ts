@@ -3,7 +3,7 @@
 import { q, one, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  CLUB_TYPES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, POOLS, STAFF_PACK,
+  CLUB_TYPES, CORNER_ROUTINES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK,
   shortName, type ClubTypeKey, type PackKey, type Tactic,
 } from './game.ts';
 import { rng, hashSeed } from './rng.ts';
@@ -26,19 +26,22 @@ function code() {
   return s;
 }
 
-export async function createLeague(uid: number, b: { name: string; pool: string; maxClubs: number; aiLevel: number; kickoffUtcMin?: number }) {
+export async function createLeague(uid: number, b: { name: string; pool: string; maxClubs: number; aiLevel: number; kickoffUtcMin?: number; divisions?: number; startDivision?: string }) {
   const name = String(b.name || '').trim().slice(0, 40);
   if (name.length < 3) fail(400, 'League name needs at least 3 letters.');
   if (!POOLS[b.pool]) fail(400, 'Pick a league pool.');
   const cap = await maxClubsFor(b.pool);
-  const maxClubs = Math.max(4, Math.min(cap, Math.floor(Number(b.maxClubs) || 10)));
+  const divisions = Math.max(1, Math.min(3, Math.floor(Number(b.divisions) || 1)));
+  const maxClubs = Math.max(4, Math.min(Math.floor(cap / divisions), Math.floor(Number(b.maxClubs) || 10)));
+  if (divisions > 1 && Math.floor(cap / divisions) < 6) fail(400, `This pool is too small for ${divisions} divisions. Try fewer divisions.`);
+  const startDivision = b.startDivision === 'top' ? 'top' : 'bottom';
   const aiLevel = [0, 1, 2].includes(Number(b.aiLevel)) ? Number(b.aiLevel) : 2;
   const kick = Math.max(0, Math.min(1439, Math.floor(Number(b.kickoffUtcMin ?? 900))));
   for (let i = 0; i < 5; i++) {
     const r = await q(
-      `INSERT INTO leagues (name, code, owner_id, pool, max_clubs, ai_level, interval_min, kickoff_utc_min)
-       VALUES ($1,$2,$3,$4,$5,$6,1440,$7) ON CONFLICT (code) DO NOTHING RETURNING id, code`,
-      [name, code(), uid, b.pool, maxClubs, aiLevel, kick],
+      `INSERT INTO leagues (name, code, owner_id, pool, max_clubs, ai_level, interval_min, kickoff_utc_min, divisions, start_division)
+       VALUES ($1,$2,$3,$4,$5,$6,1440,$7,$8,$9) ON CONFLICT (code) DO NOTHING RETURNING id, code`,
+      [name, code(), uid, b.pool, maxClubs, aiLevel, kick, divisions, startDivision],
     );
     if (r[0]) return r[0];
   }
@@ -115,10 +118,11 @@ export async function createClub(uid: number, leagueId: number, b: Record<string
   const short = String(b.short || shortName(name)).replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || shortName(name);
   const fans = type === 'fan' ? 36000 : type === 'historic' ? 30000 : 22000;
   const r = await q(
-    `INSERT INTO clubs (league_id, user_id, name, short, color1, color2, shape, emblem, stadium, club_type, coins, money, tactic, fans, capacity)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15) RETURNING id`,
+    `INSERT INTO clubs (league_id, user_id, name, short, color1, color2, shape, emblem, stadium, club_type, coins, money, tactic, fans, capacity, away1, away2, pattern)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16,$17,$18) RETURNING id`,
     [leagueId, uid, name, short, hex(b.color1, '#E8438C'), hex(b.color2, '#7FE9F7'), Number(b.shape) % 4 || 0, Number(b.emblem) % 6 || 0,
-      String(b.stadium || `${name} Park`).trim().slice(0, 32) || `${name} Park`, type, t.coins, t.money, JSON.stringify(DEFAULT_TACTIC), fans, type === 'fan' ? 40000 : 30000],
+      String(b.stadium || `${name} Park`).trim().slice(0, 32) || `${name} Park`, type, t.coins, t.money, JSON.stringify(DEFAULT_TACTIC), fans, type === 'fan' ? 40000 : 30000,
+      hex(b.away1, '#F3EEFF'), hex(b.away2, hex(b.color1, '#E8438C')), Math.abs(Number(b.pattern) || 0) % PATTERNS.length],
   );
   await news(leagueId, r[0].id, 'club', `${name} join the league as a ${t.name}.`);
   return r[0];
@@ -144,12 +148,14 @@ export async function openPack(uid: number, leagueId: number, key: PackKey) {
   const lo = Math.floor(total * (1 - pack.hi)), hi = Math.ceil(total * (1 - pack.lo));
   let candidates = await q(
     `SELECT p.* FROM (SELECT * FROM players WHERE pool=$1 ORDER BY ovr DESC, id OFFSET $2 LIMIT $3) p
-     WHERE NOT EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$4 AND s.player_id=p.id)`,
+     WHERE NOT EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$4 AND s.player_id=p.id)
+       AND NOT EXISTS (SELECT 1 FROM retired r WHERE r.league_id=$4 AND r.player_id=p.id)`,
     [l.pool, lo, Math.max(1, hi - lo), leagueId],
   );
   if (candidates.length < pack.n) {
     candidates = await q(
       `SELECT p.* FROM players p WHERE pool=$1 AND NOT EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$2 AND s.player_id=p.id)
+         AND NOT EXISTS (SELECT 1 FROM retired r WHERE r.league_id=$2 AND r.player_id=p.id)
        ORDER BY ovr DESC LIMIT 60`,
       [l.pool, leagueId],
     );
@@ -167,16 +173,57 @@ export async function openPack(uid: number, leagueId: number, key: PackKey) {
     pool.splice(pool.indexOf(p), 1);
     pick.push(p);
   };
-  if ('gk' in pack && pack.gk) {
-    if (!pool.some((p) => p.pos === 'GK')) {
-      const gk = await one(
-        `SELECT p.* FROM players p WHERE pool=$1 AND pos='GK' AND NOT EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$2 AND s.player_id=p.id)
-         ORDER BY ovr ASC LIMIT 1`, [l.pool, leagueId]);
-      if (gk) pool.push(gk);
+  // Squad shape from packs: keepers stop at 2, and until the club has 4 defenders, 3 midfielders
+  // and 3 forwards, packs fill those gaps first (from the pack's own band when possible).
+  // Gold packs stay fully random (apart from the 2-keeper limit).
+  const have = await q<{ line: string; n: number }>(
+    `SELECT CASE WHEN p.pos='GK' THEN 'GK' WHEN p.pos IN ('CB','LB','RB') THEN 'DEF' WHEN p.pos IN ('DM','CM','CAM') THEN 'MID' ELSE 'FWD' END AS line, COUNT(*)::int AS n
+     FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1 GROUP BY 1`, [club.id]);
+  const count: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+  for (const h of have) count[h.line] = h.n;
+  const MIN: Record<string, number> = { GK: 2, DEF: 4, MID: 3, FWD: 3 };
+  const lineOf = (p: Row) => LINE[p.pos] || 'MID';
+  const avgOvr = Math.round(candidates.reduce((a, p) => a + p.ovr, 0) / Math.max(1, candidates.length));
+  const ensureLine = async (line: string) => {
+    if (pool.some((p) => lineOf(p) === line)) return;
+    const pos = line === 'GK' ? ['GK'] : line === 'DEF' ? ['CB', 'LB', 'RB'] : line === 'MID' ? ['DM', 'CM', 'CAM'] : ['LW', 'RW', 'ST'];
+    const near = await one(
+      `SELECT p.* FROM players p WHERE pool=$1 AND pos IN (SELECT jsonb_array_elements_text($3::jsonb)) AND NOT EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$2 AND s.player_id=p.id)
+         AND NOT EXISTS (SELECT 1 FROM retired r WHERE r.league_id=$2 AND r.player_id=p.id)
+       ORDER BY ABS(p.ovr - $4) ASC LIMIT 1`, [l.pool, leagueId, JSON.stringify(pos), avgOvr]);
+    if (near) pool.push(near);
+  };
+  const takeLine = (line: string) => {
+    const before = pick.length;
+    take((p) => lineOf(p) === line);
+    if (pick.length > before) count[line]++;
+  };
+  if (key !== 'gold') {
+    for (const line of ['GK', 'DEF', 'MID', 'FWD']) {
+      while (count[line] < MIN[line] && pick.length < pack.n) {
+        await ensureLine(line);
+        const before = pick.length;
+        takeLine(line);
+        if (pick.length === before) break;
+      }
     }
-    take((p) => p.pos === 'GK');
   }
-  while (pick.length < pack.n && pool.length) take(() => true);
+  // the rest is random, never a third keeper
+  while (pick.length < pack.n && pool.length) {
+    const before = pick.length;
+    take((p) => lineOf(p) !== 'GK' || count.GK < 2);
+    if (pick.length === before) break;
+    if (lineOf(pick[pick.length - 1]) === 'GK') count.GK++;
+  }
+  if (pick.length < pack.n) {
+    // band ran dry of outfield players: top up from the nearest outfield players
+    const extra = await q(
+      `SELECT p.* FROM players p WHERE pool=$1 AND pos<>'GK' AND NOT EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$2 AND s.player_id=p.id)
+       AND NOT EXISTS (SELECT 1 FROM retired r WHERE r.league_id=$2 AND r.player_id=p.id)
+       AND NOT (p.id = ANY(SELECT jsonb_array_elements_text($4::jsonb))) ORDER BY ABS(p.ovr - $3) ASC LIMIT $5`,
+      [l.pool, leagueId, avgOvr, JSON.stringify(pick.map((p) => p.id)), pack.n - pick.length]);
+    pick.push(...extra);
+  }
   const got: Row[] = [];
   for (const p of pick) {
     const r = await q('INSERT INTO squad (league_id, player_id, club_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING RETURNING player_id', [leagueId, p.id, club.id]);
@@ -215,21 +262,30 @@ export function pub(p: Row) {
 // Players with this league's changes applied: trained skills, new positions and form.
 export async function squadOf(clubId: number, day = 0) {
   const rows = await q(
-    `SELECT p.*, s.fitness, s.out_until, s.out_reason, s.pos_override, s.boost, s.form_mod, s.form_until, s.form_note
+    `SELECT p.*, s.fitness, s.out_until, s.out_reason, s.pos_override, s.boost, s.form_mod, s.form_until, s.form_note,
+       s.morale, s.ovr_delta, s.age_add, s.loan_from, s.request, s.talk_day, s.promise_day
      FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1`,
     [clubId],
   );
   return rows.map((p) => applyMods(p, day)).sort(byPosition);
 }
 
+const NO_GROW = new Set(['v', 'Academy', 'Youth', 'Consistency', 'BigMatch', 'InjuryProne']);
+// Morale moves a player's level a little: 70 is neutral, 100 is +2.5, 10 is -5.
+export const moraleMod = (m: number) => Math.round(((m ?? 70) - 70) / 12 * 10) / 10;
+
 export function applyMods(p: Row, day: number): Row {
   const attrs = { ...p.attrs };
+  const delta = p.ovr_delta || 0; // growth or decline across seasons
+  if (delta) for (const k of Object.keys(attrs)) if (typeof attrs[k] === 'number' && !NO_GROW.has(k)) attrs[k] = Math.max(1, Math.min(99, attrs[k] + delta));
   for (const [k, v] of Object.entries((p.boost || {}) as Record<string, number>)) attrs[k] = Math.min(99, (attrs[k] ?? 50) + v);
   const gain = Object.values((p.boost || {}) as Record<string, number>).reduce((a, b) => a + b, 0);
   return {
     ...p, attrs, nat_pos: p.pos, pos: p.pos_override || p.pos,
-    ovr: Math.min(99, p.ovr + Math.floor(gain / 4)),
-    mod: (p.form_until ?? 0) >= day ? p.form_mod || 0 : 0,
+    age: (p.age || 0) + (p.age_add || 0),
+    ovr: Math.max(30, Math.min(99, p.ovr + delta + Math.floor(gain / 4))),
+    form: (p.form_until ?? 0) >= day ? p.form_mod || 0 : 0, // awards and press: whole points, shown on cards
+    mod: ((p.form_until ?? 0) >= day ? p.form_mod || 0 : 0) + moraleMod(p.morale),
   };
 }
 
@@ -271,7 +327,11 @@ export function pickXI(players: Row[], formation: string, saved: string[], day: 
   return { xi: starters, bench };
 }
 
-export async function saveSetup(uid: number, leagueId: number, b: { tactic?: Tactic; lineup?: string[]; pens?: string[]; assistant?: Record<string, boolean> }) {
+export async function saveSetup(uid: number, leagueId: number, b: {
+  tactic?: Tactic; lineup?: string[]; pens?: string[]; assistant?: Record<string, boolean>;
+  plans?: Record<string, Tactic | null>; roles?: Record<string, string>; setpieces?: Record<string, string>;
+  kit?: { away1?: string; away2?: string; pattern?: number };
+}) {
   const club = await myClub(uid, leagueId);
   const ids = new Set((await q('SELECT player_id FROM squad WHERE club_id=$1', [club.id])).map((r) => r.player_id));
   const sets: string[] = [];
@@ -293,6 +353,41 @@ export async function saveSetup(uid: number, leagueId: number, b: { tactic?: Tac
     const a = b.assistant;
     params.push(JSON.stringify({ tired: !!a.tired, cards: !!a.cards, winning: !!a.winning, losing: !!a.losing, injured: a.injured !== false }));
     sets.push(`assistant=$${params.length}::jsonb`);
+  }
+  if (b.tactic || b.plans) {
+    // Plan A is always the starting tactic; B and C are switched to during a match
+    const plans: Record<string, Tactic> = { ...(club.plans || {}) };
+    if (b.tactic) plans.A = cleanTactic(b.tactic);
+    for (const k of ['B', 'C']) {
+      if (b.plans && k in b.plans) {
+        const t = b.plans[k];
+        if (t) plans[k] = cleanTactic(t);
+        else delete plans[k];
+      }
+    }
+    params.push(JSON.stringify(plans));
+    sets.push(`plans=$${params.length}::jsonb`);
+  }
+  if (b.roles && typeof b.roles === 'object') {
+    const clean: Record<string, string> = {};
+    for (const [pid, r] of Object.entries(b.roles)) if (ids.has(pid) && ROLES[r]) clean[pid] = r;
+    params.push(JSON.stringify(clean));
+    sets.push(`roles=$${params.length}::jsonb`);
+  }
+  if (b.setpieces && typeof b.setpieces === 'object') {
+    const sp = b.setpieces;
+    params.push(JSON.stringify({
+      corner: ids.has(String(sp.corner)) ? String(sp.corner) : undefined,
+      fk: ids.has(String(sp.fk)) ? String(sp.fk) : undefined,
+      routine: CORNER_ROUTINES[String(sp.routine)] ? String(sp.routine) : 'far',
+    }));
+    sets.push(`setpieces=$${params.length}::jsonb`);
+  }
+  if (b.kit) {
+    const hex = (v: unknown) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : null);
+    if (hex(b.kit.away1)) { params.push(hex(b.kit.away1)); sets.push(`away1=$${params.length}`); }
+    if (hex(b.kit.away2)) { params.push(hex(b.kit.away2)); sets.push(`away2=$${params.length}`); }
+    if (b.kit.pattern !== undefined) { params.push(Math.abs(Math.floor(Number(b.kit.pattern) || 0)) % PATTERNS.length); sets.push(`pattern=$${params.length}`); }
   }
   if (!sets.length) return { ok: true };
   params.push(club.id);
@@ -319,9 +414,10 @@ export async function checkSquads(leagueId: number) {
 }
 
 // ---------------------------------------------------------------- tables
-export async function standings(leagueId: number) {
-  const clubs = await q('SELECT id, name, short, color1, color2, shape, emblem, user_id, club_type FROM clubs WHERE league_id=$1', [leagueId]);
-  const fx = await q(`SELECT home_id, away_id, home_goals, away_goals, matchday FROM fixtures WHERE league_id=$1 AND status='done' AND comp='league' ORDER BY matchday`, [leagueId]);
+// One division's table (division 1 is the top flight).
+export async function standings(leagueId: number, division = 1) {
+  const clubs = await q('SELECT id, name, short, color1, color2, shape, emblem, user_id, club_type, division FROM clubs WHERE league_id=$1 AND division=$2', [leagueId, division]);
+  const fx = await q(`SELECT home_id, away_id, home_goals, away_goals, matchday FROM fixtures WHERE league_id=$1 AND status='done' AND comp='league' AND division=$2 ORDER BY matchday`, [leagueId, division]);
   const t = new Map<number, any>(clubs.map((c) => [c.id, { ...c, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0, form: [] as string[] }]));
   for (const f of fx) {
     const h = t.get(f.home_id), a = t.get(f.away_id);
@@ -372,7 +468,7 @@ export async function botListings(l: Row) {
   for (const b of bots) {
     const sq = await q(`SELECT p.id, p.ovr, p.attrs FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1 AND p.pos<>'GK' ORDER BY p.ovr DESC`, [b.id]);
     const r = rng(hashSeed('list', l.id, b.id, Date.now() >> 20));
-    if (sq.length <= 16 || r.next() < 0.4) continue;
+    if (sq.length <= 14 || r.next() < 0.35) continue; // sq is outfield players only
     const p = sq[Math.floor(sq.length * (0.3 + r.next() * 0.6))];
     const price = Math.max(0.5, Math.round(((p.attrs.v ?? 3) * (1 + r.next() * 0.3)) * 10) / 10);
     await q('INSERT INTO listings (league_id, player_id, seller_id, price) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [l.id, p.id, b.id, price]);
@@ -391,8 +487,9 @@ export async function listPlayer(uid: number, leagueId: number, playerId: string
   const l = await getLeague(leagueId);
   if (!(await windowFor(l)).open) fail(400, 'The transfer window is closed.');
   const club = await myClub(uid, leagueId);
-  const own = await one('SELECT 1 FROM squad WHERE club_id=$1 AND player_id=$2', [club.id, playerId]);
+  const own = await one('SELECT loan_from FROM squad WHERE club_id=$1 AND player_id=$2', [club.id, playerId]);
   if (!own) fail(400, 'That player is not in your squad.');
+  if (own.loan_from) fail(400, 'He is only here on loan.');
   const pr = Math.round(Number(price) * 10) / 10;
   if (!(pr >= 0.1 && pr <= 500)) fail(400, 'Price must be between 0.1M and 500M.');
   await q(

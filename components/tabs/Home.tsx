@@ -29,7 +29,9 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
   return (
     <div className="col" style={{ gap: 10, minHeight: '100%' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 1.15fr) minmax(220px, 1fr) minmax(150px, 170px)', gap: 12 }} className="home-grid">
-        {next ? <NextMatch f={next} club={club} now={now} go={go} /> : <div className="panel cut lz" style={{ fontSize: 22, justifyContent: 'center' }}>{league.status === 'finished' ? 'Season over' : 'No more matches'}</div>}
+        {next ? <NextMatch f={next} club={club} now={now} go={go} /> : league.status === 'finished' || league.status === 'rolling'
+          ? <SeasonOver lid={lid} d={d} reload={reload} toast={toast} go={go} />
+          : <div className="panel cut lz" style={{ fontSize: 22, justifyContent: 'center' }}>No more matches</div>}
         <div className="col" style={{ gap: 12 }}>
           <section className="panel cut rise" style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <div className="col" style={{ alignItems: 'center', gap: 4 }}>
@@ -43,7 +45,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
             </div>
           </section>
           <section className="panel cut rise" style={{ gap: 4, animationDelay: '.08s' }}>
-            <div className="row between"><span className="tag"><span>{league.poolName.replace(' League', '')} League</span></span><button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800 }} onClick={() => go('table')}>PTS ›</button></div>
+            <div className="row between"><span className="tag"><span>{league.divisions > 1 ? league.divisionNames[club.division - 1] : `${league.poolName.replace(' League', '')} League`}</span></span><button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800 }} onClick={() => go('table')}>PTS ›</button></div>
             {slice.map((t: any) => {
               const i = table.indexOf(t) + 1;
               const me = t.id === club.id;
@@ -71,6 +73,14 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
           <div className="tiny" style={{ textAlign: 'center', color: '#F2C14E', fontWeight: 800 }}>{club.pos ? `${club.pos}${suffix(club.pos)} · target top ${club.targetPos}` : ''}</div>
         </section>
       </div>
+      {d.window?.open && league.status === 'running' && (
+        <button className="row small" onClick={() => go('market')} style={{ gap: 10, padding: '8px 12px', background: 'linear-gradient(90deg, rgba(242,193,78,0.3), rgba(242,193,78,0.05))', color: '#F3EEFF', fontWeight: 800, textAlign: 'left' }}>
+          <span className="lz" style={{ fontSize: 18, color: '#F2C14E' }}>⏰ {d.window.label.startsWith('Mid') ? 'TRANSFER WINDOW OPEN' : 'PRE-SEASON WINDOW'}</span>
+          <span className="grow">It shuts at the next kick-off. Make offers in the Market.</span>
+          {club.offers > 0 && <span className="tag" style={{ background: '#E8438C' }}><span>{club.offers} offer{club.offers > 1 ? 's' : ''} for your players</span></span>}
+        </button>
+      )}
+      <Inbox club={club} go={go} />
       {league.isOwner && <OwnerSchedule lid={lid} league={league} toast={toast} reload={reload} />}
       <div className="ticker" style={{ marginTop: 'auto' }}>
         <span className="lbl">BREAKING</span>
@@ -80,6 +90,58 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
       </div>
       <style>{`@media (max-width: 760px){ .home-grid{ grid-template-columns: 1fr 1fr !important; } }`}</style>
     </div>
+  );
+}
+
+function Inbox({ club, go }: { club: any; go: TabProps['go'] }) {
+  const [open, setOpen] = useState(false);
+  const items: any[] = club.inbox || [];
+  if (!items.length && !club.unhappy && !club.requests) return null;
+  return (
+    <section className="panel cut" style={{ padding: '8px 12px', gap: 4 }}>
+      <div className="row between">
+        <span className="row" style={{ gap: 8 }}>
+          <span className="tag cyan"><span>Inbox</span></span>
+          {club.unhappy > 0 && <button className="tiny" style={{ color: '#FF9DA8', fontWeight: 900 }} onClick={() => go('players')}>{club.unhappy} unhappy player{club.unhappy > 1 ? 's' : ''} ›</button>}
+          {club.requests > 0 && <button className="tiny" style={{ color: '#FF6B7A', fontWeight: 900 }} onClick={() => go('players')}>{club.requests} transfer request{club.requests > 1 ? 's' : ''} ›</button>}
+        </span>
+        {items.length > 2 && <button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800 }} onClick={() => setOpen(!open)}>{open ? 'Less' : `All ${items.length}`} ›</button>}
+      </div>
+      {items.slice(0, open ? 30 : 2).map((m) => (
+        <div key={m.id} className="row small" style={{ gap: 8, fontWeight: 700 }}>
+          <span className="grow">{m.text}</span>
+          <span className="tiny dim" style={{ whiteSpace: 'nowrap' }}>{new Date(m.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function SeasonOver({ lid, d, reload, toast, go }: TabProps) {
+  const { league, club, table } = d;
+  const [busy, setBusy] = useState(false);
+  const champ = table[0];
+  const next = async () => {
+    setBusy(true);
+    try { await api(`/api/leagues/${lid}/nextseason`, {}); toast.ok(`Season ${league.season + 1} is here!`); reload(); } catch (e: any) { toast.bad(e.message); }
+    setBusy(false);
+  };
+  const D = league.divisions || 1, P = league.movers || 1;
+  const up = club.division > 1 && club.pos > 0 && club.pos <= P, down = club.division < D && club.pos > table.length - P;
+  return (
+    <section className="panel cut rise" style={{ gap: 8, background: 'linear-gradient(160deg, rgba(242,193,78,0.22), rgba(242,193,78,0.04))' }}>
+      <span className="tag gold" style={{ alignSelf: 'flex-start' }}><span>Season {league.season} is over</span></span>
+      {champ && <div className="lz" style={{ fontSize: 24, color: '#F2C14E' }}>🏆 {champ.name}</div>}
+      <div className="small">You finished <b>{club.pos}{suffix(club.pos)}</b>{D > 1 ? ` in the ${league.divisionNames[club.division - 1]}` : ''}.
+        {up && <b style={{ color: '#7CE3A1' }}> Promoted!</b>}{down && <b style={{ color: '#FF6B7A' }}> Relegated.</b>}</div>
+      <div className="tiny muted">Next season: players age, veterans retire, academy graduates arrive, loans end and you get prize money plus 300 coins.</div>
+      <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
+        <button className="ghost" onClick={() => go('history')}><span>Awards & history</span></button>
+        {league.isOwner
+          ? <button className="cta gold shine" disabled={busy || league.status === 'rolling'} onClick={next}><span>{busy || league.status === 'rolling' ? 'Preparing…' : `Start season ${league.season + 1}`}</span></button>
+          : <span className="tiny muted">The league creator starts the next season.</span>}
+      </div>
+    </section>
   );
 }
 

@@ -4,26 +4,43 @@ import { api, clock } from '../../lib/client.ts';
 import { BackHead, Crest, Spinner } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
-export function TableTab({ d }: TabProps) {
-  const { table, club } = d;
+export function TableTab({ d: ov, lid }: TabProps) {
+  const { club, league } = ov;
+  const D = league.divisions || 1;
+  const [div, setDiv] = useState<number>(ov.division || club.division || 1);
+  const [table, setTable] = useState<any[]>(ov.table);
+  useEffect(() => {
+    if (div === ov.division) { setTable(ov.table); return; }
+    api(`/api/leagues/${lid}/overview?div=${div}`).then((r) => setTable(r.table));
+  }, [div, lid, ov.division, ov.table]);
+  const n = table.length, P = league.movers || 1;
+  const zone = (i: number) => (div > 1 && i < P ? 'up' : div < D && i >= n - P ? 'down' : null);
   return (
     <div className="col" style={{ gap: 8 }}>
-      <BackHead title="League Table" sub={`${d.league.poolName} · target top ${club.targetPos}`} />
+      <BackHead title={D > 1 ? league.divisionNames[div - 1] : 'League Table'} sub={`${league.poolName} · Season ${league.season}${div === club.division ? ` · target top ${club.targetPos}` : ''}`}
+        right={D > 1 ? <>{league.divisionNames.map((nm: string, i: number) => <button key={i} className={`seg ${div === i + 1 ? 'on' : ''}`} onClick={() => setDiv(i + 1)}><span>{nm.replace(' Division', '')}</span></button>)}</> : null} />
       <div className="panel cut" style={{ padding: 8 }}>
         <table className="t">
           <thead><tr><th>#</th><th>Club</th><th className="num">P</th><th className="num">W</th><th className="num">D</th><th className="num">L</th><th className="num">GD</th><th className="num">Pts</th><th>Form</th></tr></thead>
           <tbody>
-            {table.map((t: any, i: number) => (
-              <tr key={t.id} className={t.id === club.id ? 'me' : ''} style={{ boxShadow: i + 1 === club.targetPos ? 'inset 0 -2px 0 rgba(242,193,78,0.6)' : undefined }}>
+            {table.map((t: any, i: number) => {
+              const z = zone(i);
+              return (
+              <tr key={t.id} className={t.id === club.id ? 'me' : ''} style={{ boxShadow: z === 'up' ? 'inset 3px 0 0 #7CE3A1' : z === 'down' ? 'inset 3px 0 0 #FF6B7A' : i + 1 === club.targetPos && div === club.division ? 'inset 0 -2px 0 rgba(242,193,78,0.6)' : undefined }}>
                 <td><b>{i + 1}</b></td>
                 <td><span className="row" style={{ gap: 6 }}><Crest c1={t.color1} c2={t.color2} shape={t.shape} emblem={t.user_id ? t.emblem : -1} short={t.short} size={20} /><span className="ellipsis" style={{ maxWidth: 190 }}>{t.name}</span>{t.user_id && <span className="tag cyan" style={{ height: 16, fontSize: 9 }}><span>MGR</span></span>}</span></td>
                 <td className="num">{t.p}</td><td className="num">{t.w}</td><td className="num">{t.d}</td><td className="num">{t.l}</td>
                 <td className="num">{t.gf - t.ga > 0 ? '+' : ''}{t.gf - t.ga}</td><td className="num"><b>{t.pts}</b></td>
                 <td><span className="row" style={{ gap: 2 }}>{t.form.map((f: string, k: number) => <i key={k} style={{ width: 15, height: 15, fontSize: 9, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', background: f === 'W' ? '#7CE3A1' : f === 'D' ? '#B4A8E0' : '#FF6B7A', color: '#1B1048' }}>{f}</i>)}</span></td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
+        {D > 1 && <div className="row tiny muted" style={{ gap: 14, padding: '8px 6px 2px' }}>
+          {div > 1 && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: '#7CE3A1', marginRight: 5 }} />Top {P} promoted</span>}
+          {div < D && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: '#FF6B7A', marginRight: 5 }} />Bottom {P} relegated</span>}
+        </div>}
       </div>
     </div>
   );
@@ -33,16 +50,19 @@ export function FixturesTab({ lid, d: ov }: TabProps) {
   const [fx, setFx] = useState<any[] | null>(null);
   const [mine, setMine] = useState(true);
   const [day, setDay] = useState<number | null>(null);
+  const D = ov.league.divisions || 1;
+  const [div, setDiv] = useState<number>(ov.club.division || 1);
   useEffect(() => { api(`/api/leagues/${lid}/fixtures`).then((r) => { setFx(r); const n = r.find((f: any) => f.status !== 'done'); setDay(n ? n.day : r.length ? r[r.length - 1].day : 1); }); }, [lid]);
   if (!fx) return <Spinner />;
   const myId = ov.club.id;
   const days = [...new Set(fx.map((f) => f.day))].sort((a, b) => a - b);
-  const rows = mine ? fx.filter((f) => f.home_id === myId || f.away_id === myId) : fx.filter((f) => f.day === day);
+  const rows = mine ? fx.filter((f) => f.home_id === myId || f.away_id === myId) : fx.filter((f) => f.day === day && (f.comp === 'cup' || D === 1 || f.division === div));
   return (
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Fixtures" right={<>
         <button className={`seg ${mine ? 'on' : ''}`} onClick={() => setMine(true)}><span>My matches</span></button>
         <button className={`seg ${!mine ? 'on' : ''}`} onClick={() => setMine(false)}><span>By day</span></button>
+        {!mine && D > 1 && <select value={div} onChange={(e) => setDiv(Number(e.target.value))} style={{ width: 120, height: 32 }}>{ov.league.divisionNames.map((nm: string, i: number) => <option key={i} value={i + 1}>{nm}</option>)}</select>}
         {!mine && <select value={day ?? 1} onChange={(e) => setDay(Number(e.target.value))} style={{ width: 150, height: 32 }}>{days.map((x) => { const f = fx.find((y) => y.day === x); return <option key={x} value={x}>{f.comp === 'cup' ? `Day ${x} · Cup` : `Matchday ${f.matchday}`}</option>; })}</select>}
       </>} />
       {!fx.length && <div className="panel cut muted">Fixtures appear when the season starts.</div>}

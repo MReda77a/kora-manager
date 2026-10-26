@@ -73,7 +73,7 @@ function Auth({ onDone }: { onDone: () => void }) {
 function Lobby({ me, reload }: { me: Me; reload: () => void }) {
   const router = useRouter();
   const toast = useToast();
-  const [view, setView] = useState<'list' | 'create' | 'join'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'join' | 'ranking'>('list');
   const [code, setCode] = useState('');
   const [preview, setPreview] = useState<any>(null);
   const leagues = me.leagues || [];
@@ -104,7 +104,23 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
         <button className={`chip ${view === 'list' ? 'on' : ''}`} onClick={() => setView('list')}><span>My leagues ({leagues.length})</span></button>
         <button className={`chip ${view === 'create' ? 'on' : ''}`} onClick={() => setView('create')}><span>+ Create league</span></button>
         <button className={`chip ${view === 'join' ? 'on' : ''}`} onClick={() => setView('join')}><span>Join with code</span></button>
+        <button className={`chip ${view === 'ranking' ? 'on' : ''}`} onClick={() => setView('ranking')}><span>🌍 Manager ranking</span></button>
       </div>
+
+      {view === 'ranking' && (
+        <div className="glass cut pad col" style={{ maxWidth: 560, gap: 4 }}>
+          <div className="row between"><span className="lz" style={{ fontSize: 22 }}>Global manager ranking</span><span className="small muted">Your reputation: <b style={{ color: '#F2C14E' }}>{(me.user as any).reputation ?? 0}</b></span></div>
+          <div className="tiny muted" style={{ marginBottom: 6 }}>Win +3 · draw +1 · title +50 · cup +30 · promotion +30 · Manager of the Season +20 · relegation −20</div>
+          {((me as any).ranking || []).map((r: any, i: number) => (
+            <div key={r.username} className="row small" style={{ gap: 10, padding: '5px 10px', fontWeight: 800, background: r.username === me.user!.name ? 'rgba(232,67,140,0.2)' : i % 2 ? 'rgba(255,255,255,0.03)' : undefined }}>
+              <span className="lz" style={{ width: 26, fontSize: 18, color: i === 0 ? '#F2C14E' : i < 3 ? '#7FE9F7' : '#B4A8E0' }}>{i + 1}</span>
+              <span className="grow ellipsis">{r.username}</span>
+              <span className="tiny muted">{r.titles} 🏆</span>
+              <b className="lz" style={{ width: 54, textAlign: 'right', fontSize: 18 }}>{r.reputation}</b>
+            </div>
+          ))}
+        </div>
+      )}
 
       {view === 'list' && (
         leagues.length ? (
@@ -112,7 +128,7 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
             {leagues.map((l) => (
               <a key={l.id} href={`/l/${l.id}`} className="glass cut pad col rise" style={{ color: 'inherit', gap: 6 }}>
                 <div className="row between">
-                  <span className={`tag ${l.status === 'running' ? 'green' : l.status === 'setup' ? 'gold' : ''}`}><span>{l.status === 'setup' ? 'Pre-season' : l.status === 'running' ? 'Live season' : 'Finished'}</span></span>
+                  <span className={`tag ${l.status === 'running' ? 'green' : l.status === 'setup' ? 'gold' : ''}`}><span>{l.status === 'setup' ? 'Pre-season' : l.status === 'running' ? 'Live season' : 'Season over'}</span></span>
                   <span className="tiny dim">CODE {l.code}</span>
                 </div>
                 <div className="lz" style={{ fontSize: 20 }}>{l.name}</div>
@@ -157,17 +173,19 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
 
 function CreateLeague({ onCreated, toast }: { onCreated: (id: number) => void; toast: ReturnType<typeof useToast> }) {
   const [meta, setMeta] = useState<{ pools: Record<string, string>; caps: Record<string, number> } | null>(null);
-  const [f, setF] = useState({ name: '', pool: 'ENG', maxClubs: 16, aiLevel: 2, time: '18:00' });
+  const [f, setF] = useState({ name: '', pool: 'ENG', maxClubs: 16, aiLevel: 2, time: '18:00', divisions: 1, startDivision: 'bottom' });
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     api('/api/leagues').then(setMeta).catch(() => {});
   }, []);
   const cap = meta?.caps[f.pool] ?? 30;
-  const sizes = [10, 16, 20, 30].filter((n) => n <= cap);
+  const perDiv = Math.floor(cap / f.divisions);
+  const sizes = (f.divisions > 1 ? [6, 8, 10, 12] : [10, 16, 20, 30]).filter((n) => n <= perDiv);
+  const maxDiv = cap >= 36 ? 3 : cap >= 12 ? 2 : 1;
   const go = async () => {
     setBusy(true);
     try {
-      const r = await api('/api/leagues', { name: f.name, pool: f.pool, maxClubs: Math.min(f.maxClubs, cap), aiLevel: f.aiLevel, kickoffUtcMin: localToUtcMin(f.time) });
+      const r = await api('/api/leagues', { name: f.name, pool: f.pool, maxClubs: Math.min(f.maxClubs, perDiv), aiLevel: f.aiLevel, kickoffUtcMin: localToUtcMin(f.time), divisions: f.divisions, startDivision: f.startDivision });
       onCreated(r.id);
     } catch (x: any) {
       toast.bad(x.message);
@@ -189,7 +207,17 @@ function CreateLeague({ onCreated, toast }: { onCreated: (id: number) => void; t
           </div>
         </div>
         <div className="col" style={{ gap: 4 }}>
-          <span className="small muted">Clubs (empty places become AI clubs)</span>
+          <span className="small muted">Divisions (promotion and relegation between them)</span>
+          <div className="row wrap">
+            {[1, 2, 3].filter((n) => n <= maxDiv).map((n) => <button key={n} className={`chip ${f.divisions === n ? 'on' : ''}`} onClick={() => setF((s) => ({ ...s, divisions: n, maxClubs: n > 1 ? Math.min(8, Math.floor(cap / n)) : 16 }))}><span>{n === 1 ? 'One league' : `${n} divisions`}</span></button>)}
+            {f.divisions > 1 && <>
+              <span className="tiny muted" style={{ marginLeft: 8 }}>Managers start in</span>
+              {[['bottom', 'the bottom'], ['top', 'the top flight']].map(([k, l]) => <button key={k} className={`chip ${f.startDivision === k ? 'on' : ''}`} onClick={() => set('startDivision', k)}><span>{l}</span></button>)}
+            </>}
+          </div>
+        </div>
+        <div className="col" style={{ gap: 4 }}>
+          <span className="small muted">{f.divisions > 1 ? 'Clubs per division' : 'Clubs'} (empty places become AI clubs)</span>
           <div className="row wrap">
             {sizes.map((n) => <button key={n} className={`chip ${f.maxClubs === n ? 'on' : ''}`} onClick={() => set('maxClubs', n)}><span>{n} clubs</span></button>)}
           </div>

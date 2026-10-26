@@ -4,6 +4,8 @@ import { q, one, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import { CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey } from './game.ts';
 import { getLeague, myClub, news, squadOf, standings } from './league.ts';
+import { inboxOf } from './people.ts';
+import { movers } from './career.ts';
 
 export async function staffLevels(clubId: number) {
   const rows = await q('SELECT role, MAX(level)::int AS lvl FROM staff WHERE club_id=$1 GROUP BY role', [clubId]);
@@ -115,7 +117,7 @@ export async function conditionView(uid: number, leagueId: number) {
     players: players.map((p) => ({
       id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), expected: Math.min(100, Math.round(p.fitness + gap * (25 + lv.physio * 3))),
       out: (p.out_until ?? 0) >= day ? { reason: p.out_reason, days: p.out_until - day + 1 } : null,
-      form: p.mod, formNote: p.mod ? p.form_note : null, injuryProne: p.attrs.InjuryProne ?? 30,
+      form: p.form, formNote: p.form ? p.form_note : null, injuryProne: p.attrs.InjuryProne ?? 30,
     })),
   };
 }
@@ -125,14 +127,16 @@ export async function officeView(uid: number, leagueId: number) {
   const l = await getLeague(leagueId);
   const club = await myClub(uid, leagueId);
   const t = CLUB_TYPES[club.club_type as ClubTypeKey];
-  const table = l.status === 'setup' ? [] : await standings(leagueId);
+  const table = l.status === 'setup' ? [] : await standings(leagueId, club.division || 1);
   const n = table.length || l.max_clubs;
   const pos = table.findIndex((x) => x.id === club.id) + 1;
   const me = table.find((x) => x.id === club.id);
-  const target = t.targetPos(n);
+  // outside the top flight every board wants promotion
+  const lower = (club.division || 1) > 1;
+  const target = lower ? movers(l.max_clubs) : t.targetPos(n);
   const objectives: { area: string; text: string; progress: number; note: string; status: string }[] = [];
   const posProgress = pos ? Math.max(0, Math.min(1, (n - pos + 1) / (n - target + 1))) : 0;
-  objectives.push({ area: 'Board', text: t.board, progress: posProgress, note: pos ? `Now ${pos}${pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'} · target top ${target}` : 'Season not started', status: !pos ? 'WAITING' : pos <= target ? 'ON TRACK' : pos <= target + 2 ? 'AT RISK' : 'BEHIND' });
+  objectives.push({ area: 'Board', text: lower ? `Win promotion (top ${target})` : t.board, progress: posProgress, note: pos ? `Now ${pos}${pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'} · target top ${target}` : 'Season not started', status: !pos ? 'WAITING' : pos <= target ? 'ON TRACK' : pos <= target + 2 ? 'AT RISK' : 'BEHIND' });
   const cup = await one(`SELECT data FROM papers WHERE league_id=$1 AND day=0 AND kind='cup'`, [leagueId]);
   if (club.club_type === 'fan' || club.club_type === 'invest' || club.club_type === 'historic') {
     const out = await one(`SELECT 1 FROM fixtures WHERE league_id=$1 AND comp='cup' AND status='done' AND (home_id=$2 OR away_id=$2) AND winner_id<>$2`, [leagueId, club.id]);
@@ -156,6 +160,9 @@ export async function officeView(uid: number, leagueId: number) {
     return Math.round((s.perMatch * left + s.perWin * winRate * left + s.perGoal * goals * left + (k === 'target' && pos && pos <= target ? s.bonus : 0)) * 10) / 10;
   };
   return {
+    inbox: await inboxOf(leagueId, club.id),
+    kit: { color1: club.color1, color2: club.color2, away1: club.away1 || '#F3EEFF', away2: club.away2 || club.color1, pattern: club.pattern || 0 },
+    division: club.division || 1,
     club: { id: club.id, name: club.name, type: club.club_type, typeName: t.name, stadium: club.stadium, capacity: club.capacity, fans: club.fans, board: club.board, money: Number(club.money), sponsor: club.sponsor },
     perk: t.perk, weak: t.weak, objectives,
     sponsors: (Object.keys(SPONSORS) as SponsorKey[]).map((k) => ({ key: k, ...SPONSORS[k], estimate: est(k) })),

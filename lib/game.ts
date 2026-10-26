@@ -126,3 +126,80 @@ export function windowState(playedMatchdays: number, totalMatchdays: number, sta
   const next = playedMatchdays < half ? half : null;
   return { open: false, label: next ? `Closed · opens after matchday ${half}` : 'Closed until next season' };
 }
+
+// ---------------------------------------------------------------- kits
+export const PATTERNS = ['Plain', 'Stripes', 'Halves', 'Hoops', 'Sash'];
+const rgb = (h: string) => [1, 3, 5].map((i) => parseInt((h || '#000000').slice(i, i + 2), 16) || 0);
+export function colorDist(a: string, b: string) {
+  const [x, y] = [rgb(a), rgb(b)];
+  return Math.sqrt(x.reduce((s, v, i) => s + (v - y[i]) ** 2, 0));
+}
+export type Kit = { c1: string; c2: string; pattern: number; label: 'Home kit' | 'Away kit' | 'Third kit' };
+// The home side always wears its home kit. The away side switches to its away kit on a clash,
+// and to a white or black third kit if that still clashes.
+export function matchKits(home: any, away: any): [Kit, Kit] {
+  const hk: Kit = { c1: home.color1, c2: home.color2, pattern: home.pattern || 0, label: 'Home kit' };
+  const clash = (c: string) => colorDist(c, hk.c1) < 110 || (colorDist(c, hk.c2) < 60 && colorDist(hk.c1, hk.c2) < 110);
+  let ak: Kit = { c1: away.color1, c2: away.color2, pattern: away.pattern || 0, label: 'Home kit' };
+  if (clash(ak.c1)) {
+    const a1 = away.away1 || away.color2, a2 = away.away2 || away.color1;
+    ak = { c1: a1, c2: a2, pattern: 0, label: 'Away kit' };
+    if (clash(ak.c1)) {
+      const white = colorDist('#F3EEFF', hk.c1) >= colorDist('#151018', hk.c1);
+      ak = { c1: white ? '#F3EEFF' : '#151018', c2: white ? '#151018' : '#F3EEFF', pattern: 0, label: 'Third kit' };
+    }
+  }
+  return [hk, ak];
+}
+
+// ---------------------------------------------------------------- player roles
+export const ROLES: Record<string, { line: 'GK' | 'DEF' | 'MID' | 'FWD'; desc: string; keys: string[] }> = {
+  'Shot stopper': { line: 'GK', desc: 'Stays on his line. Better saves.', keys: ['Reflexes', 'Handling'] },
+  'Sweeper keeper': { line: 'GK', desc: 'Rushes out behind a high line.', keys: ['OneOnOne', 'Distribution'] },
+  Stopper: { line: 'DEF', desc: 'Steps out, wins duels and headers.', keys: ['Tackling', 'Strength'] },
+  'Ball-playing': { line: 'DEF', desc: 'Starts attacks from the back.', keys: ['Passing', 'Vision'] },
+  'Wing-back': { line: 'DEF', desc: 'Bombs forward and crosses.', keys: ['Pace', 'Crossing'] },
+  Anchor: { line: 'MID', desc: 'Sits in front of the defence.', keys: ['Tackling', 'Marking'] },
+  'Box-to-box': { line: 'MID', desc: 'Covers every blade of grass.', keys: ['Stamina', 'WorkRate'] },
+  Playmaker: { line: 'MID', desc: 'Dictates play, splits defences.', keys: ['Passing', 'Vision'] },
+  Poacher: { line: 'FWD', desc: 'Lives in the box. Finishes chances.', keys: ['Finishing', 'Positioning'] },
+  'Target man': { line: 'FWD', desc: 'Wins headers, holds the ball up.', keys: ['Heading', 'Strength'] },
+  'False 9': { line: 'FWD', desc: 'Drops deep to link play.', keys: ['Passing', 'Dribbling'] },
+  'Inside forward': { line: 'FWD', desc: 'Cuts in and shoots.', keys: ['Dribbling', 'LongShots'] },
+};
+export const CORNER_ROUTINES: Record<string, string> = { near: 'Near post', far: 'Far post', short: 'Short' };
+
+// ---------------------------------------------------------------- personalities
+export const TRAITS: Record<string, string> = {
+  Professional: 'Never sulks for long. Trains hard.',
+  Ambitious: 'Hates the bench. Wants trophies.',
+  Loyal: 'Takes setbacks well. Loves the club.',
+  Temperamental: 'Big mood swings. Picks up cards.',
+  Leader: 'Calms the dressing room. Talks work twice as well.',
+  'Big-game player': 'Raises his game in derbies and cup ties.',
+};
+export function traitOf(id: string) {
+  let h = 0;
+  for (const c of id) h = (h * 33 + c.charCodeAt(0)) >>> 0;
+  const t = ['Professional', 'Professional', 'Ambitious', 'Ambitious', 'Loyal', 'Loyal', 'Temperamental', 'Leader', 'Big-game player', 'Professional'];
+  return t[h % t.length];
+}
+
+// ---------------------------------------------------------------- match conditions
+export const WEATHER: Record<string, { label: string; icon: string; note: string }> = {
+  clear: { label: 'Clear', icon: '☀️', note: 'Perfect conditions.' },
+  rain: { label: 'Heavy rain', icon: '🌧️', note: 'Short passing is riskier. Long balls skid.' },
+  heat: { label: 'Heat', icon: '🥵', note: 'Legs tire 25% faster. Pressing hurts.' },
+  wind: { label: 'Strong wind', icon: '💨', note: 'Crosses and long balls lose accuracy.' },
+  snow: { label: 'Snow', icon: '❄️', note: 'Slow pitch. Pace matters less.' },
+};
+export const REFEREES = ['K. Aldridge', 'S. Marwan', 'L. Ferrand', 'T. Okafor', 'R. Haddad', 'J. Lindqvist', 'M. Serrano', 'D. Kowal', 'A. Nassar', 'P. Bellamy', 'H. Rahimi', 'G. Ottaviani'];
+export function conditionsFor(fixtureId: number, pool: string, day: number) {
+  let h = 2166136261;
+  for (const c of `${fixtureId}|${pool}|${day}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  const hot = ['KSA', 'EGY', 'USA'].includes(pool), cold = ['GER', 'ENG'].includes(pool);
+  const w = h % 100;
+  const weather = w < 55 ? 'clear' : w < 70 ? (hot ? 'heat' : 'rain') : w < 82 ? 'wind' : w < 92 ? (hot ? 'heat' : 'rain') : cold ? 'snow' : 'clear';
+  const strict = (h >>> 8) % 3; // 0 lenient, 1 normal, 2 strict
+  return { weather, referee: { name: REFEREES[(h >>> 12) % REFEREES.length], strict, label: ['Lenient', 'Normal', 'Strict'][strict] } };
+}

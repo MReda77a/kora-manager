@@ -71,3 +71,28 @@ export function academyFor(pool: string, existing: RawPlayer[]): RawPlayer[] {
   }
   return out;
 }
+
+// A youth intake prospect for one club at the start of a new season. Templates are real players of
+// the pool's line; the youngster gets their shape at a lower rating and a high potential.
+export function youthPlayer(pool: string, id: string, seed: number, line: string, templates: RawPlayer[], bonus = 0): RawPlayer {
+  const r = rng(seed);
+  const [first, last] = NAMES[pool] || NAMES.ENG;
+  const pos = r.pick(POSITIONS[line]);
+  const ovr = Math.round(54 + r.next() * 10 + bonus);
+  const tpl = templates[Math.floor(r.next() * templates.length)];
+  const scale = ovr / Math.max(40, tpl.ovr);
+  const attrs: Record<string, number> = {};
+  for (const [key, v] of Object.entries(tpl.attrs)) {
+    if (key === 'v' || key === 'Academy') continue;
+    const gk = ['Reflexes', 'Handling', 'OneOnOne', 'Distribution'].includes(key);
+    const scaled = (gk ? line === 'GK' : line !== 'GK') && !['Consistency', 'BigMatch', 'InjuryProne'].includes(key) ? v * scale : v;
+    attrs[key] = Math.max(15, Math.min(92, Math.round(scaled + r.gauss(0, 3))));
+  }
+  attrs.v = Math.round((0.4 + (ovr - 54) * 0.1) * 10) / 10;
+  attrs.Youth = 1;
+  return {
+    id, name: `${r.pick(first)} ${r.pick(last)}`, pool, nat: pool, pos, foot: r.next() < 0.25 ? 'L' : 'R', age: 16 + Math.floor(r.next() * 3),
+    height: line === 'GK' ? 184 + Math.floor(r.next() * 10) : 168 + Math.floor(r.next() * 20), ovr,
+    pot: Math.min(92, ovr + 14 + Math.floor(r.next() * 14) + bonus), attrs,
+  };
+}

@@ -3,7 +3,7 @@ import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { api, clock } from '../../../lib/client.ts';
 import { FORMATIONS, PRESETS } from '../../../lib/game.ts';
 import { crowd, isMuted, setMuted, thud, whistle } from '../../../lib/sound.ts';
-import { Crest, Spinner, lastName, useToast } from '../../../components/ui.tsx';
+import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
@@ -30,7 +30,7 @@ export default function MatchPage({ params }: { params: Promise<{ fid: string }>
   const theme = d.derby ? 'theme-derby' : d.fixture.comp === 'cup' ? 'theme-cup' : '';
   return (
     <div className={theme} style={{ minHeight: '100dvh' }}>
-      {d.fixture.status === 'scheduled' || d.fixture.status === 'playing' || !d.report ? <PreMatch d={d} reload={load} /> : <Watch d={d} setD={setD} skip={skip} />}
+      {d.fixture.status === 'scheduled' || d.fixture.status === 'playing' || !d.report ? <PreMatch d={d} reload={load} /> : <Watch d={d} setD={setD} skip={skip} reload={load} />}
     </div>
   );
 }
@@ -51,6 +51,28 @@ function TeamBlock({ c, size = 60 }: { c: any; size?: number }) {
   );
 }
 
+// Both kits for this match. The away side changes shirt when the colours clash.
+function KitPair({ d, size = 34 }: { d: any; size?: number }) {
+  const [h, a] = d.kits;
+  return (
+    <div className="row" style={{ gap: 10, alignItems: 'flex-end' }}>
+      <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={h.c1} c2={h.c2} pattern={h.pattern} size={size} label={`${d.home.name} ${h.label}`} /><span className="tiny muted">{h.label}</span></div>
+      <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={a.c1} c2={a.c2} pattern={a.pattern} size={size} label={`${d.away.name} ${a.label}`} /><span className="tiny" style={{ color: a.label === 'Home kit' ? undefined : '#F2C14E', fontWeight: 800 }}>{a.label}</span></div>
+    </div>
+  );
+}
+
+function Conditions({ d }: { d: any }) {
+  const c = d.conditions;
+  return (
+    <div className="row small" style={{ gap: 10, flexWrap: 'wrap', fontWeight: 800 }}>
+      <span title={c.weatherInfo.note}>{c.weatherInfo.icon} {c.weatherInfo.label}</span>
+      <span className="muted">·</span>
+      <span>Referee {c.referee.name} <span className="tiny" style={{ color: c.referee.strict === 2 ? '#FF9AA8' : c.referee.strict === 0 ? '#7CE3A1' : '#B4A8E0' }}>({c.referee.label})</span></span>
+    </div>
+  );
+}
+
 function Back({ d }: { d: any }) {
   return <a className="back" href={`/l/${d.fixture.leagueId}`} aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3EEFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></a>;
 }
@@ -61,13 +83,15 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
   const toast = useToast();
   const kick = new Date(d.fixture.kickoff).getTime();
   const s = Math.max(0, Math.floor((kick - now) / 1000));
-  const cd = `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const hms = `${String(Math.floor((s % 86400) / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const cd = s >= 86400 ? `${Math.floor(s / 86400)}d ${hms.slice(0, 5)}` : hms;
+  const rivals = d.home.human && d.away.human; // pre-match words count when two managers meet
   const mine = d.home.mine || d.away.mine;
   const [text, setText] = useState('');
   const [tone, setTone] = useState('confident');
   const title = d.derby ? `THE ${d.home.name.split(' ')[0].toUpperCase()} DERBY` : d.fixture.comp === 'cup' ? d.fixture.roundName : `Matchday ${d.fixture.matchday}`;
   const post = async () => {
-    try { await api(`/api/leagues/${d.fixture.leagueId}/comment`, { text, tone: d.derby ? tone : undefined }); setText(''); toast.ok('Sent to the matchday paper'); reload(); } catch (e: any) { toast.bad(e.message); }
+    try { await api(`/api/leagues/${d.fixture.leagueId}/comment`, { text, tone: rivals ? tone : undefined }); setText(''); toast.ok('Sent to the matchday paper'); reload(); } catch (e: any) { toast.bad(e.message); }
   };
   const tension = d.derby ? 70 + ((d.home.id * 7 + d.away.id * 13) % 25) : 0;
   return (
@@ -85,6 +109,14 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
               <span className="small muted">{clock(d.fixture.kickoff)}</span>
             </div>
             <TeamBlock c={d.away} size={72} />
+          </div>
+          <div className="row between wrap" style={{ gap: 10, padding: '8px 10px', background: 'rgba(0,0,0,0.15)' }}>
+            <div className="col" style={{ gap: 3 }}>
+              <span className="kicker">Match conditions</span>
+              <Conditions d={d} />
+              <span className="tiny muted">{d.conditions.weatherInfo.note} {d.conditions.referee.strict === 2 ? 'Strict referee: more cards and penalties.' : d.conditions.referee.strict === 0 ? 'Lenient referee: lets the game flow.' : ''}</span>
+            </div>
+            <KitPair d={d} />
           </div>
           {d.derby && (
             <div className="col" style={{ gap: 4 }}>
@@ -106,9 +138,9 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
               <a className="cta" href={`/l/${d.fixture.leagueId}?tab=lineup`} style={{ minHeight: 56 }}><span>Set lineup</span></a>
               <a className="ghost" href={`/l/${d.fixture.leagueId}?tab=tactics`}><span>Tactics, penalties & assistant</span></a>
               <div className="panel cut" style={{ gap: 6 }}>
-                <span className="kicker">{d.derby ? 'Press conference' : 'Say something to the paper'}</span>
-                {d.derby && <div className="segrow">{(['calm', 'confident', 'provocative'] as const).map((t) => <button key={t} className={`seg ${tone === t ? 'on' : ''}`} onClick={() => setTone(t)}><span>{t[0].toUpperCase() + t.slice(1)}</span></button>)}</div>}
-                {d.derby && <span className="tiny muted">{tone === 'calm' ? 'Calm: no effect.' : tone === 'confident' ? 'Confident: your players +1 tonight.' : 'Provocative: +2, but the game gets dirtier.'}</span>}
+                <span className="kicker">{rivals ? 'Mind games' : 'Say something to the paper'}</span>
+                {rivals && <div className="segrow">{(['calm', 'confident', 'provocative'] as const).map((t) => <button key={t} className={`seg ${tone === t ? 'on' : ''}`} onClick={() => setTone(t)}><span>{t[0].toUpperCase() + t.slice(1)}</span></button>)}</div>}
+                {rivals && <span className="tiny muted">{tone === 'calm' ? 'Calm: no effect.' : tone === 'confident' ? 'Confident: your players +1 tonight.' : 'Provocative: +2, but the game gets dirtier.'}</span>}
                 <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={160} rows={2} placeholder="Your words go in the matchday paper…" style={{ background: 'rgba(10,4,30,0.45)', border: '1px solid rgba(255,255,255,0.12)', color: 'inherit', padding: 8, resize: 'none', font: 'inherit' }} />
                 <button className={`cta small ${d.derby ? 'gold' : ''}`} disabled={text.trim().length < 2} onClick={post}><span>Send to the matchday paper</span></button>
               </div>
@@ -123,23 +155,10 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
 }
 
 // ---------------------------------------------------------------- live / replay
-function hexDist(a: string, b: string) {
-  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) || 0);
-  const [x, y] = [p(a), p(b)];
-  return Math.sqrt(x.reduce((s, v, i) => s + (v - y[i]) ** 2, 0));
-}
-// If both clubs wear similar colours, the away side switches to its second colour (or white).
-function kits(d: any) {
-  const h = d.home.color1;
-  let a = d.away.color1;
-  if (hexDist(h, a) < 90) a = hexDist(h, d.away.color2) >= 90 ? d.away.color2 : hexDist(h, '#F3EEFF') >= 90 ? '#F3EEFF' : '#151018';
-  return { h, a };
-}
-
-function Watch({ d: raw, setD, skip }: { d: any; setD: (x: any) => void; skip: boolean }) {
+function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void; skip: boolean; reload: () => void }) {
   const toast = useToast();
-  const kit = kits(raw);
-  const d = { ...raw, away: { ...raw.away, color1: kit.a } };
+  // shirts on the pitch: the away side wears its change kit when the colours clash
+  const d = { ...raw, home: { ...raw.home, color1: raw.kits[0].c1, kit2: raw.kits[0].c2 }, away: { ...raw.away, color1: raw.kits[1].c1, kit2: raw.kits[1].c2 } };
   const rep = d.report;
   const events: Ev[] = rep.events;
   const LIVE = d.liveSeconds;
@@ -184,7 +203,7 @@ function Watch({ d: raw, setD, skip }: { d: any; setD: (x: any) => void; skip: b
     if (revealed > shown.current) {
       const fresh = events.slice(shown.current, revealed);
       shown.current = revealed;
-      const pri = ['goal', 'red', 'penalty', 'pens', 'penmiss', 'injury', 'yellow', 'sub', 'save', 'miss', 'tactic', 'ht', 'ft'];
+      const pri = ['goal', 'var', 'red', 'penalty', 'pens', 'penmiss', 'injury', 'yellow', 'freekick', 'sub', 'save', 'miss', 'tactic', 'ht', 'ft'];
       const big = [...fresh].sort((a, b) => pri.indexOf(a.type) - pri.indexOf(b.type))[0];
       if (big && pri.includes(big.type)) {
         setFx(big);
@@ -195,14 +214,14 @@ function Watch({ d: raw, setD, skip }: { d: any; setD: (x: any) => void; skip: b
         else if (big.type === 'ht') whistle(2);
         else if (big.type === 'ft') whistle(3);
         else if (big.type === 'save' || big.type === 'miss') crowd(forMe ? 'groan' : 'murmur');
-        else if (big.type === 'injury') crowd('murmur');
+        else if (big.type === 'injury' || big.type === 'var' || big.type === 'freekick') crowd('murmur');
       }
     }
     if (gm >= 90.5) { const t = setTimeout(() => setPhase('ft'), 1800); return () => clearTimeout(t); }
   }, [revealed, gm, phase]);
   useEffect(() => {
     if (!fx) return;
-    const t = setTimeout(() => setFx(null), fx.type === 'goal' ? 2700 : fx.type === 'injury' ? 2600 : 1800);
+    const t = setTimeout(() => setFx(null), fx.type === 'goal' || fx.type === 'var' ? 2700 : fx.type === 'injury' ? 2600 : 1800);
     return () => clearTimeout(t);
   }, [fx]);
 
@@ -247,7 +266,7 @@ function Watch({ d: raw, setD, skip }: { d: any; setD: (x: any) => void; skip: b
       </div>
     );
   }
-  if (phase === 'ft') return <FullTime d={d} skipped={skip} />;
+  if (phase === 'ft') return <FullTime d={d} skipped={skip} reload={reload} />;
 
   // momentum: shots and goals in the last 12 minutes
   const recent = events.slice(0, revealed).filter((e) => e.m > minute - 12);
@@ -265,7 +284,7 @@ function Watch({ d: raw, setD, skip }: { d: any; setD: (x: any) => void; skip: b
           <b className="lz ellipsis" style={{ fontSize: 19, maxWidth: 170 }}>{d.home.name}</b>
           <div className="col" style={{ alignItems: 'center', gap: 0 }}>
             <span className="lz" style={{ fontSize: 34, lineHeight: 1 }}>{score[0]} – {score[1]}</span>
-            <span className="tiny" style={{ color: live ? '#FF6B7A' : 'var(--cyan)', fontWeight: 900 }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))}</span>
+            <span className="tiny" style={{ color: live ? '#FF6B7A' : 'var(--cyan)', fontWeight: 900 }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))} · <span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon}</span></span>
           </div>
           <b className="lz ellipsis" style={{ fontSize: 19, maxWidth: 170 }}>{d.away.name}</b>
           <Crest c1={d.away.color1} c2={d.away.color2} size={30} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />
@@ -309,7 +328,8 @@ function Watch({ d: raw, setD, skip }: { d: any; setD: (x: any) => void; skip: b
             <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ mentality: 2, press: 2 }, 'All out attack!')}><span>All-out attack</span></button>
             <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ mentality: 0, line: 0, press: 0 }, 'Park the bus')}><span>Park the bus</span></button>
             <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ press: 3 }, 'High press on')}><span>High press</span></button>
-            <button className={`seg ${panel === 'tactic' ? 'on' : ''}`} style={{ minHeight: 40 }} onClick={() => setPanel(panel === 'tactic' ? null : 'tactic')}><span>Game plan</span></button>
+            {(d.plans || []).length > 1 && d.plans.map((k: string) => <button key={k} className="seg" style={{ minHeight: 40, background: 'rgba(242,193,78,0.2)', color: '#F2C14E' }} onClick={() => change({ plan: k }, `Plan ${k}!`)}><span>Plan {k}</span></button>)}
+            <button className={`seg ${panel === 'tactic' ? 'on' : ''}`} style={{ minHeight: 40 }} onClick={() => setPanel(panel === 'tactic' ? null : 'tactic')}><span>Style</span></button>
             <button className={`seg ${panel === 'sub' ? 'on' : ''}`} style={{ minHeight: 40 }} disabled={subsUsed(mineSide) >= 5} onClick={() => setPanel(panel === 'sub' ? null : 'sub')}><span>Substitution ({5 - subsUsed(mineSide)})</span></button>
           </>
         ) : (
@@ -366,8 +386,8 @@ function Dots({ d, gm, events, revealed }: { d: any; gm: number; events: Ev[]; r
   const clampY = (y: number) => Math.max(14, Math.min(86, y));
   return (
     <>
-      {fh.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, x * 0.9 + 3 + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(y + (by - y) * (i ? 0.12 : 0.05) + Math.sin(t * 0.4 + i) * 1.5), d.home.color1, `h${i}`, '#F3EEFF'))}
-      {fa.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, 100 - (x * 0.9 + 3) + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(100 - y + (by - (100 - y)) * (i ? 0.12 : 0.05) + Math.cos(t * 0.4 + i) * 1.5), d.away.color1, `a${i}`, '#151018'))}
+      {fh.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, x * 0.9 + 3 + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(y + (by - y) * (i ? 0.12 : 0.05) + Math.sin(t * 0.4 + i) * 1.5), d.home.color1, `h${i}`, d.home.kit2 || '#F3EEFF'))}
+      {fa.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, 100 - (x * 0.9 + 3) + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(100 - y + (by - (100 - y)) * (i ? 0.12 : 0.05) + Math.cos(t * 0.4 + i) * 1.5), d.away.color1, `a${i}`, d.away.kit2 || '#151018'))}
       <span style={{ position: 'absolute', left: `${bx}%`, top: `${clampY(by)}%`, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff', transition: 'left .2s linear, top .2s linear', zIndex: 3 }} />
     </>
   );
@@ -459,6 +479,27 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
       </div>
     );
   }
+  if (e.type === 'var') {
+    return (
+      <div className="ov" style={{ background: 'rgba(8,4,24,0.75)', gap: 8 }}>
+        <div style={{ position: 'relative', width: 190, height: 110, border: '3px solid #7FE9F7', background: 'repeating-linear-gradient(0deg, rgba(127,233,247,0.08) 0 2px, transparent 2px 6px)', overflow: 'hidden' }}>
+          <span style={{ position: 'absolute', left: 0, right: 0, height: 3, background: '#7FE9F7', boxShadow: '0 0 12px #7FE9F7', animation: 'varScan 1.1s ease-in-out 2 alternate' }} />
+          <span className="lz" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 40, color: '#7FE9F7', letterSpacing: 4 }}>VAR</span>
+        </div>
+        <span className="lz" style={{ fontSize: 20, color: '#F3EEFF', animation: 'fadeUp .4s 1.4s both' }}>{e.text.includes('overturns') ? 'PENALTY OVERTURNED' : 'GOAL RULED OUT'}</span>
+        <span className="tiny" style={{ fontWeight: 800, color: '#CFC6F0', animation: 'fadeUp .4s 1.7s both', maxWidth: '80%', textAlign: 'center' }}>{e.text}</span>
+      </div>
+    );
+  }
+  if (e.type === 'freekick') {
+    return (
+      <div className="ov" style={{ background: 'rgba(10,4,20,0.4)' }}>
+        <svg width="150" height="60" viewBox="0 0 150 60" aria-hidden="true">{[0, 1, 2, 3].map((i) => <rect key={i} x={50 + i * 12} y="10" width="9" height="34" rx="4" fill={team.color1} stroke="#F3EEFF" strokeWidth="1.5" style={{ animation: `fadeUp .3s ${i * 0.08}s both` }} />)}<circle cx="20" cy="50" r="5" fill="#fff" style={{ animation: 'ballUp .8s .6s ease-in forwards' }} /></svg>
+        <span className="lz" style={{ fontSize: 26, color: '#F2C14E', animation: 'zoomIn .6s both' }}>FREE KICK</span>
+        <span className="tiny" style={{ fontWeight: 800 }}>{e.text}</span>
+      </div>
+    );
+  }
   if (e.type === 'tactic') {
     return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="kicker" style={{ color: '#F3EEFF' }}>Change of plan</span><span className="lz" style={{ fontSize: 24, color: 'var(--cyan)', animation: 'fadeUp .5s both', maxWidth: '80%' }}>{e.text}</span></div>;
   }
@@ -469,7 +510,7 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
 }
 
 // ---------------------------------------------------------------- full time
-function FullTime({ d, skipped }: { d: any; skipped: boolean }) {
+function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: () => void }) {
   const rep = d.report;
   const s = rep.stats;
   const [hg, ag] = rep.score;
@@ -480,7 +521,7 @@ function FullTime({ d, skipped }: { d: any; skipped: boolean }) {
   useEffect(() => { whistle(3); if (res === 'WIN') setTimeout(() => crowd('roar'), 900); }, []);
   const motm = rep.players.find((p: any) => p.id === rep.motm);
   const name = (id?: string) => (id ? d.names[id]?.name || '' : '');
-  const key = rep.events.filter((e: Ev) => ['goal', 'red', 'yellow', 'penmiss', 'injury', 'sub', 'tactic'].includes(e.type));
+  const key = rep.events.filter((e: Ev) => ['goal', 'red', 'yellow', 'penmiss', 'injury', 'sub', 'tactic', 'var'].includes(e.type));
   const bars: [string, number, number, (v: number) => string][] = [
     ['Possession', s.poss[0], s.poss[1], (v) => `${v}%`], ['Shots', s.shots[0], s.shots[1], String], ['On target', s.onTarget[0], s.onTarget[1], String],
     ['Expected goals', s.xg[0], s.xg[1], (v) => v.toFixed(2)], ['Corners', s.corners[0], s.corners[1], String], ['Yellow cards', s.yellows[0], s.yellows[1], String],
@@ -491,6 +532,7 @@ function FullTime({ d, skipped }: { d: any; skipped: boolean }) {
     if (e.type === 'yellow' || e.type === 'red') return <span style={{ width: 10, height: 13, background: c, flex: 'none' }} />;
     if (e.type === 'sub') return <span style={{ color: c, fontWeight: 900, width: 12, flex: 'none' }}>⇅</span>;
     if (e.type === 'injury') return <span style={{ color: c, fontWeight: 900, width: 12, flex: 'none' }}>✚</span>;
+    if (e.type === 'var') return <span style={{ color: '#7FE9F7', fontWeight: 900, fontSize: 9, width: 12, flex: 'none' }}>VAR</span>;
     return <span style={{ width: 11, height: 11, transform: 'rotate(45deg)', background: c, flex: 'none' }} />;
   };
   const isAst = (e: Ev) => (e.type === 'sub' && !e.text.startsWith("Manager")) || (e.type === 'tactic' && !e.text.includes('switch to'));
@@ -514,7 +556,7 @@ function FullTime({ d, skipped }: { d: any; skipped: boolean }) {
           <span className="tiny" style={{ color: '#7CE3A1', fontWeight: 900 }}>{so ? `${rep.winner === 0 ? d.home.name : d.away.name} win ${Math.max(...so.score)}–${Math.min(...so.score)} on penalties` : res ? `FULL TIME · ${res}` : 'FULL TIME'}</span>
         </div>
         <div className="row" style={{ gap: 10, minWidth: 0 }}><Crest c1={d.away.color1} c2={d.away.color2} size={40} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} /><span className="lz ellipsis" style={{ fontSize: 22 }}>{d.away.name}</span></div>
-        {skipped ? <span className="tag cyan"><span>SIMULATED · YOU SKIPPED</span></span> : <span />}
+        {skipped ? <span className="tag cyan"><span>SIMULATED · YOU SKIPPED</span></span> : <KitPair d={d} size={26} />}
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.1fr) minmax(200px, 0.9fr)', gap: 10, flex: 1 }}>
@@ -550,7 +592,7 @@ function FullTime({ d, skipped }: { d: any; skipped: boolean }) {
             </div>
           ))}
           <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
-            <a className="ghost grow" href={`/m/${d.fixture.id}`}><span>Watch highlights</span></a>
+            <a className="ghost grow" href={`/m/${d.fixture.id}`}><span>Replay</span></a>
             <a className="cta grow" href={`/l/${d.fixture.leagueId}`}><span>Continue</span></a>
           </div>
         </section>
@@ -571,7 +613,89 @@ function FullTime({ d, skipped }: { d: any; skipped: boolean }) {
           {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'rgba(124,227,161,0.12)', fontWeight: 800, color: '#7CE3A1' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}
         </section>
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
+        {rep.shots?.length ? <ShotMap d={d} /> : null}
+        {rep.shots?.length ? <XgRace d={d} /> : null}
+        {mine >= 0 && d.fixture.status === 'done' && <Press d={d} reload={reload} />}
+      </div>
     </div>
+  );
+}
+
+// Every shot where it was taken: bigger circle = better chance, filled = goal.
+function ShotMap({ d }: { d: any }) {
+  const shots = d.report.shots as any[];
+  const col = (s: number) => (s === 0 ? d.kits[0].c1 : d.kits[1].c1);
+  return (
+    <section className="panel cut" style={{ gap: 4 }}>
+      <div className="row between"><span className="kicker">Shot map</span><span className="tiny muted">size = xG · filled = goal</span></div>
+      <svg viewBox="0 0 100 64" style={{ width: '100%', background: '#1F6B45', display: 'block' }} role="img" aria-label="Shot map">
+        <g fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.4">
+          <rect x="1" y="1" width="98" height="62" /><path d="M50 1v62" /><circle cx="50" cy="32" r="7" />
+          <rect x="1" y="17" width="14" height="30" /><rect x="85" y="17" width="14" height="30" />
+          <rect x="1" y="25" width="5" height="14" /><rect x="94" y="25" width="5" height="14" />
+        </g>
+        {shots.map((s, i) => {
+          const r = 0.9 + Math.sqrt(s.xg) * 4.2;
+          return <circle key={i} cx={s.x} cy={2 + s.y * 0.6} r={r} fill={s.goal ? col(s.side) : 'none'} stroke={s.goal ? '#fff' : col(s.side)} strokeWidth={s.goal ? 0.5 : 0.7} opacity={s.goal ? 1 : 0.85}><title>{`${s.m}' ${s.kind} · xG ${s.xg}${s.goal ? ' · GOAL' : ''}`}</title></circle>;
+        })}
+      </svg>
+      <div className="row tiny between" style={{ fontWeight: 800 }}><span>← {d.away.short} attack</span><span>{d.home.short} attack →</span></div>
+    </section>
+  );
+}
+
+// Cumulative expected goals through the match, with goals marked.
+function XgRace({ d }: { d: any }) {
+  const shots = [...(d.report.shots as any[])].sort((a, b) => a.m - b.m);
+  const W = 100, H = 50;
+  const lines: [number, number][][] = [[[0, 0]], [[0, 0]]];
+  const tot = [0, 0];
+  for (const s of shots) { lines[s.side].push([s.m, tot[s.side]]); tot[s.side] += s.xg; lines[s.side].push([s.m, tot[s.side]]); }
+  lines[0].push([93, tot[0]]); lines[1].push([93, tot[1]]);
+  const max = Math.max(1, tot[0], tot[1]) * 1.1;
+  const pt = ([m, v]: [number, number]) => `${(Math.min(93, m) / 93) * W},${H - (v / max) * H}`;
+  const col = (s: number) => (s === 0 ? d.kits[0].c1 : d.kits[1].c1);
+  return (
+    <section className="panel cut" style={{ gap: 4 }}>
+      <div className="row between"><span className="kicker">xG race</span><span className="tiny" style={{ fontWeight: 900 }}>{tot[0].toFixed(2)} – {tot[1].toFixed(2)}</span></div>
+      <svg viewBox={`-2 -3 ${W + 4} ${H + 10}`} style={{ width: '100%', display: 'block' }} role="img" aria-label="Expected goals over time">
+        <path d={`M0 ${H}H${W}`} stroke="rgba(255,255,255,0.25)" strokeWidth="0.4" />
+        <path d={`M${(45 / 93) * W} 0V${H}`} stroke="rgba(255,255,255,0.15)" strokeWidth="0.4" strokeDasharray="1 1" />
+        {[0, 1].map((s) => <polyline key={s} points={lines[s].map(pt).join(' ')} fill="none" stroke={col(s)} strokeWidth="1.2" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.6))' }} />)}
+        {shots.filter((s) => s.goal).map((s, i) => { const before = shots.filter((x) => x.side === s.side && x.m <= s.m).reduce((a, x) => a + x.xg, 0); return <circle key={i} cx={(Math.min(93, s.m) / 93) * W} cy={H - (before / max) * H} r="1.8" fill={col(s.side)} stroke="#fff" strokeWidth="0.5" />; })}
+        <text x="0" y={H + 6} fontSize="4" fill="#B4A8E0">0'</text><text x={(45 / 93) * W - 3} y={H + 6} fontSize="4" fill="#B4A8E0">45'</text><text x={W - 6} y={H + 6} fontSize="4" fill="#B4A8E0">90'</text>
+      </svg>
+      <div className="row tiny" style={{ gap: 12, fontWeight: 800 }}><span><i style={{ display: 'inline-block', width: 10, height: 3, background: col(0), marginRight: 4, verticalAlign: 'middle' }} />{d.home.name}</span><span><i style={{ display: 'inline-block', width: 10, height: 3, background: col(1), marginRight: 4, verticalAlign: 'middle' }} />{d.away.name}</span></div>
+    </section>
+  );
+}
+
+// Post-match press conference: one answer, with consequences.
+function Press({ d, reload }: { d: any; reload?: () => void }) {
+  const toast = useToast();
+  const [res, setRes] = useState<any>(null);
+  const done = d.press?.done || res;
+  const ask = async (choice: string) => {
+    try { const r = await api(`/api/fixtures/${d.fixture.id}/press`, { choice }); setRes(r); toast.ok('Your words are in the papers'); } catch (e: any) { toast.bad(e.message); }
+  };
+  return (
+    <section className="panel cut" style={{ gap: 6 }}>
+      <span className="kicker">Post-match press conference</span>
+      {done ? (
+        <>
+          <div className="small" style={{ fontStyle: 'italic' }}>{res?.quote || 'You have already spoken to the press.'}</div>
+          {res?.effect && <div className="tiny" style={{ color: '#7FE9F7', fontWeight: 800 }}>{res.effect}</div>}
+        </>
+      ) : (
+        <>
+          <div className="small muted">"Your thoughts on the game, coach?"</div>
+          {d.press.options.map((o: any) => <button key={o.key} className="seg" style={{ minHeight: 34, justifyContent: 'flex-start' }} onClick={() => ask(o.key)}><span>{o.label}</span></button>)}
+          <span className="tiny muted">Praise lifts morale. Demanding more fires them up but stings. Blaming the referee pleases fans and costs a fine.</span>
+        </>
+      )}
+      {toast.node}
+    </section>
   );
 }
 

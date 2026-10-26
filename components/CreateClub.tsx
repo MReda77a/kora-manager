@@ -1,15 +1,15 @@
 'use client';
 import { useState } from 'react';
 import { api } from '../lib/client.ts';
-import { CLUB_TYPES, shortName, type ClubTypeKey } from '../lib/game.ts';
-import { COLORS, Crest, EMBLEM_NAMES, SHAPE_NAMES, useToast } from './ui.tsx';
+import { CLUB_TYPES, PATTERNS, shortName, type ClubTypeKey } from '../lib/game.ts';
+import { COLORS, Crest, EMBLEM_NAMES, Kit, SHAPE_NAMES, useToast } from './ui.tsx';
 
 const TYPE_COLOR: Record<ClubTypeKey, string> = { fan: '#E8438C', invest: '#F2C14E', academy: '#7CE3A1', commercial: '#7FE9F7', historic: '#C5B3FF' };
 
 export default function CreateClub({ league, onDone }: { league: any; onDone: () => void }) {
   const toast = useToast();
   const [step, setStep] = useState(0);
-  const [f, setF] = useState({ name: '', short: '', stadium: '', shape: 0, emblem: 0, color1: COLORS[0], color2: COLORS[5], type: 'fan' as ClubTypeKey });
+  const [f, setF] = useState({ name: '', short: '', stadium: '', shape: 0, emblem: 0, color1: COLORS[0], color2: COLORS[5], away1: '#F3EEFF', away2: COLORS[0], pattern: 0, type: 'fan' as ClubTypeKey });
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: any) => setF((s) => ({ ...s, [k]: v }));
   const T = CLUB_TYPES[f.type];
@@ -44,6 +44,10 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
           <div className="lz" style={{ fontSize: 22, lineHeight: 1.1 }}>{name}</div>
           <div className="tag"><span>{(f.short || shortName(f.name || 'Club')).toUpperCase()}</span></div>
           <div className="tiny muted">{(f.stadium.trim() || `${name} Park`)} · Home ground</div>
+          <div className="row" style={{ gap: 14 }}>
+            <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={f.color1} c2={f.color2} pattern={f.pattern} size={44} label="Home kit" /><span className="tiny muted">Home</span></div>
+            <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={f.away1} c2={f.away2} size={44} label="Away kit" /><span className="tiny muted">Away</span></div>
+          </div>
           <div className="tag" style={{ background: TYPE_COLOR[f.type], color: '#1B1048' }}><span>{T.name}</span></div>
         </div>
         {step === 0 ? (
@@ -55,8 +59,9 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
             </div>
             <div className="row wrap"><span className="small muted" style={{ width: 70 }}>Shape</span>{SHAPE_NAMES.map((s, i) => <button key={s} className={`chip ${f.shape === i ? 'on' : ''}`} onClick={() => set('shape', i)}><span>{s}</span></button>)}</div>
             <div className="row wrap"><span className="small muted" style={{ width: 70 }}>Emblem</span>{EMBLEM_NAMES.map((s, i) => <button key={s} className={`chip ${f.emblem === i ? 'on' : ''}`} onClick={() => set('emblem', i)}><span>{s}</span></button>)}</div>
-            {(['color1', 'color2'] as const).map((k, j) => (
-              <div key={k} className="row wrap"><span className="small muted" style={{ width: 70 }}>{j ? 'Second' : 'Main'}</span>
+            <div className="row wrap"><span className="small muted" style={{ width: 70 }}>Shirt</span>{PATTERNS.map((s, i) => <button key={s} className={`chip ${f.pattern === i ? 'on' : ''}`} onClick={() => set('pattern', i)}><span>{s}</span></button>)}</div>
+            {(['color1', 'color2', 'away1', 'away2'] as const).map((k, j) => (
+              <div key={k} className="row wrap"><span className="small muted" style={{ width: 70 }}>{['Main', 'Second', 'Away', 'Away 2nd'][j]}</span>
                 {COLORS.map((c) => <button key={c} aria-label={c} onClick={() => set(k, c)} style={{ width: 28, height: 28, background: c, boxShadow: f[k] === c ? '0 0 0 2px #1E1250, 0 0 0 4px #F3EEFF' : 'inset 0 0 0 1px rgba(255,255,255,0.25)' }} />)}
               </div>
             ))}

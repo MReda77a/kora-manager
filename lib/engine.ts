@@ -3,7 +3,7 @@
 // Every step is a duel between one side's tactic and players and the other side's.
 // Ported from the Python prototype that was balanced over 50,000+ simulated matches.
 import { rng as makeRng, type Rng } from './rng.ts';
-import { FORMATIONS, LINE, PRESETS, stripDesc, type Tactic } from './game.ts';
+import { FORMATIONS, LINE, PRESETS, ROLES, stripDesc, type Tactic } from './game.ts';
 
 export type EPlayer = {
   id: string; name: string; pos: string; ovr: number; fitness: number;
@@ -14,12 +14,16 @@ export type ESide = {
   clubId: number; name: string; xi: EPlayer[]; bench: EPlayer[]; tactic: Tactic;
   assistant: Record<string, boolean>; pens: string[]; homeBoost: number; boost?: number;
   injuryRisk?: number; // 1 = normal, lower with a good doctor
+  roles?: Record<string, string>; // player id -> role
+  setpieces?: { corner?: string; fk?: string; routine?: string };
+  familiarity?: number; // 0..100 with the formation
 };
 // A manager's decision during a live match. It takes effect from minute m on.
 export type Change =
-  | { m: number; side: 0 | 1; kind: 'tactic'; tactic: Partial<Tactic> & { preset?: string } }
+  | { m: number; side: 0 | 1; kind: 'tactic'; tactic: Partial<Tactic> & { preset?: string; plan?: string } }
   | { m: number; side: 0 | 1; kind: 'sub'; out: string; in: string };
-export type SimOpts = { changes?: Change[]; knockout?: boolean; derby?: boolean };
+export type SimOpts = { changes?: Change[]; knockout?: boolean; derby?: boolean; weather?: string; strict?: number };
+export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string };
 export type Shootout = { kicks: { side: 0 | 1; pid: string; scored: boolean }[]; score: [number, number] };
 export type MatchEvent = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 export type PlayerLine = { id: string; name: string; side: 0 | 1; pos: string; r: number; g: number; a: number; mins: number; fitEnd: number; yc: number; rc: boolean; inj: boolean };
@@ -34,6 +38,8 @@ export type Report = {
   shootout?: Shootout;
   winner?: 0 | 1;
   derby?: boolean;
+  shots?: Shot[];
+  weather?: string;
 };
 
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
@@ -62,6 +68,8 @@ class Side {
   }
   // attribute of a player in his slot, after tiredness
   manual = false;
+  weather = 'clear';
+  flags: Record<string, number> = { through: 0, crossB: 0, longshot: 0, holdup: 0, sweeper: 0, anchor: 0 };
   val(o: OnPitch, attr: string) {
     let v = (o.p.a[attr] ?? o.p.ovr) + (o.p.mod || 0);
     const natural = LINE[o.p.pos] || 'MID';
@@ -85,6 +93,31 @@ class Side {
       aerial_def: avg(D.length ? D : M, (o) => (this.val(o, 'Heading') + this.val(o, 'Jumping') + this.val(o, 'Strength')) / 3, base),
       keeper: G.length ? (this.val(G[0], 'Reflexes') + this.val(G[0], 'Handling') + this.val(G[0], 'OneOnOne')) / 3 : 40,
     };
+    // roles: each player in a role that fits his slot adds a small, attribute-scaled edge
+    this.flags = { through: 0, crossB: 0, longshot: 0, holdup: 0, sweeper: 0, anchor: 0 };
+    for (const o of all) {
+      const role = this.s.roles?.[o.p.id];
+      const def = role ? ROLES[role] : null;
+      if (!def || def.line !== o.slot) continue;
+      const eff = Math.max(0.6, Math.min(1.2, def.keys.reduce((t, k) => t + (o.p.a[k] ?? 60), 0) / def.keys.length / 80)) * 0.75;
+      const A = this.agg, F = this.flags;
+      if (role === 'Shot stopper') A.keeper += 2.5 * eff;
+      else if (role === 'Sweeper keeper') { A.keeper += 0.5; F.sweeper += eff; }
+      else if (role === 'Stopper') { A.tackling += 1.2 * eff; A.aerial_def += 1.2 * eff; A.pace_def -= 0.6; }
+      else if (role === 'Ball-playing') A.passing += 1.2 * eff;
+      else if (role === 'Wing-back') { F.crossB += 0.006 * eff; A.pace_def -= 0.5; }
+      else if (role === 'Anchor') { A.tackling += 1.5 * eff; F.anchor += eff; }
+      else if (role === 'Box-to-box') { A.tackling += 0.6 * eff; A.passing += 0.6 * eff; }
+      else if (role === 'Playmaker') { A.passing += 1.8 * eff; F.through += 0.006 * eff; }
+      else if (role === 'Poacher') A.finishing += 2 * eff;
+      else if (role === 'Target man') { A.aerial_att += 3 * eff; F.holdup += 0.1 * eff; }
+      else if (role === 'False 9') { A.passing += 1 * eff; A.finishing -= 0.5; F.through += 0.004 * eff; }
+      else if (role === 'Inside forward') { A.finishing += 0.8 * eff; F.longshot += 0.006 * eff; }
+    }
+    if (this.weather === 'rain') this.agg.passing -= 1.5;
+    if (this.weather === 'snow') { this.agg.pace_att -= 4; this.agg.pace_def -= 4; }
+    const fam = ((this.s.familiarity ?? 60) - 60) / 40;
+    for (const k of Object.keys(this.agg)) this.agg[k] += fam;
     const tired = avg(all, (o) => o.tired, 0);
     const short = (11 - all.length) * 4;
     const pen = Math.min(9, Math.max(0, tired - 0.55) * 10) + short - this.form - homeAdv - (this.s.boost || 0);
@@ -104,6 +137,19 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const derby = !!opts.derby;
   const S: [Side, Side] = [new Side(home, r, 0, lines, derby), new Side(away, r, 1, lines, derby)];
   const changes = [...(opts.changes || [])].sort((a, b) => a.m - b.m);
+  const weather = opts.weather || 'clear';
+  S[0].weather = weather; S[1].weather = weather;
+  const cardMul = [0.75, 1, 1.35][opts.strict ?? 1];
+  const penMul = [0.8, 1, 1.25][opts.strict ?? 1];
+  const shotsList: Shot[] = [];
+  const spot = (a: 0 | 1, kind: string) => {
+    let x: number, y: number;
+    if (kind === 'long shot' || kind === 'free kick') { x = 72 + r.next() * 9; y = 22 + r.next() * 56; }
+    else if (kind === 'cross' || kind === 'corner') { x = 90 + r.next() * 6; y = 40 + r.next() * 20; }
+    else if (kind === 'penalty') { x = 88.5; y = 50; }
+    else { x = 82 + r.next() * 10; y = 32 + r.next() * 36; }
+    return a === 0 ? [x, y] : [100 - x, 100 - y];
+  };
   let nextChange = 0;
   const goals: [number, number] = [0, 0], shots: [number, number] = [0, 0], onT: [number, number] = [0, 0];
   const xg: [number, number] = [0, 0], corners: [number, number] = [0, 0], yel: [number, number] = [0, 0], red: [number, number] = [0, 0];
@@ -135,11 +181,19 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     shots[a]++;
     xg[a] += q;
     const onTarget = r.next() < Math.min(0.95, 0.32 + q * 1.6);
-    if (kind === 'cross' && r.next() < 0.35) corners[a]++;
+    const [sx, sy] = spot(a, kind);
     if (r.next() < q) {
+      const sc = pickScorer(a, kind === 'corner' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
+      // VAR checks every goal; a few are ruled out for offside
+      if (kind !== 'free kick' && r.next() < 0.035) {
+        shots[a]++; xg[a] += q;
+        shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind });
+        log('var', a, `VAR check... goal by ${sc.p.name} ruled out for offside!`, sc.p.id);
+        return;
+      }
       goals[a]++;
       onT[a]++;
-      const sc = pickScorer(a, kind);
+      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: true, kind, pid: sc.p.id });
       sc.line.g++;
       sc.line.r += 1.0;
       let txt = `GOAL! ${sc.p.name}`;
@@ -150,22 +204,54 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         as.line.r += 0.6;
         txt += `, assisted by ${last(as.p.name)}`;
       }
-      const how: Record<string, string> = { cross: 'with a header from a cross', 'through ball': 'running onto a through ball', 'build-up': 'after a patient move', 'long shot': 'from distance', counter: 'on the counter', 'high turnover': 'after winning it high up the pitch', penalty: 'from the spot' };
+      const how: Record<string, string> = { corner: 'with a header from a corner', 'free kick': 'with a stunning free kick', cross: 'with a header from a cross', 'through ball': 'running onto a through ball', 'build-up': 'after a patient move', 'long shot': 'from distance', counter: 'on the counter', 'high turnover': 'after winning it high up the pitch', penalty: 'from the spot' };
       log('goal', a, `${txt} ${how[kind] || ''}`.trim(), sc.p.id, as?.p.id);
       S[b].pitch.filter((o) => o.slot === 'DEF' || o.slot === 'GK').forEach((o) => (o.line.r -= 0.25));
-    } else if (onTarget) {
-      onT[a]++;
-      const gk = S[b].pitch.find((o) => o.slot === 'GK');
-      if (gk) gk.line.r += 0.15;
-      if (q > 0.25 && gk) log('save', b, `Big save by ${gk.p.name}!`, gk.p.id);
-    } else if (q > 0.3) {
-      log('miss', a, `Huge chance missed for ${S[a].s.name}.`);
+    } else {
+      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind });
+      if (onTarget) {
+        onT[a]++;
+        const gk = S[b].pitch.find((o) => o.slot === 'GK');
+        if (gk) gk.line.r += 0.15;
+        if (q > 0.25 && gk) log('save', b, `Big save by ${gk.p.name}!`, gk.p.id);
+      } else if (q > 0.3) {
+        log('miss', a, `Huge chance missed for ${S[a].s.name}.`);
+      }
+      // saves and blocks give corners
+      if (kind !== 'corner' && kind !== 'penalty' && r.next() < (onTarget ? 0.3 : 0.22) + (kind === 'cross' ? 0.1 : 0)) corner(a);
     }
+  };
+
+  const taker = (side: 0 | 1, id: string | undefined, attr: string) => {
+    const on = S[side].pitch.filter((o) => o.slot !== 'GK');
+    return on.find((o) => o.p.id === id) || on.sort((x, y) => S[side].val(y, attr) - S[side].val(x, attr))[0];
+  };
+  const corner = (a: 0 | 1) => {
+    corners[a]++;
+    if (r.next() > 0.5) return;
+    const b = (1 - a) as 0 | 1;
+    const sp = S[a].s.setpieces || {};
+    const t = taker(a, sp.corner, 'Crossing');
+    const cross = t ? S[a].val(t, 'Crossing') : 65;
+    let q = 0.04 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.003 + (cross - 70) * 0.0008;
+    if (sp.routine === 'near' && A(b, 'keeper') < 76) q += 0.008;
+    if (sp.routine === 'far') q += (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.002;
+    if (sp.routine === 'short') q = 0.038;
+    if (weather === 'wind') q -= 0.01;
+    shot(a, Math.max(0.015, q), 'corner');
+  };
+  const freeKick = (a: 0 | 1) => {
+    const sp = S[a].s.setpieces || {};
+    const t = taker(a, sp.fk, 'LongShots');
+    const skill = t ? (S[a].val(t, 'LongShots') + S[a].val(t, 'Composure')) / 2 : 65;
+    log('freekick', a, `Free kick in a dangerous position. ${t ? t.p.name : ''} stands over it...`, t?.p.id);
+    shot(a, Math.max(0.02, 0.045 + (skill - 70) * 0.002), 'free kick');
   };
 
   const counter = (a: 0 | 1) => {
     const b = 1 - a;
-    const exposed = (T(b).line === 2 ? 0.03 : T(b).line === 1 ? 0.01 : -0.03) + (T(b).mentality === 2 ? 0.02 : 0);
+    const exposed = (T(b).line === 2 ? 0.03 : T(b).line === 1 ? 0.01 : -0.03) + (T(b).mentality === 2 ? 0.02 : 0)
+      - (T(b).line === 2 ? S[b].flags.sweeper * 0.02 : 0) - S[b].flags.anchor * 0.012;
     const gap = (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005;
     shot(a, Math.max(0.03, 0.1 + exposed + gap), 'counter');
   };
@@ -176,27 +262,32 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     let q: number, two: number;
     const f = ta.focus;
     if (f === 0) {
-      q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) - (tb.line === 0 ? 0.012 : 0);
+      q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) - (tb.line === 0 ? 0.012 : 0)
+        + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0);
       two = 0.25;
     } else if (f === 1) {
-      q = 0.11 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005 + (tb.line === 2 ? 0.05 : tb.line === 0 ? -0.035 : 0);
+      q = 0.11 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005 + (tb.line === 2 ? 0.05 - S[b].flags.sweeper * 0.02 : tb.line === 0 ? -0.035 : 0) + S[a].flags.through;
       two = 0;
     } else if (f === 2) {
-      q = 0.1 + (A(a, 'passing') - A(b, 'tackling')) * 0.005 + (tb.line === 0 ? -0.03 : tb.press >= 2 ? 0.015 : 0);
+      q = 0.1 + (A(a, 'passing') - A(b, 'tackling')) * 0.005 + (tb.line === 0 ? -0.03 : tb.press >= 2 ? 0.015 : 0) + S[a].flags.through * 0.5;
       two = 0.1;
     } else {
-      q = 0.07 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0);
+      q = 0.07 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0) + S[a].flags.longshot;
       two = 0.55;
     }
     q = Math.max(0.02, q + bonus);
     // a small share of attacks in the box end with a foul and a penalty
-    if (f !== 3 && r.next() < 0.017) return penalty(a);
+    if (f !== 3 && r.next() < 0.017 * penMul) return penalty(a);
     const n = r.next() < two ? 2 : 1;
     for (let i = 0; i < n; i++) shot(a, q, ['cross', 'through ball', 'build-up', 'long shot'][f]);
   };
 
   const penalty = (a: 0 | 1) => {
     const b = (1 - a) as 0 | 1;
+    if (r.next() < 0.1) {
+      log('var', a, `Penalty to ${S[a].s.name}... VAR overturns it! No penalty.`);
+      return;
+    }
     const fouler = r.weighted(S[b].pitch.filter((o) => o.slot === 'DEF'), (o) => o.p.a.Aggression || 50) || null;
     log('penalty', a, `PENALTY to ${S[a].s.name}!${fouler ? ` ${fouler.p.name} brings his man down.` : ''}`);
     if (fouler) card(b, fouler, 0.45);
@@ -206,7 +297,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const p = Math.min(0.92, Math.max(0.55, 0.76 + (skill - 78) * 0.006 - (A(b, 'keeper') - 78) * 0.003));
     shots[a]++;
     xg[a] += 0.76;
+    shotsList.push({ m: minute, side: a, x: a === 0 ? 88.5 : 11.5, y: 50, xg: 0.76, goal: false, kind: 'penalty' });
     if (r.next() < p) {
+      shotsList[shotsList.length - 1].goal = true;
+      shotsList[shotsList.length - 1].pid = taker.p.id;
       goals[a]++;
       onT[a]++;
       taker.line.g++;
@@ -302,9 +396,27 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const sd = S[c.side];
     sd.manual = true;
     if (c.kind === 'tactic') {
-      const { preset, ...rest } = c.tactic;
+      const { preset, plan, ...rest } = c.tactic;
+      const before = sd.tactic.formation;
       sd.tactic = { ...sd.tactic, ...(preset && PRESETS[preset] ? stripDesc(PRESETS[preset]) : {}), ...rest, preset: preset || sd.tactic.preset };
-      log('tactic', c.side, `${sd.s.name} switch to ${sd.tactic.preset === 'Custom' ? 'a new plan' : sd.tactic.preset}${rest.mentality === 2 ? ', all out attack' : rest.mentality === 0 ? ', shutting up shop' : ''}`);
+      if (sd.tactic.formation !== before && FORMATIONS[sd.tactic.formation]) {
+        // re-seat the players on the pitch into the new shape, natural positions first
+        const slots = [...FORMATIONS[sd.tactic.formation].slots];
+        const rest2 = [...sd.pitch];
+        const placed: OnPitch[] = [];
+        for (const strict of [true, false]) {
+          for (let i = 0; i < slots.length; i++) {
+            if (!slots[i]) continue;
+            const k = rest2.findIndex((o) => !strict || (LINE[o.p.pos] || 'MID') === slots[i]);
+            if (k < 0) continue;
+            const o = rest2.splice(k, 1)[0];
+            placed.push({ ...o, slot: slots[i] as OnPitch['slot'] });
+            slots[i] = '' as any;
+          }
+        }
+        sd.pitch = [...placed, ...rest2];
+      }
+      log('tactic', c.side, plan ? `${sd.s.name} switch to Plan ${plan} (${sd.tactic.formation})` : `${sd.s.name} switch to ${sd.tactic.preset === 'Custom' ? 'a new plan' : sd.tactic.preset}${rest.mentality === 2 ? ', all out attack' : rest.mentality === 0 ? ', shutting up shop' : ''}`);
       return;
     }
     if (sd.subsLeft <= 0) return;
@@ -325,20 +437,27 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const b = (1 - a) as 0 | 1;
     const ta = T(a), tb = T(b);
     possN[a]++;
-    const risk = ta.build === 0 ? 1.35 : ta.build === 2 ? 0.5 : 1.0;
+    const risk = ta.build === 0 ? (weather === 'rain' ? 1.55 : 1.35) : ta.build === 2 ? 0.5 : 1.0;
     const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004;
     if (r.next() < Math.max(0.03, pLose)) {
       // tackles can bring fouls and cards
       if (r.next() < 0.2 + (tb.press >= 2 ? 0.08 : 0)) {
         const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1));
-        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1)) card(b, f);
+        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul) card(b, f);
       }
       if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.3 : 0.22)) shot(b, tb.press === 3 ? 0.17 : 0.13, 'high turnover');
       else if (tb.mentality <= 1 && r.next() < 0.09 + 0.05 * (2 - tb.mentality)) counter(b);
       return;
     }
+    // fouls in shooting range give free kicks
+    if (r.next() < 0.012 + (tb.press >= 2 ? 0.004 : 0)) {
+      const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => o.p.a.Aggression || 50);
+      if (f && r.next() < 0.35 * cardMul) card(b, f);
+      return freeKick(a);
+    }
     if (ta.build === 2 && r.next() < 0.5) {
-      const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.4 : 0) - (tb.press === 1 ? 0.35 : 0);
+      const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.4 : 0) - (tb.press === 1 ? 0.35 : 0)
+        + S[a].flags.holdup - (weather === 'wind' || weather === 'rain' ? 0.3 : 0);
       if (r.next() < sig(duel - 1.45)) create(a, tb.line === 2 ? 0.02 : 0);
       else if (tb.mentality === 0 && r.next() < 0.06) counter(b);
       return;
@@ -372,7 +491,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       const t = S[i].tactic;
       for (const o of S[i].pitch) {
         const stam = o.p.a.Stamina || 70;
-        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01));
+        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 : 1);
       }
       // injuries: rare, more likely when exhausted
       if (r.next() < 0.0009 * (S[i].s.injuryRisk ?? 1) * S[i].pitch.length / 11) {
@@ -455,7 +574,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     motm: motm ? motm.id : null,
     tactics: [home.tactic.preset, away.tactic.preset],
     lineups: [home, away].map((sd) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id) })),
-    shootout, winner, derby,
+    shootout, winner, derby, shots: shotsList, weather,
   };
 }
 
