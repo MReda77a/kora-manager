@@ -157,7 +157,8 @@ export async function officeView(uid: number, leagueId: number) {
   const goals = played ? me!.gf / played : 1.4;
   const est = (k: SponsorKey) => {
     const s = SPONSORS[k];
-    return Math.round((s.perMatch * left + s.perWin * winRate * left + s.perGoal * goals * left + (k === 'target' && pos && pos <= target ? s.bonus : 0)) * 10) / 10;
+    const drawRate = played ? me!.d / played : 0.25;
+    return Math.round((s.win * winRate * left + s.draw * drawRate * left + s.perGoal * goals * (winRate + drawRate) * left + (k === 'target' && pos && pos <= target ? s.bonus : 0)) * 10) / 10;
   };
   return {
     inbox: await inboxOf(leagueId, club.id),

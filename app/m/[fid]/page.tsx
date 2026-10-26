@@ -1,7 +1,7 @@
 'use client';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { api, clock, shirt } from '../../../lib/client.ts';
-import { FORMATIONS, PRESETS } from '../../../lib/game.ts';
+import { CLUB_TYPES, FORMATIONS, PRESETS, type ClubTypeKey } from '../../../lib/game.ts';
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
@@ -47,7 +47,7 @@ function TeamBlock({ c, size = 60 }: { c: any; size?: number }) {
     <div className="col" style={{ alignItems: 'center', gap: 2, minWidth: 0 }}>
       <Crest c1={c.color1} c2={c.color2} size={size} shape={c.shape} emblem={c.human ? c.emblem : -1} short={c.short} />
       <span className="lz ellipsis" style={{ fontSize: 19, maxWidth: '100%', color: c.mine ? 'var(--cyan)' : undefined }}>{c.name}</span>
-      <span className="tiny muted">{c.human ? `Manager: ${c.manager}` : 'AI club'}</span>
+      <span className="tiny muted">{c.human ? `Manager: ${c.manager}` : `AI club${CLUB_TYPES[c.club_type as ClubTypeKey] ? ` · ${CLUB_TYPES[c.club_type as ClubTypeKey].name}` : ''}`}</span>
     </div>
   );
 }

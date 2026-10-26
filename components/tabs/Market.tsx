@@ -11,6 +11,7 @@ function Listings({ lid, toast, reload }: TabProps) {
   const [pos, setPos] = useState('All');
   const [sort, setSort] = useState<'ovr' | 'pot' | 'price' | 'age'>('ovr');
   const [qs, setQs] = useState('');
+  const [from, setFrom] = useState<'all' | 'league' | 'abroad'>('all');
   const [sel, setSel] = useState<any>(null);
   const load = () => api(`/api/leagues/${lid}/market`).then((r) => { setD(r); setSel((s: any) => (s ? r.listings.find((x: any) => x.listingId === s.listingId) ?? null : r.listings[0] ?? null)); });
   useEffect(() => { load(); }, [lid]);
@@ -20,6 +21,7 @@ function Listings({ lid, toast, reload }: TabProps) {
   };
   const rows = d.listings
     .filter((l: any) => pos === 'All' || (LINE[l.pos] || 'MID') === pos)
+    .filter((l: any) => from === 'all' || (from === 'abroad') === !!l.abroad)
     .filter((l: any) => !qs || l.name.toLowerCase().includes(qs.toLowerCase()))
     .sort((a: any, b: any) => (sort === 'price' ? a.price - b.price : sort === 'age' ? a.age - b.age : b[sort] - a[sort]));
   return (
@@ -28,7 +30,8 @@ function Listings({ lid, toast, reload }: TabProps) {
       <div className="row wrap" style={{ gap: 6 }}>
         <span className="tag" style={{ background: d.window.open ? '#7CE3A1' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN${d.window.closesAt ? ` · shuts in ${timeLeft(d.window.closesAt)}` : ` · ${d.window.label}`}` : d.window.label.toUpperCase()}</span></span>
         <input placeholder="Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
-        {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
+        {([['all', 'Everyone'], ['league', 'This league'], ['abroad', '🌍 Abroad']] as const).map(([k, t]) => <button key={k} className={`seg ${from === k ? 'on' : ''}`} onClick={() => setFrom(k)}><span>{t}</span></button>)}
+                {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
         <span className="tiny muted" style={{ fontWeight: 900, marginLeft: 6 }}>SORT</span>
         {(['ovr', 'pot', 'price', 'age'] as const).map((s) => <button key={s} className={`seg ${sort === s ? 'on' : ''}`} onClick={() => setSort(s)}><span>{s.toUpperCase()}</span></button>)}
       </div>
@@ -37,7 +40,7 @@ function Listings({ lid, toast, reload }: TabProps) {
           <div className="row tiny" style={{ color: 'var(--muted)', fontWeight: 900, padding: '0 8px 4px', gap: 8 }}>
             <span style={{ width: 30 }}>OVR</span><span style={{ flex: '2 1 0', minWidth: 70 }}>PLAYER</span><span style={{ width: 36 }}>POS</span><span className="hide-sm" style={{ width: 30 }}>AGE</span><span className="hide-sm" style={{ width: 110 }}>SELLER</span><span className="hide-sm" style={{ width: 30 }}>POT</span><span style={{ width: 56, textAlign: 'right' }}>PRICE</span>
           </div>
-          {rows.length === 0 && <div className="small muted" style={{ padding: 12 }}>No players listed. Only players other managers or AI clubs put up for sale appear here. Sell your own from the Squad screen.</div>}
+          {rows.length === 0 && <div className="small muted" style={{ padding: 12 }}>No players here. Players from other managers, AI clubs and clubs abroad appear while the window is open. Sell your own from the Squad screen.</div>}
           <div className="col" style={{ gap: 2, maxHeight: 300, overflowY: 'auto' }}>
             {rows.map((l: any) => (
               <button key={l.listingId} className={`row-item ${sel?.listingId === l.listingId ? 'sel' : ''}`} style={{ textAlign: 'left', fontWeight: 700, fontSize: 13 }} onClick={() => setSel(l)}>
@@ -55,7 +58,7 @@ function Listings({ lid, toast, reload }: TabProps) {
         <aside className="panel cut" style={{ gap: 8 }}>
           {sel ? (
             <>
-              <div className="row" style={{ gap: 10 }}><div style={{ width: 66 }}><PlayerCard p={sel} /></div><div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.nat}</span><span className="tiny muted">Seller: {sel.seller}</span></div></div>
+              <div className="row" style={{ gap: 10 }}><div style={{ width: 66 }}><PlayerCard p={sel} /></div><div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.nat}</span>{sel.abroad && <span className="tiny" style={{ color: '#7FE9F7', fontWeight: 800 }}>🌍 From a club abroad</span>}<span className="tiny muted">Seller: {sel.seller}</span></div></div>
               {['Pace', 'Passing', 'Finishing', 'Tackling', 'Stamina'].map((k) => (
                 <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 62 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
               ))}

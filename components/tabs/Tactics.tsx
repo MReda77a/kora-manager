@@ -237,6 +237,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
         <div className="panel grow" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '8px 12px', minWidth: 240, flexBasis: 300 }}>
           <span className="tag" style={{ background: '#7FE9F7', color: '#1B1048' }}><span>SCOUT</span></span>
           <span className="small" style={{ fontWeight: 700 }}>{scoutLine(scout)}</span>
+          <button className="ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => go('analyst')}><span>Full analyst report →</span></button>
         </div>
         <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty} style={{ minWidth: 150 }}><span>{dirty ? 'Save tactic' : 'Saved'}</span></button>
       </div>

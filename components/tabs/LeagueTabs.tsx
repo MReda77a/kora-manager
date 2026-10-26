@@ -1,4 +1,5 @@
 'use client';
+import { CLUB_TYPES, type ClubTypeKey } from '../../lib/game.ts';
 import { useEffect, useState } from 'react';
 import { api, clock } from '../../lib/client.ts';
 import { BackHead, Crest, Spinner } from '../ui.tsx';
@@ -28,7 +29,7 @@ export function TableTab({ d: ov, lid }: TabProps) {
               return (
               <tr key={t.id} className={t.id === club.id ? 'me' : ''} style={{ boxShadow: z === 'up' ? 'inset 3px 0 0 #7CE3A1' : z === 'down' ? 'inset 3px 0 0 #FF6B7A' : i + 1 === club.targetPos && div === club.division ? 'inset 0 -2px 0 rgba(242,193,78,0.6)' : undefined }}>
                 <td><b>{i + 1}</b></td>
-                <td><span className="row" style={{ gap: 6 }}><Crest c1={t.color1} c2={t.color2} shape={t.shape} emblem={t.user_id ? t.emblem : -1} short={t.short} size={20} /><span className="ellipsis" style={{ maxWidth: 190 }}>{t.name}</span>{t.user_id && <span className="tag cyan" style={{ height: 16, fontSize: 9 }}><span>MGR</span></span>}</span></td>
+                <td><span className="row" style={{ gap: 6 }}><Crest c1={t.color1} c2={t.color2} shape={t.shape} emblem={t.user_id ? t.emblem : -1} short={t.short} size={20} /><span className="ellipsis" style={{ maxWidth: 190 }}>{t.name}</span>{t.user_id ? <span className="tag cyan" style={{ height: 16, fontSize: 9 }}><span>MGR</span></span> : <span className="tiny dim hide-sm">{CLUB_TYPES[t.club_type as ClubTypeKey]?.name}</span>}</span></td>
                 <td className="num">{t.p}</td><td className="num">{t.w}</td><td className="num">{t.d}</td><td className="num">{t.l}</td>
                 <td className="num">{t.gf - t.ga > 0 ? '+' : ''}{t.gf - t.ga}</td><td className="num"><b>{t.pts}</b></td>
                 <td><span className="row" style={{ gap: 2 }}>{t.form.map((f: string, k: number) => <i key={k} style={{ width: 15, height: 15, fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', background: f === 'W' ? '#7CE3A1' : f === 'D' ? 'var(--muted)' : 'var(--red)', color: '#1B1048' }}>{f}</i>)}</span></td>

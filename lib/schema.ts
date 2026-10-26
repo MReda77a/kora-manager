@@ -273,5 +273,30 @@ CREATE TABLE IF NOT EXISTS push_subs (
 );
 CREATE INDEX IF NOT EXISTS push_subs_user ON push_subs (user_id);
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS tutorial_done BOOLEAN NOT NULL DEFAULT false
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tutorial_done BOOLEAN NOT NULL DEFAULT false;
+
+-- AI clubs are never Fan Clubs: spread existing ones over the other four styles
+UPDATE clubs SET club_type = (ARRAY['invest','academy','commercial','historic'])[1 + (id % 4)] WHERE user_id IS NULL AND club_type = 'fan';
+
+-- players offered by clubs abroad during a transfer window
+CREATE TABLE IF NOT EXISTS abroad (
+  id SERIAL PRIMARY KEY,
+  league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  player_id TEXT NOT NULL REFERENCES players(id),
+  price NUMERIC NOT NULL,
+  club TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (league_id, player_id)
+);
+
+-- the match analyst: its level (1 free, 2 and 3 bought) and the last report per fixture
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS analyst INT NOT NULL DEFAULT 1;
+CREATE TABLE IF NOT EXISTS analyst_reports (
+  club_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  fixture_id INT NOT NULL REFERENCES fixtures(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  data JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (club_id, fixture_id)
+);
 `;

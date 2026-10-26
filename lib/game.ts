@@ -99,10 +99,12 @@ export const STAFF_ROLES: Record<string, { name: string; effect: (lvl: number) =
 export const STAFF_PACK = { name: 'Staff', price: 80 };
 
 // Sponsor offers, chosen once per season in the Office.
+// Sponsors pay on results: a win pays in full, a draw pays less, a defeat pays nothing.
+// (Home matches also bring ticket money, which follows the size of the crowd.)
 export const SPONSORS = {
-  safe: { name: 'Safe', perMatch: 0.6, perWin: 0, perGoal: 0, bonus: 0, text: '0.6M every match. No bonuses.' },
-  bonus: { name: 'Bonus', perMatch: 0.25, perWin: 0.5, perGoal: 0.1, bonus: 0, text: '0.25M a match + 0.5M per win + 0.1M per goal' },
-  target: { name: 'Target', perMatch: 0.4, perWin: 0, perGoal: 0, bonus: 9, text: '0.4M a match + 9M if you hit your board target' },
+  safe: { name: 'Safe', win: 1.0, draw: 0.5, perGoal: 0, bonus: 0, text: '1M per win, 0.5M per draw. Nothing for a defeat.' },
+  bonus: { name: 'Bonus', win: 1.5, draw: 0.2, perGoal: 0.1, bonus: 0, text: '1.5M per win, 0.2M per draw, plus 0.1M for every goal. Nothing for a defeat.' },
+  target: { name: 'Target', win: 0.8, draw: 0.3, perGoal: 0, bonus: 9, text: '0.8M per win, 0.3M per draw, plus 9M if you hit your board target. Nothing for a defeat.' },
 } as const;
 export type SponsorKey = keyof typeof SPONSORS;
 

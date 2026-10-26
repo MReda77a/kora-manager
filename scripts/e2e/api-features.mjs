@@ -129,10 +129,47 @@ check('talk to a player', !!talk.text, talk.text);
 check('talk again too soon refused', (await A(`/api/leagues/${lid}/talk`, { playerId: sq.players[20].id, kind: 'talk' })).status === 400);
 check('promise games', !!(await A(`/api/leagues/${lid}/talk`, { playerId: sq.players[21].id, kind: 'promise' })).text);
 
+// ---------------------------------------------------------------- players from abroad, the analyst, AI club styles
+const mkA = await A(`/api/leagues/${lid}/market`);
+const ab = mkA.listings.filter((x) => x.abroad);
+check('players from abroad listed', ab.length >= 12 && ab.every((x) => x.listingId < 0 && x.seller), `${ab.length} from abroad`);
+const cheapest = [...ab].sort((a, b) => a.price - b.price)[0];
+const ba = await A(`/api/leagues/${lid}/buy`, { listingId: cheapest.listingId });
+check('buy a player from abroad', ba.ok === true || /full|money/.test(ba.error || ''), ba.error || cheapest.name);
+if (ba.ok) { const full = await A(`/api/leagues/${lid}/squad`); if (full.players.length >= 30) await sqlq(`DELETE FROM squad WHERE league_id=$1 AND player_id=$2`, [lid, full.players[full.players.length - 1].id]); }
+check('player from abroad gone from the list', !(await A(`/api/leagues/${lid}/market`)).listings.some((x) => x.listingId === cheapest.listingId));
+const types = await sqlq(`SELECT DISTINCT club_type FROM clubs WHERE league_id=$1 AND user_id IS NULL`, [lid]);
+check('AI clubs: no Fan Clubs, several styles', !types.some((t) => t[0] === 'fan') && types.length >= 3, types.map((t) => t[0]).join(','));
+const an1 = await A(`/api/leagues/${lid}/analyst`);
+check('analyst level 1: rough plan', an1.staff?.level === 1 && an1.report?.plans.length === 3 && an1.report.plans[0].win === null && !!an1.report.best && an1.report.lines.length === 4, JSON.stringify(an1).slice(0, 160));
+const t0 = Date.now();
+const upA = await A(`/api/leagues/${lid}/analyst`, {});
+check('hire a better analyst (5M)', upA.ok === true && upA.level === 2, upA.error || '');
+const an2 = await A(`/api/leagues/${lid}/analyst`);
+const sumOk = an2.report?.plans.every((p) => Math.abs(p.win + p.draw + p.loss - 100) <= 2);
+check('analyst level 2: simulated odds for 6 plans', an2.staff.level === 2 && an2.report.plans.length === 6 && sumOk && an2.report.likely.length > 0, `${an2.report?.best} ${an2.report?.plans[0].win}% win · ${Date.now() - t0}ms`);
+const an2b = (await A(`/api/leagues/${lid}/analyst`)).report;
+const sig = (r) => JSON.stringify(r.plans.map((p) => [p.plan, p.win, p.draw, p.loss]));
+check('analyst report is kept', an2b.made === an2.report.made && sig(an2b) === sig(an2.report));
+const up3 = await A(`/api/leagues/${lid}/analyst`, {});
+const an3 = up3.ok ? await A(`/api/leagues/${lid}/analyst`) : null;
+check('analyst level 3 (12M)', !up3.ok ? /money/.test(up3.error) : an3.staff.level === 3 && an3.report.likely.length > 0 && !!an3.report.tip, up3.error || an3?.report?.tip);
+const useBest = await A(`/api/leagues/${lid}/setup`, { tactic: { preset: an2.report.best, formation: '4-3-3' } });
+check('use the analyst plan', !useBest.error, useBest.error || '');
+// a manager lists a cheap young player; during the window someone may buy him
+const sqF = await F(`/api/leagues/${lid}/squad`);
+const cheapSale = [...sqF.players].filter((p) => !p.loan && p.natPos !== 'GK').sort((a, b) => a.age - b.age)[0];
+await F(`/api/leagues/${lid}/list`, { playerId: cheapSale.id, price: 0.3 });
+await sqlq(`UPDATE listings SET created_at = now() - interval '2 days' WHERE league_id=$1`, [lid]);
+
 // ---------------------------------------------------------------- the derby, live
 const derby = (await sqlq(`SELECT f.id, f.day, f.home_id FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id WHERE f.league_id=$1 AND h.user_id IS NOT NULL AND a.user_id IS NOT NULL ORDER BY day LIMIT 1`, [lid]))[0];
 const [did, dday] = [Number(derby[0]), Number(derby[1])];
 for (let d = 1; d < dday; d++) await advance(d);
+const soldAbroad = Number((await sqlq(`SELECT COUNT(*) FROM news WHERE league_id=$1 AND kind='transfer' AND text LIKE $2`, [lid, `${cheapSale.name} joins %`]))[0][0]);
+const stillListed = Number((await sqlq(`SELECT COUNT(*) FROM listings WHERE league_id=$1 AND player_id=$2`, [lid, cheapSale.id]))[0][0]);
+console.log(`  (market) cheap listed player ${soldAbroad ? 'was bought' : stillListed ? 'is still listed' : 'left'} after ${dday - 1} window days`);
+check('market days run without errors', soldAbroad === 1 || stillListed === 1, `${soldAbroad}/${stillListed}`);
 check('matches before the derby played', Number((await sqlq(`SELECT COUNT(*) FROM fixtures WHERE league_id=$1 AND day<$2 AND status<>'done'`, [lid, dday]))[0][0]) === 0);
 await sqlq(`UPDATE days SET kickoff_at=now()-interval '1 second' WHERE league_id=$1 AND day=$2`, [lid, dday]);
 await sqlq(`UPDATE fixtures SET kickoff_at=now()-interval '1 second' WHERE league_id=$1 AND day=$2`, [lid, dday]);

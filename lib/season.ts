@@ -17,9 +17,10 @@ import { AI_SQUAD, botListings, checkSquads, cleanTactic, getLeague, myClub, new
 import { staffLevels } from './club.ts';
 import { moraleAfterMatch, randomEvents } from './people.ts';
 import { endSeason, startNextSeason } from './career.ts';
-import { botBids, botShopping } from './offers.ts';
+import { botBids } from './offers.ts';
 import { notify, notifyMany } from './push.ts';
 import { wakeTimer } from './wake.ts';
+import { abroadMarket, clearAbroad, marketDay } from './transfers.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
 const LIVE_MS = LIVE_SECONDS * 1000;
@@ -36,7 +37,7 @@ export async function startSeason(uid: number, leagueId: number) {
   try {
     await fillWithBots(l, humans);
     await makeSchedule(l);
-    await botShopping(l, 0); // AI clubs may snap up players managers listed in pre-season
+    await abroadMarket({ ...l, status: 'running' }, 1); // players from abroad for the first-round window
   } catch (e) {
     // undo a half-made season so the creator can simply try again
     await batch(['fixtures', 'days', 'papers'].map((t) => ({ text: `DELETE FROM ${t} WHERE league_id=$1`, params: [leagueId] })).concat([
@@ -87,7 +88,8 @@ async function fillWithBots(l: Row, humanCount: number) {
   const names = [...(AI_NAMES_BY_POOL[l.pool] || AI_NAMES_BY_POOL.EGY)].sort(() => r.next() - 0.5).filter((n) => !taken.has(n.toLowerCase()));
   const bots = Array.from({ length: need }, (_, i) => {
     const name = names[i % names.length] + (i >= names.length ? ` ${Math.floor(i / names.length) + 1}` : '');
-    const type = (['fan', 'invest', 'academy', 'commercial', 'historic'] as ClubTypeKey[])[i % 5];
+    // AI clubs are never Fan Clubs (that style is for managers): a mix of the other four
+    const type = (['invest', 'academy', 'commercial', 'historic'] as ClubTypeKey[])[(i + l.id) % 4];
     const color = AI_COLORS[i % AI_COLORS.length];
     return {
       name, short: shortName(name), color1: color, color2: botTrim(color, i), shape: i % 4, emblem: i % 6, stadium: `${name.split(' ').slice(-1)[0]} Stadium`,
@@ -450,8 +452,17 @@ async function kickOff(f: Row) {
   );
 }
 
+// Both sides of an upcoming fixture as they would line up now (for the analyst). Bots keep a plain plan here.
+export async function previewSides(l: Row, f: Row) {
+  const [home, away] = await Promise.all([one('SELECT * FROM clubs WHERE id=$1', [f.home_id]), one('SELECT * FROM clubs WHERE id=$1', [f.away_id])]);
+  if (!home || !away) throw new Error('club missing');
+  const hs = await sideFor(home, l, f, away, true, null);
+  const as = await sideFor(away, l, f, home, false, null);
+  return { home, away, hs, as, derby: isDerby(home, away) };
+}
+
 // What the other club has played in its last matches, most recent first (custom plans read as the nearest preset).
-async function recentPlans(leagueId: number, clubId: number) {
+export async function recentPlans(leagueId: number, clubId: number) {
   const rows = await q(
     `SELECT CASE WHEN home_id=$2 THEN sides->0->'tactic' ELSE sides->1->'tactic' END AS t FROM fixtures
      WHERE league_id=$1 AND status='done' AND (home_id=$2 OR away_id=$2) AND sides IS NOT NULL ORDER BY day DESC LIMIT 4`,
@@ -585,8 +596,10 @@ async function finalizeFixture(f: Row) {
     const lost = winnerId ? winnerId !== c.id : gf < ga;
     const coins = won ? 10 : lost ? 3 : 5;
     const sp = c.sponsor && SPONSORS[c.sponsor as SponsorKey];
-    let money = sp ? sp.perMatch + (won ? sp.perWin : 0) + gf * sp.perGoal : 0.2;
-    if (c.club_type === 'commercial') money += gf * 0.1;
+    // sponsor money depends on the result: a defeat earns nothing from them
+    let money = won ? (sp ? sp.win : 0.5) : lost ? 0 : (sp ? sp.draw : 0.15);
+    if (!lost && sp) money += gf * sp.perGoal;
+    if (c.club_type === 'commercial' && !lost) money += gf * 0.1;
     if (isHome) money += Math.min(c.capacity || 30000, c.fans || 20000) * 0.00002 * (derby ? 1.5 : 1);
     if (f.comp === 'cup' && won) money += f.round && rep ? 1 : 0;
     const swing = (c.club_type === 'fan' ? 1.6 : 1) * (derby ? 2 : 1);
@@ -667,6 +680,7 @@ async function processDay(d: Row) {
     if (d.matchday % 4 === 0) await playerOfTheMonth(l, d);
     if (d.matchday === totalMd / 2) {
       await news(l.id, null, 'round', `🏁 The first round is over! ${table[0]?.name} lead at the halfway mark. The second round starts tomorrow.`);
+      await roundPrize(l, 1);
     }
   }
   if (d.kind === 'cup') {
@@ -689,7 +703,6 @@ async function processDay(d: Row) {
     paper.sub = `No matches today. The return games start tomorrow, and the transfer window is open for ${WINDOW_DAYS} days.`;
     await botListings(l);
     await botBids(l, d.day);
-    await botShopping(l, d.day);
   }
   // transfer window: opens for 5 days at the start of each round; tell everyone when it opens, on its last day and when it shuts
   {
@@ -698,6 +711,12 @@ async function processDay(d: Row) {
     const humans = (await q('SELECT user_id FROM clubs WHERE league_id=$1 AND user_id IS NOT NULL', [l.id])).map((h) => h.user_id);
     const w = writes();
     const say = (kind: string, text: string) => w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,$2,$3)`, [l.id, kind, text]);
+    if (after.open && after.round === before.round && before.open) {
+      // another day of the window: listed players may be bought, AI clubs shop abroad
+      await marketDay(l, d.day, !!after.closesAt && new Date(after.closesAt).getTime() - at <= 86_400_000 + 60_000);
+    }
+    if (after.open && after.round === 2 && before.round !== 2) await abroadMarket(l, 2);
+    if (before.open && !after.open) await clearAbroad(l.id);
     if (after.open && after.round === 2 && before.round !== 2) {
       say('round', '🔁 The second round has started! Every team now plays the return games.');
       say('window', `🔓 The transfer window is OPEN for ${WINDOW_DAYS} days. Buy, sell, loan and swap before it shuts.`);
@@ -717,6 +736,24 @@ async function processDay(d: Row) {
   // season end
   const left = await one<{ n: number }>('SELECT COUNT(*)::int AS n FROM days WHERE league_id=$1 AND processed=false', [l.id]);
   if (left?.n === 0) await endSeason(l);
+}
+
+// Prize money at the end of the first round, by position in each division (half of the season prize).
+async function roundPrize(l: Row, round: number) {
+  const D = l.divisions || 1;
+  const w = writes();
+  const prizes: { id: number; prize: number }[] = [];
+  for (let dv = 1; dv <= D; dv++) {
+    const t = await standings(l.id, dv);
+    t.forEach((c, i) => {
+      const prize = Math.round(Math.max(0.5, (l.max_clubs - i) * (dv === 1 ? 0.8 : dv === 2 ? 0.5 : 0.3)) * 0.5 * 10) / 10;
+      prizes.push({ id: c.id, prize });
+      if (c.user_id) w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'inbox',$3)`, [l.id, c.id, `💰 First-round prize money: ${prize.toFixed(1)}M for finishing the round ${i + 1}${['st', 'nd', 'rd'][i] || 'th'}.`]);
+    });
+  }
+  if (prizes.length) w.add(`UPDATE clubs c SET money=c.money+x.prize FROM jsonb_to_recordset($1::jsonb) AS x(id int, prize numeric) WHERE c.id=x.id`, [JSON.stringify(prizes)]);
+  await w.flush();
+  void round;
 }
 
 export const nextSeason = (uid: number, leagueId: number) => startNextSeason(uid, leagueId, makeSchedule);

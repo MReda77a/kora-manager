@@ -1,6 +1,8 @@
 import { q, one } from '../../../../../lib/db.ts';
 import { body, fail, handle, requireUser } from '../../../../../lib/http.ts';
 import * as L from '../../../../../lib/league.ts';
+import * as T from '../../../../../lib/transfers.ts';
+import * as A from '../../../../../lib/analyst.ts';
 import * as S from '../../../../../lib/season.ts';
 import * as C from '../../../../../lib/club.ts';
 import * as P from '../../../../../lib/people.ts';
@@ -106,13 +108,21 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
   if (action === 'fixtures') return q(`${FX_SELECT} WHERE f.league_id=$1 ORDER BY f.day, f.id`, [lid]);
   if (action === 'stats') return L.leaders(lid);
   if (action === 'market') {
-    const list = await L.market(lid);
-    return { window: await L.windowFor(l), money: club ? Number(club.money) : 0, myClub: club?.id ?? null, listings: list.map((p) => ({ ...L.pub(p), listingId: p.listing_id, price: Number(p.price), seller: p.seller, sellerId: p.seller_id, bot: p.bot, listedAt: p.created_at })) };
+    const [list, abroad] = await Promise.all([L.market(lid), T.abroadListings(lid)]);
+    return {
+      window: await L.windowFor(l), money: club ? Number(club.money) : 0, myClub: club?.id ?? null,
+      listings: [
+        ...list.map((p) => ({ ...L.pub(p), listingId: p.listing_id, price: Number(p.price), seller: p.seller, sellerId: p.seller_id, bot: p.bot, listedAt: p.created_at })),
+        // players from abroad: negative ids so one "buy" call handles both
+        ...abroad.map((p) => ({ ...L.pub(p), listingId: -p.abroad_id, price: Number(p.price), seller: p.seller, sellerId: null, bot: false, abroad: true, listedAt: p.created_at })),
+      ],
+    };
   }
   if (action === 'clubs') {
     return q(`SELECT c.id, c.name, c.short, c.color1, c.color2, c.shape, c.emblem, c.club_type, c.user_id IS NOT NULL AS human, u.username,
       (SELECT COUNT(*)::int FROM squad s WHERE s.club_id=c.id) AS players FROM clubs c LEFT JOIN users u ON u.id=c.user_id WHERE c.league_id=$1 ORDER BY c.id`, [lid]);
   }
+  if (action === 'analyst') return A.analystReport(s.uid, lid, new URL(req.url).searchParams.get('refresh') === '1');
   if (action === 'scout') {
     const c = mustClub();
     const next = await one(`SELECT * FROM fixtures WHERE league_id=$1 AND status='scheduled' AND (home_id=$2 OR away_id=$2) ORDER BY day LIMIT 1`, [lid, c.id]);
@@ -170,7 +180,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'setup': return L.saveSetup(s.uid, lid, b);
     case 'list': return L.listPlayer(s.uid, lid, String(b.playerId), Number(b.price));
     case 'unlist': return L.unlist(s.uid, lid, Number(b.listingId));
-    case 'buy': return L.buy(s.uid, lid, Number(b.listingId));
+    case 'buy': return Number(b.listingId) < 0 ? T.buyAbroad(s.uid, lid, -Number(b.listingId)) : L.buy(s.uid, lid, Number(b.listingId));
     case 'train': return C.startTraining(s.uid, lid, b);
     case 'untrain': return C.cancelTraining(s.uid, lid, Number(b.id));
     case 'sponsor': return C.chooseSponsor(s.uid, lid, String(b.key));
@@ -178,6 +188,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'expand': return C.expandStadium(s.uid, lid);
     case 'comment': return C.postComment(s.uid, lid, b);
     case 'nextseason': return S.nextSeason(s.uid, lid);
+    case 'analyst': return A.upgradeAnalyst(s.uid, lid);
     case 'tutorial': await q('UPDATE users SET tutorial_done=true WHERE id=$1', [s.uid]); return { ok: true };
     case 'offer': return O.makeOffer(s.uid, lid, b);
     case 'respond': return O.respondOffer(s.uid, lid, Number(b.id), String(b.action), Number(b.amount));

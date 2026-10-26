@@ -80,3 +80,24 @@ export async function notifyMany(userIds: (number | null | undefined)[], msg: { 
     console.error('notify failed', e);
   }
 }
+
+// Different messages to several managers, with one database read.
+export async function notifyEach(list: { uid: number | null | undefined; msg: { title: string; body: string; url?: string; tag?: string } }[]) {
+  const ids = [...new Set(list.map((x) => x.uid).filter((x): x is number => !!x))];
+  if (!ids.length) return;
+  try {
+    const subs = await q<{ user_id: number; endpoint: string; keys: { p256dh: string; auth: string } }>('SELECT user_id, endpoint, keys FROM push_subs WHERE user_id = ANY($1::int[])', [ids]);
+    if (!subs.length) return;
+    const keys = await vapidKeys();
+    const vapid = { subject: 'mailto:kora-manager@users.noreply.github.com', publicKey: keys.publicKey, privateKey: keys.privateKey };
+    await Promise.all(list.flatMap((x) => subs.filter((s) => s.user_id === x.uid).map(async (s) => {
+      try {
+        const sub: PushSubscription = { endpoint: s.endpoint, expirationTime: null, keys: s.keys };
+        const payload = await buildPushPayload({ data: JSON.stringify(x.msg), options: { ttl: 3600, urgency: 'high', topic: x.msg.tag?.slice(0, 32) } }, sub, vapid);
+        await fetch(s.endpoint, payload);
+      } catch (e) { console.error('push failed', e); }
+    })));
+  } catch (e) {
+    console.error('notify failed', e);
+  }
+}
