@@ -2,7 +2,8 @@
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { api, clock, shirt } from '../../../lib/client.ts';
 import { FORMATIONS, PRESETS } from '../../../lib/game.ts';
-import { crowd, isMuted, setMuted, thud, whistle } from '../../../lib/sound.ts';
+import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
+import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
@@ -79,6 +80,8 @@ function Back({ d }: { d: any }) {
 
 // ---------------------------------------------------------------- before kick-off
 function PreMatch({ d, reload }: { d: any; reload: () => void }) {
+  // the build-up: the derby gets its own theme
+  useEffect(() => { music(d.derby ? 'derby' : 'menu'); crowdBed(null); }, [d.derby]);
   const now = useNow();
   const toast = useToast();
   const kick = new Date(d.fixture.kickoff).getTime();
@@ -173,13 +176,20 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const [fx, setFx] = useState<Ev | null>(null);
   const [panel, setPanel] = useState<null | 'tactic' | 'sub'>(null);
   const [subOut, setSubOut] = useState<string | null>(null);
-  const [muted, setMute] = useState(isMuted());
+  const chanted = useRef(new Set<number>());
+  const shotSeen = useRef(-1);
   const shown = useRef(-1);
   const mineSide: number = d.home.mine ? 0 : d.away.mine ? 1 : -1;
   const team = (s: number) => (s === 0 ? d.home : d.away);
 
   const revealed = useMemo(() => { let k = 0; for (; k < events.length; k++) if (evAt(events[k]) > gm) break; return k; }, [gm, events]);
 
+  // sound follows the match: music before kick-off, the crowd while it is on
+  useEffect(() => {
+    if (phase === 'intro') { music(d.derby ? 'derby' : 'menu'); crowdBed(null); }
+    if (phase === 'play') { music(null); crowdBed(d.derby ? 'derby' : 'normal'); }
+  }, [phase]);
+  useEffect(() => () => crowdBed(null), []);
   // clock
   useEffect(() => {
     if (phase !== 'play') return;
@@ -199,7 +209,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   // events -> animations + sound
   useEffect(() => {
     if (phase !== 'play') return;
-    if (shown.current < 0) { shown.current = revealed; whistle(1); crowd('murmur'); return; }
+    if (shown.current < 0) { shown.current = revealed; whistle(1); play('applause', { gain: 0.8 }); return; }
     if (revealed > shown.current) {
       const fresh = events.slice(shown.current, revealed);
       shown.current = revealed;
@@ -207,20 +217,64 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       const big = [...fresh].sort((a, b) => pri.indexOf(a.type) - pri.indexOf(b.type))[0];
       if (big && pri.includes(big.type)) {
         setFx(big);
+        // the crowd is on your side (the home side when you are only watching)
         const forMe = mineSide < 0 ? big.side === 0 : big.side === mineSide;
         // phones buzz on the big moments (Android; iPhones ignore it), unless the sound is muted
         const buzz = (p: number | number[]) => { try { if (!isMuted()) navigator.vibrate?.(p); } catch {} };
         if (big.type === 'goal') buzz(forMe ? [90, 50, 220] : 70);
         else if (big.type === 'red') buzz([150, 60, 150]);
         else if (big.type === 'penalty') buzz(100);
-        if (big.type === 'goal') crowd(forMe ? 'roar' : 'groan');
-        else if (big.type === 'red' || big.type === 'yellow') { whistle(1); thud(); }
-        else if (big.type === 'penalty') { whistle(2); crowd('roar'); }
-        else if (big.type === 'ht') whistle(2);
-        else if (big.type === 'ft') whistle(3);
-        else if (big.type === 'save' || big.type === 'miss') crowd(forMe ? 'groan' : 'murmur');
-        else if (big.type === 'injury' || big.type === 'var' || big.type === 'freekick') crowd('murmur');
+        const chant = d.derby ? 'chant-derby' : 'chant';
+        switch (big.type) {
+          case 'goal':
+            if (forMe) { play('goal', { gain: d.derby ? 1.15 : 1 }); play(chant, { delay: 5.5, gain: 0.85 }); }
+            else play('concede');
+            break;
+          case 'penalty': whistle(2); play(forMe ? 'tension' : 'boo', { delay: 0.3 }); break;
+          case 'penmiss': play(forMe ? 'ooh' : 'goal', { gain: forMe ? 1 : 0.75 }); break;
+          // a save is logged for the keeper's side: your keeper saving brings relief, theirs an 'ooooh'
+          case 'save': if (forMe) play('applause', { gain: 0.7 }); else play('ooh'); break;
+          case 'miss': play('ooh', { gain: forMe ? 1 : 0.55 }); break;
+          case 'red': whistle(1); play(forMe ? 'boo' : 'applause', { delay: 0.2 }); break;
+          case 'yellow': whistle(1); play('ahh', { gain: forMe ? 1 : 0.75, delay: 0.1 }); break;
+          case 'freekick': whistle(1); play('ahh', { gain: 0.8, delay: 0.1 }); break;
+          case 'injury': play('ahh', { gain: 0.6 }); break;
+          case 'var': play('tension', { gain: 0.7 }); break;
+          case 'sub': play('applause', { gain: 0.4 }); break;
+          case 'ht': whistle(2); play('applause', { delay: 0.8 }); break;
+          case 'ft': whistle(3); break;
+        }
       }
+    }
+    // every other real chance gets an 'ooh' too (shots that did not make the headlines)
+    {
+      const shots = (rep.shots || []) as { m: number; side: number; xg: number; goal: boolean }[];
+      const from = shotSeen.current;
+      shotSeen.current = gm;
+      if (from >= 0 && gm - from < 3 && !fx) {
+        const s = shots.find((x) => !x.goal && x.xg >= 0.09 && x.m > from && x.m <= gm);
+        const busy = events.some((e) => Math.abs(evAt(e) - (s?.m ?? -9)) < 1.2 && ['goal', 'save', 'miss', 'penalty', 'penmiss', 'var', 'red'].includes(e.type));
+        if (s && !busy) {
+          const mineAttack = mineSide < 0 ? s.side === 0 : s.side === mineSide;
+          play('ooh', { gain: Math.min(1, (mineAttack ? 0.45 : 0.3) + s.xg) });
+        }
+      }
+    }
+    // the crowd sings now and then; in a derby it hardly stops
+    const marks = d.derby ? [4, 28, 52, 76] : [18, 63];
+    for (const k of marks) {
+      if (gm >= k && gm < k + 6 && !chanted.current.has(k)) {
+        chanted.current.add(k);
+        const goalJustNow = events.slice(0, revealed).some((e) => e.type === 'goal' && gm - evAt(e) < 6);
+        if (!goalJustNow) play(d.derby ? 'chant-derby' : 'chant', { gain: d.derby ? 0.9 : 0.7 });
+      }
+    }
+    // how loud the stadium is: chances and a close finish lift it
+    {
+      const recentHot = events.slice(0, revealed).filter((e) => gm - evAt(e) < 8 && ['goal', 'save', 'miss', 'penalty', 'freekick'].includes(e.type)).length;
+      const [a, b] = events.slice(0, revealed).reduce((s, e) => { if (e.type === 'goal') s[e.side]++; return s; }, [0, 0]);
+      const close = Math.abs(a - b) <= 1 && gm > 75 ? 0.3 : 0;
+      crowdLevel(0.3 + Math.min(0.4, recentHot * 0.2) + close + (d.derby ? 0.15 : 0));
     }
     if (gm >= 90.5) { const t = setTimeout(() => setPhase('ft'), 1800); return () => clearTimeout(t); }
   }, [revealed, gm, phase]);
@@ -296,7 +350,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </div>
         <div className="row" style={{ gap: 4 }}>
           {!live && [1, 2, 4].map((s) => <button key={s} className={`seg ${speed === s ? 'on' : ''}`} onClick={() => setSpeed(s)}><span>{s}x</span></button>)}
-          <button className="seg" onClick={() => { setMuted(!muted); setMute(!muted); }} aria-label="Sound"><span>{muted ? '🔇' : '🔊'}</span></button>
+          <SoundButton />
         </div>
       </header>
       <div className="row tiny" style={{ gap: 8, fontWeight: 900 }}>
@@ -551,7 +605,15 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
   const won = mine >= 0 && (rep.winner !== undefined ? rep.winner === mine : rep.score[mine] > rep.score[1 - mine]);
   const lost = mine >= 0 && (rep.winner !== undefined ? rep.winner !== mine : rep.score[mine] < rep.score[1 - mine]);
   const res = mine < 0 ? null : won ? 'WIN' : lost ? 'LOSS' : 'DRAW';
-  useEffect(() => { whistle(3); if (res === 'WIN') setTimeout(() => crowd('roar'), 900); }, []);
+  useEffect(() => {
+    if (!skipped) {
+      // the final whistle, the crowd's verdict, then the stadium empties and the music returns
+      play(res === 'LOSS' ? 'boo' : res === 'WIN' ? 'goal' : 'applause', { gain: res === 'WIN' ? 0.8 : 0.7, delay: 0.6 });
+      if (res === 'WIN') play(d.derby ? 'chant-derby' : 'chant', { delay: 5, gain: 0.8 });
+    }
+    const t = setTimeout(() => { crowdBed(null); music(d.derby && res === 'WIN' ? 'derby' : 'menu'); }, skipped ? 0 : res === 'WIN' ? 12000 : 5000);
+    return () => clearTimeout(t);
+  }, []);
   const motm = rep.players.find((p: any) => p.id === rep.motm);
   const name = (id?: string) => (id ? d.names[id]?.name || '' : '');
   const key = rep.events.filter((e: Ev) => ['goal', 'red', 'yellow', 'penmiss', 'injury', 'sub', 'tactic', 'var'].includes(e.type));

@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AppPanel } from '../components/AppSetup.tsx';
+import { SoundButton } from '../components/SoundButton.tsx';
+import { crowdBed, music } from '../lib/sound.ts';
 import { useRouter } from 'next/navigation';
 import { api, localToUtcMin } from '../lib/client.ts';
 import { Crest, Spinner, useToast } from '../components/ui.tsx';
@@ -10,6 +12,7 @@ type Me = { user: { id: number; name: string } | null; leagues?: any[] };
 export default function Home() {
   const [me, setMe] = useState<Me | null>(null);
   const load = () => api<Me>('/api/me').then(setMe).catch(() => setMe({ user: null }));
+  useEffect(() => { music('menu'); crowdBed(null); }, []);
   useEffect(() => {
     load();
   }, []);
@@ -98,6 +101,7 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
         <div className="row"><Logo size={36} /><span className="lz" style={{ fontSize: 24 }}>Kora Manager</span></div>
         <div className="row">
           <span className="muted small">Hi, <b style={{ color: '#F3EEFF' }}>{me.user!.name}</b></span>
+          <SoundButton />
           <button className="ghost" onClick={logout}><span>Log out</span></button>
         </div>
       </header>

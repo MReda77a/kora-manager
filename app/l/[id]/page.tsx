@@ -19,6 +19,8 @@ import { FixturesTab, LeadersTab, TableTab } from '../../../components/tabs/Leag
 import HistoryTab from '../../../components/tabs/History.tsx';
 import Tutorial from '../../../components/Tutorial.tsx';
 import LiveAlert from '../../../components/LiveAlert.tsx';
+import { SoundButton } from '../../../components/SoundButton.tsx';
+import { crowdBed, music } from '../../../lib/sound.ts';
 import { SECTIONS, TABS, sectionOf, type Tab } from '../../../components/tabs/types.ts';
 
 export default function LeaguePage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +30,8 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
   const [tab, setTab] = useState<Tab>('home');
   const toast = useToast();
   const load = useCallback(() => api(`/api/leagues/${id}/overview`).then(setD).catch((e) => setErr(e.message)), [id]);
+  // the club menus have the main theme playing quietly (it starts on the first tap)
+  useEffect(() => { music('menu'); crowdBed(null); }, []);
   useEffect(() => {
     load();
     try {
@@ -76,6 +80,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
             </button>
           );
         })}
+        <div style={{ marginTop: 'auto', display: 'grid', placeItems: 'center', padding: '8px 0' }}><SoundButton side /></div>
       </nav>
       <div className="main">
         {tab === 'home' && (
