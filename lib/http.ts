@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession, type Session } from './auth.ts';
 
 import { HttpError, fail } from './errors.ts';
+import { migrate } from './migrate.ts';
 export { HttpError, fail };
 
 export async function requireUser(): Promise<Session> {
@@ -13,6 +14,7 @@ export async function requireUser(): Promise<Session> {
 export function handle<A extends unknown[]>(fn: (...args: A) => Promise<unknown>) {
   return async (...args: A) => {
     try {
+      await migrate();
       const data = await fn(...args);
       return NextResponse.json(data ?? { ok: true });
     } catch (e) {
