@@ -57,7 +57,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
     document.querySelector('.content')?.scrollTo({ top: 0 });
   };
 
-  if (err) return <div className="pad col" style={{ gap: 10 }}><div className="err">{err}</div><a className="ghost" href="/"><span>Back</span></a></div>;
+  if (err) return <div className="pad col" style={{ gap: 10 }}><div className="err">{err}</div><div className="row" style={{ gap: 8 }}><button className="cta" onClick={() => { setErr(''); load(); }}><span>Try again</span></button><a className="ghost" href="/"><span>Back</span></a></div></div>;
   if (!d) return <Spinner />;
   const { league, club } = d;
   if (!club) {

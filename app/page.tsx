@@ -11,11 +11,27 @@ type Me = { user: { id: number; name: string } | null; leagues?: any[] };
 
 export default function Home() {
   const [me, setMe] = useState<Me | null>(null);
-  const load = () => api<Me>('/api/me').then(setMe).catch(() => setMe({ user: null }));
+  const [down, setDown] = useState('');
+  // only a clear "not logged in" answer shows the login screen; a hiccup shows a retry instead
+  const load = () => api<Me>('/api/me').then((m) => { setDown(''); setMe(m); }).catch((e) => setDown(e.message || 'No connection.'));
   useEffect(() => { music('menu'); crowdBed(null); }, []);
   useEffect(() => {
     load();
   }, []);
+  useEffect(() => {
+    if (!down) return;
+    const t = setTimeout(load, 5000);
+    return () => clearTimeout(t);
+  }, [down]);
+  if (down && !me?.user) {
+    return (
+      <div className="pad col center" style={{ minHeight: '100dvh', gap: 12, textAlign: 'center' }}>
+        <span className="lz" style={{ fontSize: 24 }}>Can't reach the game right now</span>
+        <span className="small muted">{down} You are still logged in, trying again…</span>
+        <button className="cta" onClick={load}><span>Try again</span></button>
+      </div>
+    );
+  }
   if (!me) return <Spinner />;
   if (!me.user) return <Auth onDone={load} />;
   return <Lobby me={me} reload={load} />;

@@ -1,10 +1,29 @@
 'use client';
 // Browser helpers.
+export class ApiError extends Error {
+  constructor(message: string, public status: number) { super(message); }
+}
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// GET requests are retried a couple of times when the server or the connection hiccups
+// (a busy server, a phone switching networks). A real "not logged in" (401) is never retried.
 export async function api<T = any>(url: string, data?: unknown): Promise<T> {
-  const res = await fetch(url, data === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
-  const j = await res.json().catch(() => ({ error: 'Network error.' }));
-  if (!res.ok) throw new Error(j.error || 'Something went wrong.');
-  return j as T;
+  const tries = data === undefined ? 3 : 1;
+  let last: ApiError = new ApiError('Something went wrong.', 0);
+  for (let i = 0; i < tries; i++) {
+    if (i) await wait(i === 1 ? 700 : 1800);
+    let res: Response;
+    try {
+      res = await fetch(url, data === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+    } catch {
+      last = new ApiError('No connection. Check your internet and try again.', 0);
+      continue;
+    }
+    const j = await res.json().catch(() => null);
+    if (res.ok && j) return j as T;
+    last = new ApiError(j?.error || (res.status >= 500 || !j ? 'The server is busy. Try again in a moment.' : 'Something went wrong.'), res.status);
+    if (res.status > 0 && res.status < 500 && j) break; // a real answer (bad input, not allowed, logged out)
+  }
+  throw last;
 }
 
 export function shirt(id: string, pos: string) {
