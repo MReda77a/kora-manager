@@ -68,7 +68,7 @@ export default function AwardsTab({ lid }: TabProps) {
                   <div className="row between small"><span>Goals</span><b>{pick.g}</b></div>
                   <div className="row between small"><span>Assists</span><b>{pick.a}</b></div>
                   <div className="small" style={{ padding: '6px 10px', background: 'rgba(127,233,247,0.12)' }}><b style={{ color: '#7CE3A1' }}>Effect:</b> “In form”: +2 rating for the next 2 days.</div>
-                  <div className="small" style={{ padding: '6px 10px', background: 'rgba(232,67,140,0.18)' }}><b style={{ color: '#F29BC2' }}>Your club:</b> {team.filter((p: any) => p.clubId === d.myClub).length} players picked.</div>
+                  <div className="small" style={{ padding: '6px 10px', background: 'rgba(127,233,247,0.14)' }}><b style={{ color: '#7FE9F7' }}>Your club:</b> {team.filter((p: any) => p.clubId === d.myClub).length} players picked.</div>
                   <span className="tiny muted">Picked automatically: the best match rating in each position. Ratings count goals, assists, saves, clean sheets and the team result.</span>
                 </aside>
               )}
@@ -94,7 +94,7 @@ export default function AwardsTab({ lid }: TabProps) {
                         {[['Goals', n.g], ['Assists', n.a], ['Avg rating', n.avg], ['Score', n.score]].map(([k, v]) => <div key={String(k)} className="row between tiny" style={{ fontWeight: 800 }}><span>{k}</span><b style={{ color: k === 'Score' ? '#F2C14E' : undefined }}>{v}</b></div>)}
                       </div>
                       {potmShown && win && <span className="lz" style={{ textAlign: 'center', color: '#F2C14E', fontSize: 20, animation: 'pop .5s both' }}>WINNER</span>}
-                      {potmShown && !win && <span className="tiny" style={{ textAlign: 'center', color: '#FF9AA8', fontWeight: 800 }}>Upset: −2 for 2 days</span>}
+                      {potmShown && !win && <span className="tiny" style={{ textAlign: 'center', color: '#FF8A80', fontWeight: 800 }}>Upset: −2 for 2 days</span>}
                     </div>
                   );
                 })}

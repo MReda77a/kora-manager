@@ -23,7 +23,14 @@ export function Crest({ c1 = '#E8438C', c2 = '#F3EEFF', shape = 0, emblem = 0, s
         <path d={SHAPES[shape % 4]} fill={c1} />
       </g>
       {short && emblem < 0 ? (
-        <text x="20" y="25" textAnchor="middle" fontSize="11" fontWeight="900" fill={c2}>{short}</text>
+        <>
+          {/* AI clubs: each gets its own crest design from its initials */}
+          <clipPath id={`cr${short}${shape}`}><g transform="translate(20 20) scale(0.86) translate(-20 -20)"><path d={SHAPES[shape % 4]} /></g></clipPath>
+          <g clipPath={`url(#cr${short}${shape})`} opacity="0.3" fill={c2}>
+            {[null, <rect key="b" x="0" y="15" width="40" height="11" />, <path key="s" d="M0 30L30 0h10L0 40z" />, <><rect key="v1" x="9" y="0" width="5" height="40" /><rect key="v2" x="26" y="0" width="5" height="40" /></>, <path key="c" d="M20 4l3 6 6 1-4.5 4 1 6.5L20 18l-5.5 3.5 1-6.5L11 11l6-1z" />][short.split('').reduce((h, ch) => h + ch.charCodeAt(0), 0) % 5]}
+          </g>
+          <text x="20" y="25" textAnchor="middle" fontSize="11" fontWeight="900" fill={c2}>{short}</text>
+        </>
       ) : (
         <path d={EMBLEMS[Math.abs(emblem) % EMBLEMS.length]} fill={c2} />
       )}
@@ -53,7 +60,7 @@ export function PlayerCard({ p, style, onClick, selected, badge }: { p: P; style
 }
 
 export function FitBar({ v }: { v: number }) {
-  const c = v >= 80 ? '#7CE3A1' : v >= 60 ? '#F2C14E' : '#FF6B7A';
+  const c = v >= 80 ? '#7CE3A1' : v >= 60 ? '#F2C14E' : 'var(--red)';
   return (
     <div className="bar" style={{ maxWidth: 60, height: 5 }}>
       <i style={{ width: `${Math.max(4, v)}%`, background: c }} />
@@ -117,16 +124,24 @@ export function Icon({ name, size = 22, color = 'currentColor' }: { name: string
   );
 }
 
+// While a screen loads: a faded outline of a screen instead of a "Loading…" word.
 export function Spinner() {
-  return <div className="lz" style={{ padding: 30, textAlign: 'center', color: '#B4A8E0', animation: 'pulse 1.2s infinite' }}>Loading…</div>;
+  return (
+    <div className="col" style={{ gap: 10, padding: '6px 0' }} aria-busy="true" aria-label="Loading">
+      <div className="row" style={{ gap: 10 }}><i className="sk" style={{ width: 160, height: 26 }} /><i className="sk" style={{ width: 90, height: 18 }} /></div>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(200px, 260px)', gap: 12 }}>
+        <div className="col" style={{ gap: 6 }}>{[0, 1, 2, 3, 4].map((i) => <i key={i} className="sk" style={{ height: 34, animationDelay: `${i * 0.08}s` }} />)}</div>
+        <i className="sk" style={{ height: 190 }} />
+      </div>
+    </div>
+  );
 }
-
 export function MiniCard({ p, selected, dim }: { p: P; selected?: boolean; dim?: boolean }) {
   const last = p.name.split(' ').slice(-1)[0];
   return (
     <div className={`pcard ${tier(p.ovr)}`} style={{ aspectRatio: 'auto', width: 'auto', padding: '3px 6px 4px', clipPath: 'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)', outline: selected ? '3px solid #7FE9F7' : undefined, opacity: dim ? 0.45 : 1, alignItems: 'center', gap: 0, minWidth: 54 }}>
       <span className="lz" style={{ fontSize: 17, lineHeight: 1 }}>{p.ovr}</span>
-      <span style={{ fontSize: 10, fontWeight: 900, maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{last}</span>
+      <span style={{ fontSize: 11, fontWeight: 900, maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{last}</span>
     </div>
   );
 }

@@ -7,10 +7,15 @@ import type { ESide, Report } from './engine.ts';
 import { myClub, news } from './league.ts';
 import { nextDay } from './club.ts';
 import { hashSeed, rng } from './rng.ts';
+import { notify } from './push.ts';
 
 // A private message for one club's manager. Other managers never see these.
-export async function inbox(leagueId: number, clubId: number, text: string) {
+export async function inbox(leagueId: number, clubId: number, text: string, push?: { title: string; url?: string }) {
   await q(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'inbox',$3)`, [leagueId, clubId, text]);
+  if (push) {
+    const c = await one('SELECT user_id FROM clubs WHERE id=$1', [clubId]);
+    await notify(c?.user_id, { title: push.title, body: text, url: push.url || `/l/${leagueId}`, tag: `inbox-${leagueId}` });
+  }
 }
 
 export async function inboxOf(leagueId: number, clubId: number) {
@@ -57,7 +62,7 @@ export async function moraleAfterMatch(leagueId: number, day: number, clubId: nu
     if (m < 40 && sp.morale >= 40) await inbox(leagueId, clubId, `${sp.name} is unhappy with his playing time. Have a talk with him in Players.`);
     if (m < 25 && !req) {
       req = true;
-      await inbox(leagueId, clubId, `${sp.name} has handed in a transfer request.`);
+      await inbox(leagueId, clubId, `${sp.name} has handed in a transfer request.`, { title: 'Transfer request' });
       await news(leagueId, clubId, 'rumour', `RUMOUR: ${sp.name} wants out. Clubs are said to be watching.`);
     }
     if (m >= 55 && req) {

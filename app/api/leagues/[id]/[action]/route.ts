@@ -57,6 +57,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
         inbox: await P.inboxOf(lid, club.id),
         offers: (await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM offers WHERE to_club=$1 AND status='pending'`, [club.id]))?.n ?? 0,
         reputation: (await one<{ r: number }>('SELECT reputation AS r FROM users WHERE id=$1', [s.uid]))?.r ?? 0,
+        tutorialDone: (await one<{ t: boolean }>('SELECT tutorial_done AS t FROM users WHERE id=$1', [s.uid]))?.t ?? true,
         star: star ? { ...L.pub(star), goals: stats?.goals ?? 0, assists: stats?.assists ?? 0 } : null,
         staff: await C.staffLevels(club.id),
       };
@@ -177,6 +178,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'expand': return C.expandStadium(s.uid, lid);
     case 'comment': return C.postComment(s.uid, lid, b);
     case 'nextseason': return S.nextSeason(s.uid, lid);
+    case 'tutorial': await q('UPDATE users SET tutorial_done=true WHERE id=$1', [s.uid]); return { ok: true };
     case 'offer': return O.makeOffer(s.uid, lid, b);
     case 'respond': return O.respondOffer(s.uid, lid, Number(b.id), String(b.action), Number(b.amount));
     case 'talk': return P.talkTo(s.uid, lid, String(b.playerId), String(b.kind));

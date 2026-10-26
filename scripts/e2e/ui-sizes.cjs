@@ -86,6 +86,7 @@ function audit() {
     }
     for (const t of TABS) {
       await p.goto(`${B}/l/${lid}?tab=${t}`); await p.waitForTimeout(t === 'awards' ? 3800 : 1500);
+      if (await p.locator('.overlay button:has-text("Skip")').count()) { if (t === 'home') await snap('tutorial'); await act('skip guide', () => p.click('.overlay button:has-text("Skip")')); await p.waitForTimeout(400); }
       if (await p.locator('.overlay button:has-text("Later")').count()) { if (t === 'home') await snap('live-alert'); await act('.overlay button:has-text("Later")', () => p.click('.overlay button:has-text("Later")')); await p.waitForTimeout(300); }
       await snap(`tab-${t}`);
       if (t === 'tactics') {

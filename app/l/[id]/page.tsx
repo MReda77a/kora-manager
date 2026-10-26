@@ -17,8 +17,9 @@ import PaperTab from '../../../components/tabs/Paper.tsx';
 import AwardsTab from '../../../components/tabs/Awards.tsx';
 import { FixturesTab, LeadersTab, TableTab } from '../../../components/tabs/LeagueTabs.tsx';
 import HistoryTab from '../../../components/tabs/History.tsx';
+import Tutorial from '../../../components/Tutorial.tsx';
 import LiveAlert from '../../../components/LiveAlert.tsx';
-import { TABS, type Tab } from '../../../components/tabs/types.ts';
+import { SECTIONS, TABS, sectionOf, type Tab } from '../../../components/tabs/types.ts';
 
 export default function LeaguePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -42,8 +43,11 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
     const t = setTimeout(load, 500);
     return () => clearTimeout(t);
   }, [d, load]);
+  const [lastIn, setLastIn] = useState<Record<string, Tab>>({});
+  const [tutClosed, setTutClosed] = useState(false);
   const go = (t: Tab) => {
     setTab(t);
+    setLastIn((m) => ({ ...m, [sectionOf(t).key]: t }));
     try { sessionStorage.setItem(`kora-tab-${id}`, t); } catch {}
     document.querySelector('.content')?.scrollTo({ top: 0 });
   };
@@ -61,12 +65,17 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
     <div className="shell">
       <nav className="rail" aria-label="Sections">
         <a href="/" aria-label="All leagues"><Icon name="back" /><span>Leagues</span></a>
-        {TABS.map(([k, t, ic]) => (
-          <button key={k} className={tab === k ? 'on' : ''} onClick={() => go(k)} aria-current={tab === k ? 'page' : undefined}>
-            <Icon name={ic} />
-            <span>{t}</span>
-          </button>
-        ))}
+        {SECTIONS.map((sec) => {
+          const on = sectionOf(tab).key === sec.key;
+          const badge = sec.key === 'transfers' ? club.offers : sec.key === 'team' ? club.requests : 0;
+          return (
+            <button key={sec.key} className={on ? 'on' : ''} onClick={() => go(lastIn[sec.key] && sec.tabs.includes(lastIn[sec.key]) ? lastIn[sec.key] : sec.tabs[0])} aria-current={on ? 'page' : undefined} style={{ position: 'relative' }}>
+              <Icon name={sec.icon} />
+              <span>{sec.label}</span>
+              {badge > 0 && <i style={{ position: 'absolute', top: 4, right: 10, minWidth: 16, height: 16, borderRadius: 8, background: '#E8438C', color: '#fff', fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', padding: '0 4px' }}>{badge}</i>}
+            </button>
+          );
+        })}
       </nav>
       <div className="main">
         {tab === 'home' && (
@@ -79,6 +88,15 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
             <div className="coin" title="Coins for packs"><Coin /><b>{club.coins}</b></div>
             <div className="coin" title="Club money"><Cash /><b>{Number(club.money).toFixed(1)}M</b></div>
           </header>
+        )}
+        {sectionOf(tab).tabs.length > 1 && (
+          <nav className="subtabs" aria-label={sectionOf(tab).label}>
+            {sectionOf(tab).tabs.map((k) => (
+              <button key={k} className={tab === k ? 'on' : ''} onClick={() => go(k)} aria-current={tab === k ? 'page' : undefined}>
+                <span>{TABS.find((x) => x[0] === k)![1]}</span>
+              </button>
+            ))}
+          </nav>
         )}
         <div className="content" style={tab === 'home' ? undefined : { paddingTop: 8 }}>
           {tab === 'home' && <HomeTab {...props} />}
@@ -100,6 +118,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
       <LiveAlert live={d.live} club={club} />
+      {!club.tutorialDone && !tutClosed && !d.live?.length && <Tutorial lid={lid} league={league} club={club} go={(t) => { go(t); }} onDone={() => { setTutClosed(true); load(); }} />}
       {toast.node}
     </div>
   );

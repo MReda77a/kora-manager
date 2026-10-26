@@ -61,7 +61,7 @@ export async function makeOffer(uid: number, leagueId: number, b: Record<string,
   else if (r01(o.id) < 0.5) await news(leagueId, null, 'rumour', `RUMOUR: ${me.name} have made a move for ${seller!.name}'s ${p.name}.`);
   const what = describe(kind, amount, swap?.name);
   if (seller!.user_id) {
-    await inbox(leagueId, seller!.id, `📨 ${me.name} offer ${what} for ${p.name}. Answer in Market › Offers.`);
+    await inbox(leagueId, seller!.id, `📨 ${me.name} offer ${what} for ${p.name}. Answer in Market › Offers.`, { title: 'New offer', url: `/l/${leagueId}?tab=market` });
     return { ok: true, status: 'pending', text: `Offer sent to ${seller!.name}. They will answer soon.` };
   }
   return botAnswer(o, p, v, seller!, swap);
@@ -148,8 +148,8 @@ async function complete(o: Row, price: number) {
   // other bids for him are dead now
   const others = await q(`UPDATE offers SET status='expired', note='He signed elsewhere.', updated_at=now() WHERE player_id=$1 AND league_id=$2 AND id<>$3 AND status IN ('pending','countered') RETURNING from_club`, [o.player_id, o.league_id, o.id]);
   for (const x of others) await inbox(o.league_id, x.from_club, `❌ ${nm(o.player_id)} signed for ${buyer!.name}. Your offer is off.`);
-  if (buyer!.user_id) await inbox(o.league_id, buyer!.id, `✅ Done deal: ${head}`);
-  if (seller!.user_id) await inbox(o.league_id, seller!.id, `✅ Done deal: ${head}`);
+  if (buyer!.user_id) await inbox(o.league_id, buyer!.id, `✅ Done deal: ${head}`, { title: 'Done deal' });
+  if (seller!.user_id) await inbox(o.league_id, seller!.id, `✅ Done deal: ${head}`, { title: 'Done deal' });
   return { ok: true, status: 'accepted', text: head };
 }
 
@@ -175,7 +175,7 @@ export async function respondOffer(uid: number, leagueId: number, offerId: numbe
         if (c <= v * 1.8) return complete({ ...o, status: 'countered' }, c);
         return finish(o, 'rejected', `${buyer!.name} walked away: "${money(c)} is too much."`);
       }
-      await inbox(leagueId, o.from_club, `↩️ ${me.name} want ${money(c)} for ${p.name}. Accept or walk away in Market › Offers.`);
+      await inbox(leagueId, o.from_club, `↩️ ${me.name} want ${money(c)} for ${p.name}. Accept or walk away in Market › Offers.`, { title: 'Counter-offer', url: `/l/${leagueId}?tab=market` });
       return { ok: true, status: 'countered', text: 'Counter-offer sent.' };
     }
   }
@@ -221,7 +221,44 @@ export async function botBids(l: Row, day: number) {
     const v = Math.max(0.3, p.attrs?.v ?? 2);
     const amount = Math.round(v * (1.05 + r.next() * 0.4) * 10) / 10;
     await q(`INSERT INTO offers (league_id, from_club, to_club, player_id, kind, amount) VALUES ($1,$2,$3,$4,'buy',$5)`, [l.id, bot.id, h.id, p.player_id, amount]);
-    await inbox(l.id, h.id, `📨 ${bot.name} bid ${money(amount)} for ${p.name}${p.request ? ' (he asked to leave)' : ''}. Answer in Market › Offers.`);
+    await inbox(l.id, h.id, `📨 ${bot.name} bid ${money(amount)} for ${p.name}${p.request ? ' (he asked to leave)' : ''}. Answer in Market › Offers.`, { title: 'New offer', url: `/l/${l.id}?tab=market` });
     await news(l.id, null, 'rumour', `RUMOUR: ${bot.name} are in for ${h.name}'s ${p.name}.`);
+  }
+}
+
+// AI clubs shop too: during a window each one may buy a listed player who improves its weakest line,
+// from AI clubs or from managers. Managers who sell get the money and a message.
+export async function botShopping(l: Row, day: number) {
+  const listings = await q(
+    `SELECT li.id, li.player_id, li.price, li.seller_id, p.name, p.pos, p.ovr + COALESCE(s.ovr_delta,0) AS ovr, p.attrs->>'v' AS v, c.user_id AS seller_user, c.name AS seller
+     FROM listings li JOIN players p ON p.id=li.player_id JOIN squad s ON s.league_id=li.league_id AND s.player_id=li.player_id JOIN clubs c ON c.id=li.seller_id
+     WHERE li.league_id=$1 ORDER BY p.ovr DESC`,
+    [l.id],
+  );
+  if (!listings.length) return;
+  const bots = await q('SELECT * FROM clubs WHERE league_id=$1 AND user_id IS NULL ORDER BY money DESC', [l.id]);
+  const lineOf = (pos: string) => (pos === 'GK' ? 'GK' : ['CB', 'LB', 'RB'].includes(pos) ? 'DEF' : ['DM', 'CM', 'CAM'].includes(pos) ? 'MID' : 'FWD');
+  const sold = new Set<number>();
+  for (const b of bots) {
+    const r = rng(hashSeed('shop', l.id, day, b.id));
+    if (r.next() > 0.45) continue;
+    const sq = await q(`SELECT p.pos, p.ovr + s.ovr_delta AS ovr FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1`, [b.id]);
+    if (sq.length >= 26) continue;
+    // the weakest line, by the average of its best players
+    const need: [string, number][] = [['DEF', 4], ['MID', 3], ['FWD', 3], ['GK', 1]];
+    const avg = (ln: string, n: number) => { const v = sq.filter((p) => lineOf(p.pos) === ln).map((p) => p.ovr).sort((x, y) => y - x).slice(0, n); return v.length ? v.reduce((a, x) => a + x, 0) / v.length : 0; };
+    const [weak] = need.map(([ln, n]) => [ln, avg(ln, n)] as [string, number]).sort((x, y) => x[1] - y[1]);
+    const pick = listings.find((li) => !sold.has(li.id) && li.seller_id !== b.id && lineOf(li.pos) === weak[0] && li.ovr > weak[1] + 1
+      && Number(li.price) <= Number(b.money) * 0.6 && Number(li.price) <= Math.max(0.5, Number(li.v) || 1) * 1.35);
+    if (!pick) continue;
+    const gone = await q('DELETE FROM listings WHERE id=$1 RETURNING id', [pick.id]);
+    if (!gone[0]) continue;
+    sold.add(pick.id);
+    await q('UPDATE clubs SET money=money-$1 WHERE id=$2', [pick.price, b.id]);
+    await q('UPDATE clubs SET money=money+$1, sales=sales+$1 WHERE id=$2', [pick.price, pick.seller_id]);
+    await q(`UPDATE squad SET club_id=$1, fitness=100, loan_from=NULL WHERE league_id=$2 AND player_id=$3`, [b.id, l.id, pick.player_id]);
+    await q(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [l.id, pick.player_id]);
+    await news(l.id, b.id, 'transfer', `${b.name} sign ${pick.name} from ${pick.seller} for ${Number(pick.price).toFixed(1)}M.`);
+    if (pick.seller_user) await inbox(l.id, pick.seller_id, `💰 ${b.name} bought ${pick.name} for ${Number(pick.price).toFixed(1)}M.`, { title: 'Player sold' });
   }
 }

@@ -31,7 +31,7 @@ export function TableTab({ d: ov, lid }: TabProps) {
                 <td><span className="row" style={{ gap: 6 }}><Crest c1={t.color1} c2={t.color2} shape={t.shape} emblem={t.user_id ? t.emblem : -1} short={t.short} size={20} /><span className="ellipsis" style={{ maxWidth: 190 }}>{t.name}</span>{t.user_id && <span className="tag cyan" style={{ height: 16, fontSize: 9 }}><span>MGR</span></span>}</span></td>
                 <td className="num">{t.p}</td><td className="num">{t.w}</td><td className="num">{t.d}</td><td className="num">{t.l}</td>
                 <td className="num">{t.gf - t.ga > 0 ? '+' : ''}{t.gf - t.ga}</td><td className="num"><b>{t.pts}</b></td>
-                <td><span className="row" style={{ gap: 2 }}>{t.form.map((f: string, k: number) => <i key={k} style={{ width: 15, height: 15, fontSize: 9, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', background: f === 'W' ? '#7CE3A1' : f === 'D' ? '#B4A8E0' : '#FF6B7A', color: '#1B1048' }}>{f}</i>)}</span></td>
+                <td><span className="row" style={{ gap: 2 }}>{t.form.map((f: string, k: number) => <i key={k} style={{ width: 15, height: 15, fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', background: f === 'W' ? '#7CE3A1' : f === 'D' ? 'var(--muted)' : 'var(--red)', color: '#1B1048' }}>{f}</i>)}</span></td>
               </tr>
               );
             })}
@@ -39,7 +39,7 @@ export function TableTab({ d: ov, lid }: TabProps) {
         </table>
         {D > 1 && <div className="row tiny muted" style={{ gap: 14, padding: '8px 6px 2px' }}>
           {div > 1 && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: '#7CE3A1', marginRight: 5 }} />Top {P} promoted</span>}
-          {div < D && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: '#FF6B7A', marginRight: 5 }} />Bottom {P} relegated</span>}
+          {div < D && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--red)', marginRight: 5 }} />Bottom {P} relegated</span>}
         </div>}
       </div>
     </div>
@@ -72,10 +72,10 @@ export function FixturesTab({ lid, d: ov }: TabProps) {
           const me = f.home_id === myId || f.away_id === myId;
           return (
             <a key={f.id} href={`/m/${f.id}`} className="row small" style={{ color: 'inherit', padding: '7px 10px', gap: 8, background: derby ? 'rgba(242,193,78,0.16)' : f.comp === 'cup' ? 'rgba(47,230,176,0.12)' : me ? 'rgba(232,67,140,0.12)' : 'rgba(255,255,255,0.05)', fontWeight: 700 }}>
-              <span className="tiny" style={{ width: 54, color: f.comp === 'cup' ? '#2FE6B0' : derby ? '#F2C14E' : '#8A7FB8', fontWeight: 900 }}>{f.comp === 'cup' ? 'CUP' : derby ? 'DERBY' : `MD ${f.matchday}`}</span>
+              <span className="tiny" style={{ width: 54, color: f.comp === 'cup' ? '#2FE6B0' : derby ? '#F2C14E' : 'var(--dim)', fontWeight: 900 }}>{f.comp === 'cup' ? 'CUP' : derby ? 'DERBY' : `MD ${f.matchday}`}</span>
               <span className="grow ellipsis" style={{ textAlign: 'right', fontWeight: 800 }}>{f.home}</span>
               <Crest c1={f.hc} c2={f.hc2} shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={20} />
-              <b className="lz" style={{ width: 64, textAlign: 'center', fontSize: 17, color: f.status === 'live' ? '#FF6B7A' : undefined }}>{f.status === 'done' ? `${f.home_goals} – ${f.away_goals}` : f.status === 'live' ? 'LIVE' : 'vs'}</b>
+              <b className="lz" style={{ width: 64, textAlign: 'center', fontSize: 17, color: f.status === 'live' ? 'var(--red)' : undefined }}>{f.status === 'done' ? `${f.home_goals} – ${f.away_goals}` : f.status === 'live' ? 'LIVE' : 'vs'}</b>
               <Crest c1={f.ac} c2={f.ac2} shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={20} />
               <span className="grow ellipsis" style={{ fontWeight: 800 }}>{f.away}</span>
               <span className="tiny dim" style={{ width: 100, textAlign: 'right' }}>{f.status === 'done' ? 'Report ›' : f.status === 'live' ? 'Watch ›' : clock(f.kickoff_at)}</span>
@@ -106,10 +106,10 @@ export function LeadersTab({ lid, d: ov }: TabProps) {
           {rows.map((r, i) => {
             const mine = r.club_id === ov.club.id;
             return (
-              <div key={r.player_id} className="row small" style={{ gap: 10, padding: '5px 10px', background: mine ? 'rgba(232,67,140,0.2)' : undefined, fontWeight: 800 }}>
-                <span className="lz" style={{ width: 22, fontSize: 18, color: i === 0 ? '#F2C14E' : i === 2 ? '#EE7650' : '#B4A8E0' }}>{i + 1}</span>
-                <span className="grow col" style={{ minWidth: 0, gap: 0 }}><span className="ellipsis">{r.name} {mine && <span className="tiny" style={{ color: '#F29BC2' }}>YOURS</span>}</span><span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{r.club}</span></span>
-                <span className="tiny ellipsis hide-sm" style={{ width: 130, color: '#CFC6F0' }}><i style={{ display: 'inline-block', width: 8, height: 8, background: r.color1, transform: 'rotate(45deg)', marginRight: 6 }} />{r.club}</span>
+              <div key={r.player_id} className="row small" style={{ gap: 10, padding: '5px 10px', background: mine ? 'rgba(127,233,247,0.14)' : undefined, fontWeight: 800 }}>
+                <span className="lz" style={{ width: 22, fontSize: 18, color: i === 0 ? '#F2C14E' : i === 2 ? '#EE7650' : 'var(--muted)' }}>{i + 1}</span>
+                <span className="grow col" style={{ minWidth: 0, gap: 0 }}><span className="ellipsis">{r.name} {mine && <span className="tiny" style={{ color: '#7FE9F7' }}>YOURS</span>}</span><span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{r.club}</span></span>
+                <span className="tiny ellipsis hide-sm" style={{ width: 130, color: 'var(--soft)' }}><i style={{ display: 'inline-block', width: 8, height: 8, background: r.color1, transform: 'rotate(45deg)', marginRight: 6 }} />{r.club}</span>
                 <div className="hide-sm" style={{ width: 150 }}><div className="bar" style={{ height: 8 }}><i style={{ width: `${(val(r) / max) * 100}%`, background: i === 0 ? '#F2C14E' : mine ? '#E8438C' : '#7FE9F7' }} /></div></div>
                 <span className="lz" style={{ width: 40, textAlign: 'right', fontSize: 20 }}>{val(r)}</span>
               </div>

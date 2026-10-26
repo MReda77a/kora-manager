@@ -7,4 +7,13 @@ export const TABS = [
   ['paper', 'Paper', 'paper'], ['awards', 'Awards', 'awards'], ['leaders', 'Leaders', 'stats'], ['history', 'History', 'history'],
 ] as const;
 export type Tab = (typeof TABS)[number][0];
+// The rail shows sections; a section with several screens shows them as tabs at the top.
+export const SECTIONS: { key: string; label: string; icon: string; tabs: Tab[] }[] = [
+  { key: 'home', label: 'Home', icon: 'home', tabs: ['home'] },
+  { key: 'team', label: 'Team', icon: 'players', tabs: ['lineup', 'tactics', 'players', 'training', 'condition'] },
+  { key: 'matches', label: 'Matches', icon: 'fixtures', tabs: ['fixtures', 'table', 'cup', 'leaders'] },
+  { key: 'transfers', label: 'Transfers', icon: 'market', tabs: ['market', 'store'] },
+  { key: 'club', label: 'Club', icon: 'office', tabs: ['office', 'paper', 'awards', 'history'] },
+];
+export const sectionOf = (t: Tab) => SECTIONS.find((s) => s.tabs.includes(t)) || SECTIONS[0];
 export type TabProps = { lid: number; d: any; reload: () => void; toast: ReturnType<typeof useToast>; go: (t: Tab) => void };

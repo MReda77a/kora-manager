@@ -9,14 +9,14 @@ export default function ConditionTab({ lid, go }: TabProps) {
   useEffect(() => { api(`/api/leagues/${lid}/condition`).then(setD); }, [lid]);
   if (!d) return <Spinner />;
   const injured = d.players.filter((p: any) => p.out);
-  const fitColor = (v: number) => (v >= 85 ? '#7CE3A1' : v >= 70 ? '#F2C14E' : '#FF6B7A');
+  const fitColor = (v: number) => (v >= 85 ? '#7CE3A1' : v >= 70 ? '#F2C14E' : 'var(--red)');
   const best = (role: string) => d.staff.find((s: any) => s.role === role);
   return (
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Squad Condition" sub={d.next ? `next: ${d.next.home ? 'vs' : 'at'} ${d.next.opponent} · ${clock(d.next.kickoff)}` : 'no match scheduled'} right={<span className="small" style={{ color: '#7CE3A1', fontWeight: 800 }}>{injured.length} out · recovery {d.recoveryPerDay}%/day</span>} />
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(170px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 0 }}>
-          <div className="row tiny" style={{ color: '#B4A8E0', fontWeight: 900, padding: '0 8px 6px', gap: 8 }}>
+          <div className="row tiny" style={{ color: 'var(--muted)', fontWeight: 900, padding: '0 8px 6px', gap: 8 }}>
             <span className="grow" style={{ minWidth: 80 }}>PLAYER</span><span className="hide-sm" style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>OVR</span><span style={{ width: 76 }}>NOW</span><span style={{ width: 44 }}>MATCH</span><span style={{ width: 74 }}>STATUS</span>
           </div>
           <div className="col" style={{ gap: 2, maxHeight: 320, overflowY: 'auto' }}>

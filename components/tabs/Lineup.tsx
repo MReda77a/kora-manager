@@ -117,7 +117,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
             })}
           </Pitch>
           <div className="row" style={{ gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-            <span className="tiny" style={{ width: 40, flex: 'none', color: '#B4A8E0', fontWeight: 800 }}>Bench</span>
+            <span className="tiny" style={{ width: 40, flex: 'none', color: 'var(--muted)', fontWeight: 800 }}>Bench</span>
             {bench.map((p: any) => (
               <button key={p.id} className={`bench ${sel?.kind === 'bench' && sel.v === p.id ? 'sel' : ''}`} style={{ opacity: out(p) ? 0.5 : 1, width: out(p) ? 72 : 58 }} onClick={() => tapBench(p.id)}>
                 <b>{p.ovr + (p.form || 0)}</b><small>{lastName(p.name)}{out(p) ? ` · ${p.outReason === 'Suspended' ? 'Susp.' : 'Injured'}` : ` · ${p.pos}`}</small>

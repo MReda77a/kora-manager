@@ -20,7 +20,7 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
   const fanPct = Math.round(Math.min(100, (c.fans / c.capacity) * 100));
   return (
     <div className="col" style={{ gap: 8 }}>
-      <BackHead title="Club Office" tag={<span className="tag" style={{ background: 'rgba(232,67,140,0.3)', color: '#F29BC2' }}><span>{c.typeName.toUpperCase()}</span></span>}
+      <BackHead title="Club Office" tag={<span className="tag" style={{ background: 'rgba(232,67,140,0.3)', color: '#7FE9F7' }}><span>{c.typeName.toUpperCase()}</span></span>}
         sub={ov.club.pos ? `${ov.club.pos}${['', 'st', 'nd', 'rd'][ov.club.pos] || 'th'} place` : 'Pre-season'}
         right={<><span className="tiny muted" style={{ fontWeight: 900, letterSpacing: 1 }}>PROJECTED GRADE</span><span className="lz" style={{ fontSize: 28, color: '#7CE3A1' }}>{d.grade}</span></>} />
       <div className="split3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
@@ -33,7 +33,7 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
           <span className="kicker">Season objectives</span>
           {d.objectives.map((o: any, i: number) => (
             <div key={i} className="row-item" style={{ gap: 10, minHeight: 44 }}>
-              <span className="tiny" style={{ width: 62, fontWeight: 900, color: '#B4A8E0' }}>{o.area.toUpperCase()}</span>
+              <span className="tiny" style={{ width: 62, fontWeight: 900, color: 'var(--muted)' }}>{o.area.toUpperCase()}</span>
               <div className="col grow" style={{ gap: 3, minWidth: 0 }}>
                 <b className="small">{o.text}</b>
                 <div className="row" style={{ gap: 8 }}><div className="bar" style={{ height: 6 }}><i style={{ width: `${Math.round(o.progress * 100)}%`, background: o.status === 'ON TRACK' || o.status === 'DONE' ? '#7CE3A1' : '#F2C14E' }} /></div><span className="tiny muted" style={{ whiteSpace: 'nowrap' }}>{o.note}</span></div>
@@ -46,7 +46,7 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
           <div className="col" style={{ gap: 3, maxHeight: 220, overflowY: 'auto' }}>
             {d.inbox.map((m: any) => <div key={m.id} className="row small" style={{ gap: 8, fontWeight: 700, padding: '4px 8px', background: 'rgba(255,255,255,0.04)' }}><span className="grow">{m.text}</span><span className="tiny dim">{new Date(m.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span></div>)}
           </div>
-          <div className="small" style={{ padding: '6px 10px', background: 'rgba(10,4,30,0.4)' }}><b style={{ color: '#F2C14E' }}>Club perk:</b> {d.perk} <b style={{ color: '#FF9AA8' }}>Weakness:</b> {d.weak}</div>
+          <div className="small" style={{ padding: '6px 10px', background: 'rgba(10,4,30,0.4)' }}><b style={{ color: '#F2C14E' }}>Club perk:</b> {d.perk} <b style={{ color: '#FF8A80' }}>Weakness:</b> {d.weak}</div>
         </section>
         <section className="col" style={{ gap: 10 }}>
           <div className="panel cut" style={{ gap: 6 }}>
@@ -107,7 +107,7 @@ function Gauge({ v, color, title, note, good }: { v: number; color: string; titl
   return (
     <div className="panel cut" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
       <Ring v={v} size={52} color={color} font={18} />
-      <div className="col" style={{ gap: 0 }}><b>{title}</b><span className="tiny" style={{ color: good ? '#7CE3A1' : '#FF9AA8', fontWeight: 800 }}>{good ? '▲' : '▼'} {note}</span></div>
+      <div className="col" style={{ gap: 0 }}><b>{title}</b><span className="tiny" style={{ color: good ? '#7CE3A1' : '#FF8A80', fontWeight: 800 }}>{good ? '▲' : '▼'} {note}</span></div>
     </div>
   );
 }

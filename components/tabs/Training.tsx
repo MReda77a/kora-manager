@@ -41,7 +41,7 @@ export default function TrainingTab({ lid, toast }: TabProps) {
             return (
               <button key={x.id} className={`row-item ${sel === x.id ? 'sel' : ''}`} style={{ textAlign: 'left' }} onClick={() => { setSel(x.id); setTarget(null); }}>
                 <span className="col grow" style={{ gap: 0, minWidth: 0 }}><b className="small ellipsis">{x.name}</b><span className="tiny muted">{x.pos} · {x.age} yrs · {x.ovr}</span></span>
-                {t && <span className="tag" style={{ height: 20, fontSize: 10, background: t.kind === 'pos' ? 'rgba(127,233,247,0.2)' : 'rgba(124,227,161,0.2)', color: t.kind === 'pos' ? '#7FE9F7' : '#7CE3A1' }}><span>{t.kind === 'pos' ? `Learning ${t.target}` : `${t.target} +${t.amount}`}</span></span>}
+                {t && <span className="tag" style={{ height: 20, fontSize: 11, background: t.kind === 'pos' ? 'rgba(127,233,247,0.2)' : 'rgba(124,227,161,0.2)', color: t.kind === 'pos' ? '#7FE9F7' : '#7CE3A1' }}><span>{t.kind === 'pos' ? `Learning ${t.target}` : `${t.target} +${t.amount}`}</span></span>}
               </button>
             );
           })}

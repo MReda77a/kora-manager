@@ -77,7 +77,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
   const fitXi = saved.map((id, i) => { const p: any = byId.get(id); return p ? { pos: p.pos, slot: F.slots[i], ovr: p.ovr, a: p.attrs || {} } : null; }).filter(Boolean) as any[];
   const fitNow = tacticFit(fitXi, t);
   const fitOf = (n: string) => tacticFit(fitXi.map((p) => ({ ...p })), stripDesc(PRESETS[n])).score;
-  const fitColor = (v: number) => (v >= 65 ? '#7CE3A1' : v >= 45 ? '#7FE9F7' : '#FF9AA8');
+  const fitColor = (v: number) => (v >= 65 ? '#7CE3A1' : v >= 45 ? '#7FE9F7' : '#FF8A80');
   const takers = xiPlayers.filter((p: any) => p.pos !== 'GK').sort((a: any, b: any) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure));
   return (
     <div className="col" style={{ gap: 8 }}>
@@ -172,7 +172,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
                       <option value="">Auto (assistant)</option>
                       {opts.map(([k]) => <option key={k} value={k}>{k}</option>)}
                     </select>
-                    <b className="tiny" style={{ width: 26, textAlign: 'right', color: fit >= 80 ? '#7CE3A1' : fit >= 70 ? '#7FE9F7' : fit ? '#F2C14E' : '#8A7FB8' }}>{fit || '–'}</b>
+                    <b className="tiny" style={{ width: 26, textAlign: 'right', color: fit >= 80 ? '#7CE3A1' : fit >= 70 ? '#7FE9F7' : fit ? '#F2C14E' : 'var(--dim)' }}>{fit || '–'}</b>
                   </div>
                 );
               })}
@@ -235,7 +235,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
       </div>
       <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
         <div className="panel grow" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '8px 12px', minWidth: 240, flexBasis: 300 }}>
-          <span className="tag" style={{ background: '#F29BC2', color: '#1B1048' }}><span>SCOUT</span></span>
+          <span className="tag" style={{ background: '#7FE9F7', color: '#1B1048' }}><span>SCOUT</span></span>
           <span className="small" style={{ fontWeight: 700 }}>{scoutLine(scout)}</span>
         </div>
         <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty} style={{ minWidth: 150 }}><span>{dirty ? 'Save tactic' : 'Saved'}</span></button>

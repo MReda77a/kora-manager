@@ -83,7 +83,7 @@ export default function StoreTab({ lid, d: ov, reload, toast }: TabProps) {
               {opening.players?.map((p: any, i: number) => (
                 <div key={p.id} style={{ width: 118, animation: `flipin .5s ${0.25 + i * 0.35}s both` }}>
                   <PlayerCard p={p} />
-                  <div className="tiny" style={{ marginTop: 4, color: '#CFC6F0', textAlign: 'center', fontWeight: 800 }}>{p.name}</div>
+                  <div className="tiny" style={{ marginTop: 4, color: 'var(--soft)', textAlign: 'center', fontWeight: 800 }}>{p.name}</div>
                 </div>
               ))}
               {opening.staff && (

@@ -45,13 +45,13 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
             </div>
           </section>
           <section className="panel cut rise" style={{ gap: 4, animationDelay: '.08s' }}>
-            <div className="row between"><span className="tag"><span>{league.divisions > 1 ? league.divisionNames[club.division - 1] : `${league.poolName.replace(' League', '')} League`}</span></span><button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800, minHeight: 30, padding: '0 8px' }} onClick={() => go('table')}>TABLE ›</button></div>
+            <div className="row between"><span className="tag"><span>{league.divisions > 1 ? league.divisionNames[club.division - 1] : `${league.poolName.replace(' League', '')} League`}</span></span><button className="tiny" style={{ color: 'var(--muted)', fontWeight: 800, minHeight: 30, padding: '0 8px' }} onClick={() => go('table')}>TABLE ›</button></div>
             {slice.map((t: any) => {
               const i = table.indexOf(t) + 1;
               const me = t.id === club.id;
               return (
-                <div key={t.id} className="row" style={{ height: 30, padding: '0 10px', fontWeight: 800, fontSize: 13, transform: me ? 'skewX(-10deg)' : undefined, background: me ? 'linear-gradient(90deg, rgba(232,67,140,0.55), rgba(232,67,140,0.2))' : undefined }}>
-                  <span style={{ width: 22, transform: me ? 'skewX(10deg)' : undefined, color: me ? '#fff' : '#B4A8E0' }}>{i}</span>
+                <div key={t.id} className="row" style={{ height: 30, padding: '0 10px', fontWeight: 800, fontSize: 13, transform: me ? 'skewX(-10deg)' : undefined, background: me ? 'linear-gradient(90deg, rgba(127,233,247,0.32), rgba(127,233,247,0.1))' : undefined }}>
+                  <span style={{ width: 22, transform: me ? 'skewX(10deg)' : undefined, color: me ? '#fff' : 'var(--muted)' }}>{i}</span>
                   <span className="grow ellipsis" style={{ transform: me ? 'skewX(10deg)' : undefined }}>{t.name}</span>
                   <span style={{ transform: me ? 'skewX(10deg)' : undefined }}>{t.pts}</span>
                 </div>
@@ -81,6 +81,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
         </button>
       )}
       <Inbox club={club} go={go} />
+      <MoreHome d={d} go={go} />
       {league.isOwner && <OwnerSchedule lid={lid} league={league} toast={toast} reload={reload} />}
       <div className="ticker" style={{ marginTop: 'auto' }}>
         <span className="lbl">BREAKING</span>
@@ -89,6 +90,42 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
         </div>
       </div>
       <style>{`@media (max-width: 760px){ .home-grid{ grid-template-columns: 1fr 1fr !important; } } @media (max-width: 480px){ .home-grid{ grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
+    </div>
+  );
+}
+
+// Tablets and computers have room for more: your recent results and what is coming next.
+function MoreHome({ d, go }: { d: any; go: TabProps['go'] }) {
+  const mine = d.fixtures as any[];
+  const done = mine.filter((f) => f.status === 'done').slice(-5).reverse();
+  const next = mine.filter((f) => f.status === 'scheduled').slice(1, 5);
+  const me = d.club.id;
+  const res = (f: any) => { const my = f.home_id === me ? [f.home_goals, f.away_goals] : [f.away_goals, f.home_goals]; return f.winner_id ? (f.winner_id === me ? 'W' : 'L') : my[0] > my[1] ? 'W' : my[0] < my[1] ? 'L' : 'D'; };
+  if (!done.length && !next.length) return null;
+  return (
+    <div className="wide-only" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <section className="panel cut" style={{ gap: 4 }}>
+        <div className="row between"><span className="kicker">Recent results</span><button className="tiny" style={{ color: 'var(--muted)', fontWeight: 800 }} onClick={() => go('fixtures')}>All ›</button></div>
+        {!done.length && <span className="small muted">No matches played yet.</span>}
+        {done.map((f) => { const r = res(f); return (
+          <a key={f.id} href={`/m/${f.id}`} className="row small" style={{ gap: 8, color: 'inherit', fontWeight: 700 }}>
+            <i style={{ width: 20, height: 20, display: 'grid', placeItems: 'center', fontStyle: 'normal', fontWeight: 900, fontSize: 11, background: r === 'W' ? '#7CE3A1' : r === 'L' ? 'var(--red)' : '#B4A8E0', color: '#1B1048' }}>{r}</i>
+            <span className="grow ellipsis">{f.home} <b>{f.home_goals}–{f.away_goals}</b> {f.away}</span>
+            <span className="tiny muted">{f.comp === 'cup' ? 'Cup' : `MD ${f.matchday}`}</span>
+          </a>
+        ); })}
+      </section>
+      <section className="panel cut" style={{ gap: 4 }}>
+        <div className="row between"><span className="kicker">Coming up</span><button className="tiny" style={{ color: 'var(--muted)', fontWeight: 800 }} onClick={() => go('fixtures')}>All ›</button></div>
+        {!next.length && <span className="small muted">Nothing else scheduled.</span>}
+        {next.map((f) => (
+          <div key={f.id} className="row small" style={{ gap: 8, fontWeight: 700 }}>
+            <span className="tiny" style={{ width: 44, fontWeight: 900, color: f.comp === 'cup' ? '#2FE6B0' : 'var(--muted)' }}>{f.comp === 'cup' ? 'CUP' : `MD ${f.matchday}`}</span>
+            <span className="grow ellipsis">{f.home_id === me ? `vs ${f.away}` : `at ${f.home}`}</span>
+            <span className="tiny muted">{new Date(f.kickoff_at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
@@ -103,9 +140,9 @@ function Inbox({ club, go }: { club: any; go: TabProps['go'] }) {
         <span className="row" style={{ gap: 8 }}>
           <span className="tag cyan"><span>Inbox</span></span>
           {club.unhappy > 0 && <button className="tiny" style={{ color: '#FF9DA8', fontWeight: 900, minHeight: 30 }} onClick={() => go('players')}>{club.unhappy} unhappy player{club.unhappy > 1 ? 's' : ''} ›</button>}
-          {club.requests > 0 && <button className="tiny" style={{ color: '#FF6B7A', fontWeight: 900, minHeight: 30 }} onClick={() => go('players')}>{club.requests} transfer request{club.requests > 1 ? 's' : ''} ›</button>}
+          {club.requests > 0 && <button className="tiny" style={{ color: 'var(--red)', fontWeight: 900, minHeight: 30 }} onClick={() => go('players')}>{club.requests} transfer request{club.requests > 1 ? 's' : ''} ›</button>}
         </span>
-        {items.length > 2 && <button className="tiny" style={{ color: '#B4A8E0', fontWeight: 800, minHeight: 30, padding: '0 6px' }} onClick={() => setOpen(!open)}>{open ? 'Less' : `All ${items.length}`} ›</button>}
+        {items.length > 2 && <button className="tiny" style={{ color: 'var(--muted)', fontWeight: 800, minHeight: 30, padding: '0 6px' }} onClick={() => setOpen(!open)}>{open ? 'Less' : `All ${items.length}`} ›</button>}
       </div>
       {items.slice(0, open ? 30 : 2).map((m) => (
         <div key={m.id} className="row small" style={{ gap: 8, fontWeight: 700 }}>
@@ -133,7 +170,7 @@ function SeasonOver({ lid, d, reload, toast, go }: TabProps) {
       <span className="tag gold" style={{ alignSelf: 'flex-start' }}><span>Season {league.season} is over</span></span>
       {champ && <div className="lz" style={{ fontSize: 24, color: '#F2C14E' }}>🏆 {champ.name}</div>}
       <div className="small">You finished <b>{club.pos}{suffix(club.pos)}</b>{D > 1 ? ` in the ${league.divisionNames[club.division - 1]}` : ''}.
-        {up && <b style={{ color: '#7CE3A1' }}> Promoted!</b>}{down && <b style={{ color: '#FF6B7A' }}> Relegated.</b>}</div>
+        {up && <b style={{ color: '#7CE3A1' }}> Promoted!</b>}{down && <b style={{ color: 'var(--red)' }}> Relegated.</b>}</div>
       <div className="tiny muted">Next season: players age, veterans retire, academy graduates arrive, loans end and you get prize money plus 300 coins.</div>
       <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
         <button className="ghost" onClick={() => go('history')}><span>Awards & history</span></button>
@@ -150,7 +187,7 @@ const suffix = (n: number) => (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 &&
 function Stat({ label, v, color, note }: { label: string; v: number; color: string; note?: string }) {
   return (
     <div className="row" style={{ gap: 10 }}>
-      <span className="small" style={{ width: 54, color: '#B4A8E0', fontWeight: 800 }}>{label}</span>
+      <span className="small" style={{ width: 54, color: 'var(--muted)', fontWeight: 800 }}>{label}</span>
       <Bar v={v} color={color} h={7} />
       <b className="tiny" style={{ width: 34, textAlign: 'right' }}>{note ?? `${v}%`}</b>
     </div>
@@ -189,7 +226,7 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
         </div>
       </a>
       <div className="row between" style={{ gap: 8 }}>
-        {live ? <span className="lz" style={{ fontSize: 24, color: '#FF6B7A', animation: 'pulse 1.2s infinite' }}>● LIVE</span> : <span className="lz" style={{ fontSize: 28, whiteSpace: 'nowrap' }}>{cd.main}{cd.sec && <span style={{ color: '#7FE9F7', fontSize: 20 }}>:{cd.sec}</span>}</span>}
+        {live ? <span className="lz" style={{ fontSize: 24, color: 'var(--red)', animation: 'pulse 1.2s infinite' }}>● LIVE</span> : <span className="lz" style={{ fontSize: 28, whiteSpace: 'nowrap' }}>{cd.main}{cd.sec && <span style={{ color: '#7FE9F7', fontSize: 20 }}>:{cd.sec}</span>}</span>}
         {live ? <a className="cta shine" href={`/m/${f.id}`}><span>Watch live</span></a> : <button className="cta shine" onClick={() => go('lineup')}><span>Set lineup</span></button>}
       </div>
     </section>
@@ -203,7 +240,7 @@ function OwnerSchedule({ lid, league, toast, reload }: { lid: number; league: an
     try { await api(`/api/leagues/${lid}/schedule`, { kickoffUtcMin: localToUtcMin(t) }); toast.ok('Match time saved'); setOpen(false); reload(); } catch (e: any) { toast.bad(e.message); }
   };
   return (
-    <div className="row small" style={{ gap: 8, color: '#B4A8E0', fontWeight: 700 }}>
+    <div className="row small" style={{ gap: 8, color: 'var(--muted)', fontWeight: 700 }}>
       <span>Matches every day at <b style={{ color: '#F2C14E' }}>{utcMinToLocal(league.kickoffUtcMin)}</b> (your time)</span>
       {open ? (
         <>

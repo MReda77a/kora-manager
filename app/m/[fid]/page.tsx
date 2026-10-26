@@ -1,6 +1,6 @@
 'use client';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
-import { api, clock } from '../../../lib/client.ts';
+import { api, clock, shirt } from '../../../lib/client.ts';
 import { FORMATIONS, PRESETS } from '../../../lib/game.ts';
 import { crowd, isMuted, setMuted, thud, whistle } from '../../../lib/sound.ts';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
@@ -68,7 +68,7 @@ function Conditions({ d }: { d: any }) {
     <div className="row small" style={{ gap: 10, flexWrap: 'wrap', fontWeight: 800 }}>
       <span title={c.weatherInfo.note}>{c.weatherInfo.icon} {c.weatherInfo.label}</span>
       <span className="muted">·</span>
-      <span>Referee {c.referee.name} <span className="tiny" style={{ color: c.referee.strict === 2 ? '#FF9AA8' : c.referee.strict === 0 ? '#7CE3A1' : '#B4A8E0' }}>({c.referee.label})</span></span>
+      <span>Referee {c.referee.name} <span className="tiny" style={{ color: c.referee.strict === 2 ? '#FF8A80' : c.referee.strict === 0 ? '#7CE3A1' : 'var(--muted)' }}>({c.referee.label})</span></span>
     </div>
   );
 }
@@ -95,7 +95,7 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
   };
   const tension = d.derby ? 70 + ((d.home.id * 7 + d.away.id * 13) % 25) : 0;
   return (
-    <div style={{ padding: '8px 14px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: '100dvh' }}>
+    <div style={{ padding: '8px 14px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: '100dvh', maxWidth: 1320, margin: '0 auto' }}>
       <header className="row between" style={{ minHeight: 44 }}>
         <div className="row" style={{ gap: 12 }}><Back d={d} /><span className="lz" style={{ fontSize: 24, color: d.derby ? '#F2C14E' : undefined }}>{title}</span><span className="small muted hide-sm" style={{ fontWeight: 700 }}>{d.home.stadium}</span></div>
         <div className="row" style={{ gap: 8 }}><span className="tiny muted" style={{ fontWeight: 900 }}>KICK-OFF IN</span><span className="lz" style={{ fontSize: 26 }}>{cd}</span></div>
@@ -208,6 +208,11 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       if (big && pri.includes(big.type)) {
         setFx(big);
         const forMe = mineSide < 0 ? big.side === 0 : big.side === mineSide;
+        // phones buzz on the big moments (Android; iPhones ignore it), unless the sound is muted
+        const buzz = (p: number | number[]) => { try { if (!isMuted()) navigator.vibrate?.(p); } catch {} };
+        if (big.type === 'goal') buzz(forMe ? [90, 50, 220] : 70);
+        else if (big.type === 'red') buzz([150, 60, 150]);
+        else if (big.type === 'penalty') buzz(100);
         if (big.type === 'goal') crowd(forMe ? 'roar' : 'groan');
         else if (big.type === 'red' || big.type === 'yellow') { whistle(1); thud(); }
         else if (big.type === 'penalty') { whistle(2); crowd('roar'); }
@@ -284,7 +289,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           <b className="lz ellipsis tname" style={{ fontSize: 19, maxWidth: 170 }}>{d.home.name}</b>
           <div className="col" style={{ alignItems: 'center', gap: 0 }}>
             <span className="lz" style={{ fontSize: 34, lineHeight: 1, whiteSpace: 'nowrap' }}>{score[0]} – {score[1]}</span>
-            <span className="tiny" style={{ color: live ? '#FF6B7A' : 'var(--cyan)', fontWeight: 900 }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))} · <span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon}</span></span>
+            <span className="tiny" style={{ color: live ? 'var(--red)' : 'var(--cyan)', fontWeight: 900 }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))} · <span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon}</span></span>
           </div>
           <b className="lz ellipsis tname" style={{ fontSize: 19, maxWidth: 170 }}>{d.away.name}</b>
           <Crest c1={d.away.color1} c2={d.away.color2} size={30} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />
@@ -295,7 +300,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </div>
       </header>
       <div className="row tiny" style={{ gap: 8, fontWeight: 900 }}>
-        <span style={{ color: '#F29BC2' }}>Momentum {mom}%</span>
+        <span style={{ color: '#7FE9F7' }}>Momentum {mom}%</span>
         <div style={{ flex: 1, height: 7, background: d.away.color1, transform: 'skewX(-20deg)' }}><i style={{ display: 'block', height: '100%', width: `${mom}%`, background: `linear-gradient(90deg, ${d.home.color1}, #EE7650)`, transition: 'width .8s' }} /></div>
         <span>{100 - mom}%</span>
       </div>
@@ -303,7 +308,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         <section className="panel" style={{ padding: 8, gap: 4, overflowY: 'auto', minHeight: 0 }}>
           <span className="kicker">Live commentary</span>
           {events.slice(0, revealed).slice().reverse().map((e, i) => (
-            <div key={revealed - i} className="row small" style={{ gap: 8, alignItems: 'flex-start', animation: i === 0 ? 'slidein .4s both' : undefined, fontWeight: e.type === 'goal' ? 900 : 700, color: e.type === 'goal' ? '#F3EEFF' : '#CFC6F0' }}>
+            <div key={revealed - i} className="row small" style={{ gap: 8, alignItems: 'flex-start', animation: i === 0 ? 'slidein .4s both' : undefined, fontWeight: e.type === 'goal' ? 900 : 700, color: e.type === 'goal' ? '#F3EEFF' : 'var(--soft)' }}>
               <b style={{ width: 34, flex: 'none', color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>
               <span>{e.text}</span>
             </div>
@@ -318,7 +323,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           <div className="ln" style={{ left: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderLeft: 'none' }} />
           <div className="ln" style={{ right: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderRight: 'none' }} />
           <Dots d={d} gm={gm} events={events} revealed={revealed} />
-          {lastEv && <span className="tiny ellipsis" style={{ position: 'absolute', left: 14, top: 30, background: 'rgba(14,8,40,0.85)', padding: '3px 10px', fontWeight: 900, color: lastEv.side === 0 ? '#F29BC2' : '#B5F3FB', zIndex: 3, maxWidth: '70%' }}>{team(lastEv.side).name} · {lastEv.text}</span>}
+          {lastEv && <span className="tiny ellipsis" style={{ position: 'absolute', left: 14, top: 30, background: 'rgba(14,8,40,0.85)', padding: '3px 10px', fontWeight: 900, color: lastEv.side === 0 ? '#7FE9F7' : '#B5F3FB', zIndex: 3, maxWidth: '70%' }}>{team(lastEv.side).name} · {lastEv.text}</span>}
           {fx && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
         </section>
       </div>
@@ -371,28 +376,54 @@ function Crowd({ color, alt, top, loud }: { color: string; alt: string; top?: bo
   );
 }
 
-// Moving dots: both teams shift with an imaginary ball that leans toward whoever attacks next.
+// Moving players: both teams shift with the ball, which leans toward whoever attacks next and flies
+// at goal just before a chance. Shirt numbers on every player; the man on the ball is named.
 function Dots({ d, gm, events, revealed }: { d: any; gm: number; events: Ev[]; revealed: number }) {
   const rep = d.report;
   const fh = FORMATIONS[rep.lineups?.[0]?.formation || '4-3-3'];
   const fa = FORMATIONS[rep.lineups?.[1]?.formation || '4-3-3'];
-  const next = events.slice(revealed).find((e) => ['goal', 'save', 'miss', 'penalty', 'penmiss'].includes(e.type));
+  const next = events.slice(revealed).find((e) => ['goal', 'save', 'miss', 'penalty', 'penmiss', 'var'].includes(e.type));
   const t = gm * 7.3;
   let push = Math.sin(t * 0.21) * 0.45 + Math.sin(t * 0.077) * 0.35;
-  if (next && next.m - gm < 2.2 && next.m >= gm) push = next.side === 0 ? 0.95 : -0.95;
-  const bx = 50 + push * 38 + Math.sin(t * 0.9) * 4;
-  const by = 50 + Math.sin(t * 0.53) * 24 + Math.cos(t * 0.31) * 6;
-  const dot = (x: number, y: number, c: string, k: string, ring: string) => (
-    <span key={k} style={{ position: 'absolute', left: `${x}%`, top: `${y}%`, width: 13, height: 13, marginLeft: -6.5, marginTop: -6.5, borderRadius: '50%', background: c, boxShadow: `0 0 0 2px ${ring}`, transition: 'left .25s linear, top .25s linear', zIndex: 2 }} />
-  );
+  const soon = next && next.m >= gm ? next.m - gm : 99;
+  if (soon < 2.2) push = next!.side === 0 ? 0.95 : -0.95;
+  let bx = 50 + push * 38 + Math.sin(t * 0.9) * 4;
+  let by = 50 + Math.sin(t * 0.53) * 24 + Math.cos(t * 0.31) * 6;
+  if (soon < 0.5) { bx = next!.side === 0 ? 95 : 5; by = 47 + Math.sin(t) * 5; } // the shot
   const clampY = (y: number) => Math.max(14, Math.min(86, y));
+  const pos = (side: 0 | 1, x: number, y: number, i: number): [number, number] => side === 0
+    ? [Math.max(3, Math.min(97, x * 0.9 + 3 + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(y + (by - y) * (i ? 0.12 : 0.05) + Math.sin(t * 0.4 + i) * 1.5)]
+    : [Math.max(3, Math.min(97, 100 - (x * 0.9 + 3) + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(100 - y + (by - (100 - y)) * (i ? 0.12 : 0.05) + Math.cos(t * 0.4 + i) * 1.5)];
+  const ids = (side: 0 | 1) => rep.lineups?.[side]?.xi || [];
+  const home = fh.xy.map(([x, y]: number[], i: number) => ({ side: 0 as const, i, id: ids(0)[i], xy: pos(0, x, y, i) }));
+  const away = fa.xy.map(([x, y]: number[], i: number) => ({ side: 1 as const, i, id: ids(1)[i], xy: pos(1, x, y, i) }));
+  // who has the ball: the nearest player of the side that is attacking
+  const att = push >= 0 ? home : away;
+  const carrier = att.reduce((best: any, p: any) => { const dd = (p.xy[0] - bx) ** 2 + (p.xy[1] - by) ** 2; return !best || dd < best.dd ? { ...p, dd } : best; }, null);
+  const carrierName = carrier?.id ? lastName(d.names[carrier.id]?.name || '') : '';
+  const dot = (p: any) => {
+    const team = p.side === 0 ? d.home : d.away;
+    const no = p.id ? shirt(p.id, d.names[p.id]?.pos || 'CM') : '';
+    return (
+      <span key={`${p.side}${p.i}`} style={{ position: 'absolute', left: `${p.xy[0]}%`, top: `${p.xy[1]}%`, width: 17, height: 17, marginLeft: -8.5, marginTop: -8.5, borderRadius: '50%', background: team.color1, boxShadow: `0 0 0 2px ${team.kit2 || (p.side ? '#151018' : '#F3EEFF')}`, transition: 'left .25s linear, top .25s linear', zIndex: 2, display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 900, color: contrastInk(team.color1) }}>{no}</span>
+    );
+  };
   return (
     <>
-      {fh.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, x * 0.9 + 3 + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(y + (by - y) * (i ? 0.12 : 0.05) + Math.sin(t * 0.4 + i) * 1.5), d.home.color1, `h${i}`, d.home.kit2 || '#F3EEFF'))}
-      {fa.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, 100 - (x * 0.9 + 3) + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(100 - y + (by - (100 - y)) * (i ? 0.12 : 0.05) + Math.cos(t * 0.4 + i) * 1.5), d.away.color1, `a${i}`, d.away.kit2 || '#151018'))}
-      <span style={{ position: 'absolute', left: `${bx}%`, top: `${clampY(by)}%`, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff', transition: 'left .2s linear, top .2s linear', zIndex: 3 }} />
+      {home.map(dot)}
+      {away.map(dot)}
+      {carrier && carrierName && soon >= 0.5 && (
+        <span className="tiny" style={{ position: 'absolute', left: `${carrier.xy[0]}%`, top: `calc(${carrier.xy[1]}% - 22px)`, transform: 'translateX(-50%)', zIndex: 4, padding: '0 5px', background: 'rgba(14,8,40,0.8)', fontWeight: 800, whiteSpace: 'nowrap', transition: 'left .25s linear, top .25s linear', pointerEvents: 'none' }}>{carrierName}</span>
+      )}
+      <span style={{ position: 'absolute', left: `${bx}%`, top: `${clampY(by)}%`, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff', transition: soon < 0.5 ? 'left .35s ease-in, top .35s ease-in' : 'left .2s linear, top .2s linear', zIndex: 3 }} />
     </>
   );
+}
+
+// dark or light shirt numbers, whichever reads better on the shirt
+function contrastInk(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt((hex || '#000000').slice(i, i + 2), 16) || 0);
+  return r * 0.299 + g * 0.587 + b * 0.114 > 150 ? '#151018' : '#fff';
 }
 
 function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number; names: any }) {
@@ -415,9 +446,9 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
   if (e.type === 'goal') {
     return (
       <div className="ov" style={{ background: 'rgba(10,4,20,0.55)', animation: 'vign 1.6s ease-out forwards' }}>
-        <span className="big" style={{ fontSize: 70, color: '#8A7FB8', animation: 'shake .6s ease both' }}>GOAL</span>
-        <span style={{ fontSize: 14, fontWeight: 800, color: '#CFC6F0', animation: 'fadeUp .4s .4s both' }}>{who(e.pid)} scores for {team.name}</span>
-        <span className="tiny" style={{ fontWeight: 700, color: '#F29BC2', animation: 'fadeUp .4s .7s both' }}>Momentum swings to them</span>
+        <span className="big" style={{ fontSize: 70, color: 'var(--dim)', animation: 'shake .6s ease both' }}>GOAL</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--soft)', animation: 'fadeUp .4s .4s both' }}>{who(e.pid)} scores for {team.name}</span>
+        <span className="tiny" style={{ fontWeight: 700, color: '#7FE9F7', animation: 'fadeUp .4s .7s both' }}>Momentum swings to them</span>
       </div>
     );
   }
@@ -475,9 +506,9 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
     return (
       <div className="ov" style={{ background: 'rgba(10,4,20,0.5)', gap: 10 }}>
         <span className="lz" style={{ fontSize: 22, color: 'var(--cyan)', animation: 'fadeUp .3s both' }}>Substitution · {team.name}</span>
-        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(232,67,140,0.25)', animation: 'outL .9s .5s ease forwards' }}><span style={{ color: '#FF6B7A', fontWeight: 900 }}>▼ OUT</span><b>{p2?.name}</b><span className="lz" style={{ color: '#CFC6F0' }}>{p2?.ovr}</span></div>
+        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(232,67,140,0.25)', animation: 'outL .9s .5s ease forwards' }}><span style={{ color: 'var(--red)', fontWeight: 900 }}>▼ OUT</span><b>{p2?.name}</b><span className="lz" style={{ color: 'var(--soft)' }}>{p2?.ovr}</span></div>
         <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(124,227,161,0.25)', animation: 'inR .7s .7s cubic-bezier(.3,1.3,.5,1) both' }}><span style={{ color: '#7CE3A1', fontWeight: 900 }}>▲ IN</span><b>{p1?.name}</b><span className="lz" style={{ color: '#7CE3A1' }}>{p1?.ovr}</span></div>
-        <span className="tiny" style={{ color: '#CFC6F0', fontWeight: 700 }}>{e.text.startsWith("Manager") ? 'Manager’s decision' : 'Assistant’s decision'}</span>
+        <span className="tiny" style={{ color: 'var(--soft)', fontWeight: 700 }}>{e.text.startsWith("Manager") ? 'Manager’s decision' : 'Assistant’s decision'}</span>
       </div>
     );
   }
@@ -489,7 +520,7 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
           <span className="lz" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 40, color: '#7FE9F7', letterSpacing: 4 }}>VAR</span>
         </div>
         <span className="lz" style={{ fontSize: 20, color: '#F3EEFF', animation: 'fadeUp .4s 1.4s both' }}>{e.text.includes('overturns') ? 'PENALTY OVERTURNED' : 'GOAL RULED OUT'}</span>
-        <span className="tiny" style={{ fontWeight: 800, color: '#CFC6F0', animation: 'fadeUp .4s 1.7s both', maxWidth: '80%', textAlign: 'center' }}>{e.text}</span>
+        <span className="tiny" style={{ fontWeight: 800, color: 'var(--soft)', animation: 'fadeUp .4s 1.7s both', maxWidth: '80%', textAlign: 'center' }}>{e.text}</span>
       </div>
     );
   }
@@ -549,7 +580,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
   const ratings = rep.players.filter((p: any) => p.mins > 0 && (mine < 0 ? p.side === 0 : p.side === mine)).sort((a: any, b: any) => b.r - a.r);
   const so = rep.shootout;
   return (
-    <div style={{ padding: '8px 14px 16px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+    <div style={{ padding: '8px 14px 16px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', maxWidth: 1320, margin: '0 auto' }}>
       <header className="ft-head" style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
         <Back d={d} />
         <div className="row" style={{ justifyContent: 'flex-end', gap: 10, minWidth: 0 }}><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.home.name}</span><Crest c1={d.home.color1} c2={d.home.color2} size={40} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} /></div>
@@ -566,9 +597,9 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
           <span className="kicker">What happened · <span style={{ color: 'var(--cyan)' }}>AST</span> = your assistant</span>
           {key.length === 0 && <span className="small muted">A quiet one.</span>}
           {key.map((e: Ev, i: number) => (
-            <div key={i} className="row small" style={{ gap: 8, fontWeight: 800, color: e.type === 'goal' ? (e.side === mine || mine < 0 ? '#7CE3A1' : '#FF9AA8') : undefined }}>
+            <div key={i} className="row small" style={{ gap: 8, fontWeight: 800, color: e.type === 'goal' ? (e.side === mine || mine < 0 ? '#7CE3A1' : '#FF8A80') : undefined }}>
               <b style={{ width: 38, color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>{icon(e)}<span className="grow ellipsis">{txt(e)} <span className="tiny muted">{e.side === 0 ? d.home.short : d.away.short}</span></span>
-              {isAst(e) && (e.side === mine) && <span className="tag" style={{ height: 16, fontSize: 9, background: 'rgba(127,233,247,0.25)', color: '#7FE9F7' }}><span>AST</span></span>}
+              {isAst(e) && (e.side === mine) && <span className="tag" style={{ height: 16, fontSize: 11, background: 'rgba(127,233,247,0.25)', color: '#7FE9F7' }}><span>AST</span></span>}
             </div>
           ))}
           {so && (
@@ -576,7 +607,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
               {[0, 1].map((side) => (
                 <div key={side} className="row tiny" style={{ gap: 4, fontWeight: 900 }}>
                   <span style={{ width: 36 }}>{side === 0 ? d.home.short : d.away.short}</span>
-                  {so.kicks.filter((k: any) => k.side === side).map((k: any, i: number) => <span key={i} title={name(k.pid)} style={{ width: 16, height: 16, borderRadius: '50%', display: 'grid', placeItems: 'center', background: k.scored ? '#7CE3A1' : '#FF6B7A', color: '#1B1048', fontSize: 10, animation: `pop .3s ${i * 0.15}s both` }}>{k.scored ? '✓' : '✕'}</span>)}
+                  {so.kicks.filter((k: any) => k.side === side).map((k: any, i: number) => <span key={i} title={name(k.pid)} style={{ width: 16, height: 16, borderRadius: '50%', display: 'grid', placeItems: 'center', background: k.scored ? '#7CE3A1' : 'var(--red)', color: '#1B1048', fontSize: 11, animation: `pop .3s ${i * 0.15}s both` }}>{k.scored ? '✓' : '✕'}</span>)}
                 </div>
               ))}
             </div>
@@ -609,7 +640,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
           <div className="panel cut" style={{ gap: 2 }}>
             <span className="kicker">{mine >= 0 ? 'Your ratings' : 'Ratings'}</span>
             {ratings.slice(0, 8).map((p: any) => (
-              <div key={p.id} className="row small between" style={{ fontWeight: 800 }}><span className="ellipsis">{name(p.id)}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span><b style={{ color: p.r >= 7.5 ? '#7CE3A1' : p.r < 6 ? '#FF9AA8' : undefined }}>{p.r.toFixed(1)}</b></div>
+              <div key={p.id} className="row small between" style={{ fontWeight: 800 }}><span className="ellipsis">{name(p.id)}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span><b style={{ color: p.r >= 7.5 ? '#7CE3A1' : p.r < 6 ? '#FF8A80' : undefined }}>{p.r.toFixed(1)}</b></div>
             ))}
           </div>
           {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'rgba(124,227,161,0.12)', fontWeight: 800, color: '#7CE3A1' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}

@@ -7,7 +7,7 @@
 import { q, one, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
+  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic,
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
@@ -16,7 +16,8 @@ import { AI_SQUAD, botListings, checkSquads, cleanTactic, getLeague, myClub, new
 import { staffLevels } from './club.ts';
 import { moraleAfterMatch, randomEvents } from './people.ts';
 import { endSeason, startNextSeason } from './career.ts';
-import { botBids } from './offers.ts';
+import { botBids, botShopping } from './offers.ts';
+import { notify } from './push.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
 const LIVE_MS = LIVE_SECONDS * 1000;
@@ -33,6 +34,7 @@ export async function startSeason(uid: number, leagueId: number) {
   try {
     await fillWithBots(l, humans);
     await makeSchedule(l);
+    await botShopping(l, 0); // AI clubs may snap up players managers listed in pre-season
   } catch (e) {
     // undo a half-made season so the creator can simply try again
     await q(`DELETE FROM fixtures WHERE league_id=$1`, [leagueId]);
@@ -84,9 +86,10 @@ async function fillWithBots(l: Row, humanCount: number) {
     const t = aiTactic(0, [], hashSeed(l.id, i));
     const c = await q(
       `INSERT INTO clubs (league_id, user_id, name, short, color1, color2, shape, emblem, stadium, club_type, coins, money, tactic, fans, division, away1, away2, pattern)
-       VALUES ($1,NULL,$2,$3,$4,'#F3EEFF',$5,$6,$7,$8,0,$9,$10::jsonb,$11,$12,'#F3EEFF',$13,$14) RETURNING id`,
+       VALUES ($1,NULL,$2,$3,$4,$15,$5,$6,$7,$8,0,$9,$10::jsonb,$11,$12,'#F3EEFF',$13,$14) RETURNING id`,
       [l.id, name, shortName(name), AI_COLORS[i % AI_COLORS.length], i % 4, i % 6, `${name.split(' ').slice(-1)[0]} Stadium`, type, CLUB_TYPES[type].money, JSON.stringify(t),
-        (18000 + Math.floor(r.next() * 14000)) >> (botDiv[i] - 1), botDiv[i], '#151018', i % 3 === 0 ? 1 : 0],
+        (18000 + Math.floor(r.next() * 14000)) >> (botDiv[i] - 1), botDiv[i], '#151018', i % 3 === 0 ? 1 : 0,
+        botTrim(AI_COLORS[i % AI_COLORS.length], i)],
     );
     botIds.push(c[0].id);
   }
@@ -124,6 +127,13 @@ async function fillWithBots(l: Row, humanCount: number) {
     const vals = chunk.map((_, k) => `($1,$${k * 2 + 2},$${k * 2 + 3})`).join(',');
     await q(`INSERT INTO squad (league_id, player_id, club_id) VALUES ${vals} ON CONFLICT DO NOTHING`, [l.id, ...chunk.flat()]);
   }
+}
+
+// A second colour for an AI club that stands out against its main colour.
+function botTrim(c1: string, i: number) {
+  const opts = ['#F3EEFF', '#151018', '#F2C14E', '#7FE9F7', '#F3EEFF'];
+  for (let k = 0; k < opts.length; k++) { const c = opts[(i + k) % opts.length]; if (colorDist(c, c1) > 150) return c; }
+  return '#F3EEFF';
 }
 
 // First kick-off: the next time the clock shows the league's match time, at least 30 minutes away.
@@ -418,6 +428,9 @@ async function kickOff(f: Row) {
   if (!away.user_id) as.tactic = await planBot(l, f, as, hs, home.id);
   const cond = conditionsFor(f.id, l.pool, f.day);
   const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, weather: cond.weather, strict: cond.referee.strict });
+  for (const c of [home, away]) {
+    if (c.user_id) await notify(c.user_id, { title: derby ? '🔥 Derby kick-off!' : '⚽ Kick-off!', body: `${home.name} vs ${away.name} is live. Watch it and change your tactics, or let your assistant handle it.`, url: `/m/${f.id}`, tag: `kick-${f.id}` });
+  }
   await q(
     `UPDATE fixtures SET status='live', sides=$2::jsonb, report=$3::jsonb, changes='[]'::jsonb,
        live_from=now(), live_until=now() + make_interval(secs => $4) WHERE id=$1 AND status='playing'`,
@@ -642,6 +655,7 @@ async function processDay(d: Row) {
     if (d.matchday % 4 === 0) await playerOfTheMonth(l, d);
     if (d.matchday === totalMd / 2) {
       await botListings(l);
+      await botShopping(l, d.day);
       await news(l.id, null, 'window', 'Halfway! The mid-season transfer window is open until the next matchday.');
     }
   }
@@ -664,6 +678,7 @@ async function processDay(d: Row) {
     paper.headline = 'DEADLINE DAY';
     paper.sub = 'No matches today. The window slams shut at the next kick-off. Who will move?';
     await botBids(l, d.day);
+    await botShopping(l, d.day);
     await news(l.id, null, 'deadline', '⏰ DEADLINE DAY! The transfer window closes at the next kick-off. Get your offers in.');
   }
   await q(

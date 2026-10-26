@@ -23,9 +23,9 @@ function Listings({ lid, toast, reload }: TabProps) {
     .sort((a: any, b: any) => (sort === 'price' ? a.price - b.price : sort === 'age' ? a.age - b.age : b[sort] - a[sort]));
   return (
     <div className="col" style={{ gap: 8 }}>
-      <BackHead title="Transfer Market" tag={<MarketModes />} right={<div className="row" style={{ gap: 8, padding: '4px 14px', transform: 'skewX(-12deg)', border: '1px solid #F2C14E' }}><span className="tiny" style={{ transform: 'skewX(12deg)', fontWeight: 900, color: '#B4A8E0' }}>BUDGET</span><span className="lz" style={{ fontSize: 22, color: '#F2C14E', transform: 'skewX(12deg)' }}>{d.money.toFixed(1)}M</span></div>} />
+      <BackHead title="Transfer Market" tag={<MarketModes />} right={<div className="row" style={{ gap: 8, padding: '4px 14px', transform: 'skewX(-12deg)', border: '1px solid #F2C14E' }}><span className="tiny" style={{ transform: 'skewX(12deg)', fontWeight: 900, color: 'var(--muted)' }}>BUDGET</span><span className="lz" style={{ fontSize: 22, color: '#F2C14E', transform: 'skewX(12deg)' }}>{d.money.toFixed(1)}M</span></div>} />
       <div className="row wrap" style={{ gap: 6 }}>
-        <span className="tag" style={{ background: d.window.open ? '#7CE3A1' : '#FF6B7A', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN · ${d.window.label}` : d.window.label.toUpperCase()}</span></span>
+        <span className="tag" style={{ background: d.window.open ? '#7CE3A1' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN · ${d.window.label}` : d.window.label.toUpperCase()}</span></span>
         <input placeholder="Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
         {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
         <span className="tiny muted" style={{ fontWeight: 900, marginLeft: 6 }}>SORT</span>
@@ -33,7 +33,7 @@ function Listings({ lid, toast, reload }: TabProps) {
       </div>
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 2 }}>
-          <div className="row tiny" style={{ color: '#B4A8E0', fontWeight: 900, padding: '0 8px 4px', gap: 8 }}>
+          <div className="row tiny" style={{ color: 'var(--muted)', fontWeight: 900, padding: '0 8px 4px', gap: 8 }}>
             <span style={{ width: 30 }}>OVR</span><span style={{ flex: '2 1 0', minWidth: 70 }}>PLAYER</span><span style={{ width: 36 }}>POS</span><span className="hide-sm" style={{ width: 30 }}>AGE</span><span className="hide-sm" style={{ width: 110 }}>SELLER</span><span className="hide-sm" style={{ width: 30 }}>POT</span><span style={{ width: 56, textAlign: 'right' }}>PRICE</span>
           </div>
           {rows.length === 0 && <div className="small muted" style={{ padding: 12 }}>No players listed. Only players other managers or AI clubs put up for sale appear here. Sell your own from the Squad screen.</div>}
@@ -133,7 +133,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Transfer Market" tag={<MarketModes />} right={<span className="lz" style={{ fontSize: 22, color: '#F2C14E' }}>{money.toFixed(1)}M</span>} />
       <div className="row wrap" style={{ gap: 6 }}>
-        <span className="tag" style={{ background: win.open ? '#7CE3A1' : '#FF6B7A', color: win.open ? '#0E3020' : '#fff' }}><span>{win.open ? `WINDOW OPEN · ${win.label}` : win.label.toUpperCase()}</span></span>
+        <span className="tag" style={{ background: win.open ? '#7CE3A1' : 'var(--red)', color: win.open ? '#0E3020' : '#fff' }}><span>{win.open ? `WINDOW OPEN · ${win.label}` : win.label.toUpperCase()}</span></span>
         <input placeholder="Player or club…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
         {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
       </div>
@@ -143,7 +143,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
             {rows.map((p) => (
               <button key={p.id} className={`row-item ${sel?.id === p.id ? 'sel' : ''}`} style={{ textAlign: 'left', fontWeight: 700, fontSize: 13 }} onClick={() => { setSel(p); setAmount(suggest(p, kind)); }}>
                 <span className="lz" style={{ width: 30, fontSize: 18, color: p.ovr >= 85 ? '#F2C14E' : undefined }}>{p.ovr}</span>
-                <b className="ellipsis" style={{ flex: '2 1 0', minWidth: 70 }}>{p.name}{p.request && <span className="tiny" style={{ color: '#FF6B7A' }}> · wants out</span>}</b>
+                <b className="ellipsis" style={{ flex: '2 1 0', minWidth: 70 }}>{p.name}{p.request && <span className="tiny" style={{ color: 'var(--red)' }}> · wants out</span>}</b>
                 <span style={{ width: 36 }} className="muted">{p.pos}</span>
                 <span className="hide-sm" style={{ width: 28 }}>{p.age}</span>
                 <span style={{ flex: '1.4 1 0', minWidth: 0, maxWidth: 140 }} className="ellipsis muted"><i style={{ display: 'inline-block', width: 7, height: 7, background: p.color1, transform: 'rotate(45deg)', marginRight: 5 }} />{p.club}{p.human ? '' : ' (AI)'}</span>
@@ -177,7 +177,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
   );
 }
 
-const STATUS_COLOR: Record<string, string> = { pending: '#F2C14E', countered: '#7FE9F7', accepted: '#7CE3A1', rejected: '#FF6B7A', withdrawn: '#8A7FB8', expired: '#8A7FB8' };
+const STATUS_COLOR: Record<string, string> = { pending: '#F2C14E', countered: '#7FE9F7', accepted: '#7CE3A1', rejected: 'var(--red)', withdrawn: 'var(--dim)', expired: 'var(--dim)' };
 
 function OffersInbox({ lid, toast, reload }: TabProps) {
   const [d, setD] = useState<any>(null);

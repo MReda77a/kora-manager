@@ -1,7 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import SwRegister from '../components/SwRegister.tsx';
 
-export const metadata: Metadata = { title: 'Kora Manager', description: 'Build your club, pick your tactics, beat your friends.' };
+export const metadata: Metadata = {
+  title: 'Kora Manager', description: 'Build your club, pick your tactics, beat your friends.',
+  manifest: '/manifest.webmanifest',
+  icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
+  appleWebApp: { capable: true, title: 'Kora', statusBarStyle: 'black-translucent' },
+};
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#1E1250' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div className="rotate">Turn your phone sideways for the best view</div>
+        <SwRegister />
         {children}
       </body>
     </html>

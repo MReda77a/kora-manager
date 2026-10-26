@@ -263,5 +263,15 @@ CREATE TABLE IF NOT EXISTS offers (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS offers_to ON offers (to_club, status);
-CREATE INDEX IF NOT EXISTS offers_from ON offers (from_club, status)
+CREATE INDEX IF NOT EXISTS offers_from ON offers (from_club, status);
+
+CREATE TABLE IF NOT EXISTS push_subs (
+  endpoint TEXT PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  keys JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS push_subs_user ON push_subs (user_id);
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tutorial_done BOOLEAN NOT NULL DEFAULT false
 `;
