@@ -3,6 +3,7 @@ import { getSession, type Session } from './auth.ts';
 
 import { HttpError, fail } from './errors.ts';
 import { migrate } from './migrate.ts';
+import { counter } from './db.ts';
 export { HttpError, fail };
 
 export async function requireUser(): Promise<Session> {
@@ -13,9 +14,12 @@ export async function requireUser(): Promise<Session> {
 
 export function handle<A extends unknown[]>(fn: (...args: A) => Promise<unknown>) {
   return async (...args: A) => {
+    const start = counter.n;
     try {
       await migrate();
       const data = await fn(...args);
+      const used = counter.n - start;
+      if (used > 25) console.warn(`[queries] ${used} database requests in one visit${typeof (args[0] as any)?.url === 'string' ? ` (${new URL((args[0] as any).url).pathname})` : ''}`);
       return NextResponse.json(data ?? { ok: true });
     } catch (e) {
       if (e instanceof HttpError) return NextResponse.json({ error: e.message }, { status: e.status });

@@ -1,6 +1,7 @@
 // Manager-to-manager transfers: offers to buy, loan or swap players, counter-offers, bidding wars,
 // rumours and bot clubs that bid for your players. Only while a transfer window is open.
-import { q, one, type Row } from './db.ts';
+import { q, one, writes, type Row } from './db.ts';
+import { notify } from './push.ts';
 import { fail } from './errors.ts';
 import { MAX_SQUAD, MIN_SQUAD } from './game.ts';
 import { getLeague, myClub, news, windowFor } from './league.ts';
@@ -226,8 +227,9 @@ export async function botBids(l: Row, day: number) {
   }
 }
 
-// AI clubs shop too: during a window each one may buy a listed player who improves its weakest line,
-// from AI clubs or from managers. Managers who sell get the money and a message.
+// AI clubs shop too: during a window up to three of them buy a listed player who improves their weakest
+// line, from AI clubs or from managers. Managers who sell get the money and a message.
+// Few database requests: one read for every squad, one per purchase.
 export async function botShopping(l: Row, day: number) {
   const listings = await q(
     `SELECT li.id, li.player_id, li.price, li.seller_id, p.name, p.pos, p.ovr + COALESCE(s.ovr_delta,0) AS ovr, p.attrs->>'v' AS v, c.user_id AS seller_user, c.name AS seller
@@ -236,29 +238,37 @@ export async function botShopping(l: Row, day: number) {
     [l.id],
   );
   if (!listings.length) return;
-  const bots = await q('SELECT * FROM clubs WHERE league_id=$1 AND user_id IS NULL ORDER BY money DESC', [l.id]);
+  const rows = await q(
+    `SELECT c.id, c.name, c.money, p.pos, p.ovr + s.ovr_delta AS ovr FROM clubs c JOIN squad s ON s.club_id=c.id JOIN players p ON p.id=s.player_id
+     WHERE c.league_id=$1 AND c.user_id IS NULL`,
+    [l.id],
+  );
+  const bots = new Map<number, { id: number; name: string; money: number; sq: Row[] }>();
+  for (const r of rows) { const b = bots.get(r.id) || { id: r.id, name: r.name, money: Number(r.money), sq: [] as Row[] }; b.sq.push(r); bots.set(r.id, b); }
   const lineOf = (pos: string) => (pos === 'GK' ? 'GK' : ['CB', 'LB', 'RB'].includes(pos) ? 'DEF' : ['DM', 'CM', 'CAM'].includes(pos) ? 'MID' : 'FWD');
   const sold = new Set<number>();
-  for (const b of bots) {
+  let bought = 0;
+  for (const b of [...bots.values()].sort((x, y) => y.money - x.money)) {
+    if (bought >= 3) break;
     const r = rng(hashSeed('shop', l.id, day, b.id));
-    if (r.next() > 0.45) continue;
-    const sq = await q(`SELECT p.pos, p.ovr + s.ovr_delta AS ovr FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1`, [b.id]);
-    if (sq.length >= 26) continue;
-    // the weakest line, by the average of its best players
+    if (r.next() > 0.45 || b.sq.length >= 26) continue;
     const need: [string, number][] = [['DEF', 4], ['MID', 3], ['FWD', 3], ['GK', 1]];
-    const avg = (ln: string, n: number) => { const v = sq.filter((p) => lineOf(p.pos) === ln).map((p) => p.ovr).sort((x, y) => y - x).slice(0, n); return v.length ? v.reduce((a, x) => a + x, 0) / v.length : 0; };
+    const avg = (ln: string, n: number) => { const v = b.sq.filter((p) => lineOf(p.pos) === ln).map((p) => p.ovr).sort((x, y) => y - x).slice(0, n); return v.length ? v.reduce((a, x) => a + x, 0) / v.length : 0; };
     const [weak] = need.map(([ln, n]) => [ln, avg(ln, n)] as [string, number]).sort((x, y) => x[1] - y[1]);
     const pick = listings.find((li) => !sold.has(li.id) && li.seller_id !== b.id && lineOf(li.pos) === weak[0] && li.ovr > weak[1] + 1
-      && Number(li.price) <= Number(b.money) * 0.6 && Number(li.price) <= Math.max(0.5, Number(li.v) || 1) * 1.35);
+      && Number(li.price) <= b.money * 0.6 && Number(li.price) <= Math.max(0.5, Number(li.v) || 1) * 1.35);
     if (!pick) continue;
     const gone = await q('DELETE FROM listings WHERE id=$1 RETURNING id', [pick.id]);
     if (!gone[0]) continue;
-    sold.add(pick.id);
-    await q('UPDATE clubs SET money=money-$1 WHERE id=$2', [pick.price, b.id]);
-    await q('UPDATE clubs SET money=money+$1, sales=sales+$1 WHERE id=$2', [pick.price, pick.seller_id]);
-    await q(`UPDATE squad SET club_id=$1, fitness=100, loan_from=NULL WHERE league_id=$2 AND player_id=$3`, [b.id, l.id, pick.player_id]);
-    await q(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [l.id, pick.player_id]);
-    await news(l.id, b.id, 'transfer', `${b.name} sign ${pick.name} from ${pick.seller} for ${Number(pick.price).toFixed(1)}M.`);
-    if (pick.seller_user) await inbox(l.id, pick.seller_id, `💰 ${b.name} bought ${pick.name} for ${Number(pick.price).toFixed(1)}M.`, { title: 'Player sold' });
+    sold.add(pick.id); bought++;
+    const w = writes();
+    w.add('UPDATE clubs SET money=money-$1 WHERE id=$2', [pick.price, b.id]);
+    w.add('UPDATE clubs SET money=money+$1, sales=sales+$1 WHERE id=$2', [pick.price, pick.seller_id]);
+    w.add(`UPDATE squad SET club_id=$1, fitness=100, loan_from=NULL WHERE league_id=$2 AND player_id=$3`, [b.id, l.id, pick.player_id]);
+    w.add(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [l.id, pick.player_id]);
+    w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'transfer',$3)`, [l.id, b.id, `${b.name} sign ${pick.name} from ${pick.seller} for ${Number(pick.price).toFixed(1)}M.`]);
+    if (pick.seller_user) w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'inbox',$3)`, [l.id, pick.seller_id, `💰 ${b.name} bought ${pick.name} for ${Number(pick.price).toFixed(1)}M.`]);
+    await w.flush();
+    if (pick.seller_user) await notify(pick.seller_user, { title: 'Player sold', body: `${b.name} bought ${pick.name} for ${Number(pick.price).toFixed(1)}M.`, url: `/l/${l.id}` });
   }
 }

@@ -16,7 +16,7 @@ export const GET = handle(async (_req: Request, ctx: { params: Promise<{ fid: st
   if (!member) fail(403, 'You are not in this league.');
   const due = (f.status === 'scheduled' && new Date(f.kickoff_at).getTime() <= Date.now()) || (f.status === 'live' && new Date(f.live_until).getTime() <= Date.now());
   if (due) {
-    await runDue(f.league_id, { prefer: f.id });
+    await runDue(f.league_id, { prefer: f.id, light: true });
     f = await one('SELECT * FROM fixtures WHERE id=$1', [Number(fid)]);
   }
   const clubs = await q('SELECT id, name, short, color1, color2, away1, away2, pattern, shape, emblem, club_type, user_id, stadium, fans, capacity, pens, assistant, plans, league_id FROM clubs WHERE id IN ($1,$2)', [f!.home_id, f!.away_id]);

@@ -27,7 +27,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
   const mustClub = () => { if (!club) fail(403, 'Create your club first.'); return club!; };
 
   if (action === 'overview') {
-    const run = l.status === 'running' ? await S.runDue(lid) : { remaining: 0 };
+    const run = l.status === 'running' ? await S.runDue(lid, { light: true }) : { remaining: 0 };
     await C.applyTrainings(lid);
     const fresh = await L.getLeague(lid);
     const divParam = Number(new URL(req.url).searchParams.get('div')) || 0;

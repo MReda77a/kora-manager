@@ -468,15 +468,27 @@ export async function windowFor(l: Row) {
   return { open: false, label: 'Closed until next season' };
 }
 
+// AI clubs put a few squad players up for sale. Two database requests in all (Cloudflare limits requests per visit).
 export async function botListings(l: Row) {
-  const bots = await q('SELECT id FROM clubs WHERE league_id=$1 AND user_id IS NULL', [l.id]);
-  for (const b of bots) {
-    const sq = await q(`SELECT p.id, p.ovr, p.attrs FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1 AND p.pos<>'GK' ORDER BY p.ovr DESC`, [b.id]);
-    const r = rng(hashSeed('list', l.id, b.id, Date.now() >> 20));
-    if (sq.length <= 14 || r.next() < 0.35) continue; // sq is outfield players only
+  const rows = await q(
+    `SELECT s.club_id, p.id, p.ovr, p.attrs->>'v' AS v FROM squad s JOIN players p ON p.id=s.player_id JOIN clubs c ON c.id=s.club_id
+     WHERE c.league_id=$1 AND c.user_id IS NULL AND p.pos<>'GK' ORDER BY s.club_id, p.ovr DESC`,
+    [l.id],
+  );
+  const byClub = new Map<number, Row[]>();
+  for (const r of rows) (byClub.get(r.club_id) || byClub.set(r.club_id, []).get(r.club_id)!).push(r);
+  const add: { p: string; c: number; price: number }[] = [];
+  for (const [club, sq] of byClub) {
+    const r = rng(hashSeed('list', l.id, club, Date.now() >> 20));
+    if (sq.length <= 14 || r.next() < 0.35) continue; // outfield players only
     const p = sq[Math.floor(sq.length * (0.3 + r.next() * 0.6))];
-    const price = Math.max(0.5, Math.round(((p.attrs.v ?? 3) * (1 + r.next() * 0.3)) * 10) / 10);
-    await q('INSERT INTO listings (league_id, player_id, seller_id, price) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [l.id, p.id, b.id, price]);
+    add.push({ p: p.id, c: club, price: Math.max(0.5, Math.round(((Number(p.v) || 3) * (1 + r.next() * 0.3)) * 10) / 10) });
+  }
+  if (add.length) {
+    await q(
+      `INSERT INTO listings (league_id, player_id, seller_id, price) SELECT $1, x.p, x.c, x.price FROM jsonb_to_recordset($2::jsonb) AS x(p text, c int, price numeric) ON CONFLICT DO NOTHING`,
+      [l.id, JSON.stringify(add)],
+    );
   }
 }
 

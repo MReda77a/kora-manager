@@ -4,7 +4,7 @@
 // A fixture goes: scheduled -> (kick-off time) live for LIVE_SECONDS -> done.
 // While live, both managers can change tactics or make subs; the match is re-simulated from that
 // minute with the same seed, so everything before the change stays exactly the same.
-import { q, one, type Row } from './db.ts';
+import { batch, counter, q, one, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
   AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
@@ -37,12 +37,11 @@ export async function startSeason(uid: number, leagueId: number) {
     await botShopping(l, 0); // AI clubs may snap up players managers listed in pre-season
   } catch (e) {
     // undo a half-made season so the creator can simply try again
-    await q(`DELETE FROM fixtures WHERE league_id=$1`, [leagueId]);
-    await q(`DELETE FROM days WHERE league_id=$1`, [leagueId]);
-    await q(`DELETE FROM papers WHERE league_id=$1`, [leagueId]);
-    await q(`DELETE FROM squad WHERE league_id=$1 AND club_id IN (SELECT id FROM clubs WHERE league_id=$1 AND user_id IS NULL)`, [leagueId]);
-    await q(`DELETE FROM clubs WHERE league_id=$1 AND user_id IS NULL`, [leagueId]);
-    await q(`UPDATE leagues SET status='setup' WHERE id=$1`, [leagueId]);
+    await batch(['fixtures', 'days', 'papers'].map((t) => ({ text: `DELETE FROM ${t} WHERE league_id=$1`, params: [leagueId] })).concat([
+      { text: `DELETE FROM squad WHERE league_id=$1 AND club_id IN (SELECT id FROM clubs WHERE league_id=$1 AND user_id IS NULL)`, params: [leagueId] },
+      { text: `DELETE FROM clubs WHERE league_id=$1 AND user_id IS NULL`, params: [leagueId] },
+      { text: `UPDATE leagues SET status='setup' WHERE id=$1`, params: [leagueId] },
+    ]));
     throw e;
   }
   await q(`UPDATE leagues SET status='running' WHERE id=$1`, [leagueId]);
@@ -79,20 +78,26 @@ async function fillWithBots(l: Row, humanCount: number) {
   const lines = ['GK', 'GK', 'DEF', 'DEF', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD', 'FWD'];
   const taken = new Set((await q('SELECT lower(name) AS n FROM clubs WHERE league_id=$1', [l.id])).map((x) => x.n));
   const names = [...(AI_NAMES_BY_POOL[l.pool] || AI_NAMES_BY_POOL.EGY)].sort(() => r.next() - 0.5).filter((n) => !taken.has(n.toLowerCase()));
-  const botIds: number[] = [];
-  for (let i = 0; i < need; i++) {
+  const bots = Array.from({ length: need }, (_, i) => {
     const name = names[i % names.length] + (i >= names.length ? ` ${Math.floor(i / names.length) + 1}` : '');
     const type = (['fan', 'invest', 'academy', 'commercial', 'historic'] as ClubTypeKey[])[i % 5];
-    const t = aiTactic(0, [], hashSeed(l.id, i));
-    const c = await q(
-      `INSERT INTO clubs (league_id, user_id, name, short, color1, color2, shape, emblem, stadium, club_type, coins, money, tactic, fans, division, away1, away2, pattern)
-       VALUES ($1,NULL,$2,$3,$4,$15,$5,$6,$7,$8,0,$9,$10::jsonb,$11,$12,'#F3EEFF',$13,$14) RETURNING id`,
-      [l.id, name, shortName(name), AI_COLORS[i % AI_COLORS.length], i % 4, i % 6, `${name.split(' ').slice(-1)[0]} Stadium`, type, CLUB_TYPES[type].money, JSON.stringify(t),
-        (18000 + Math.floor(r.next() * 14000)) >> (botDiv[i] - 1), botDiv[i], '#151018', i % 3 === 0 ? 1 : 0,
-        botTrim(AI_COLORS[i % AI_COLORS.length], i)],
-    );
-    botIds.push(c[0].id);
-  }
+    const color = AI_COLORS[i % AI_COLORS.length];
+    return {
+      name, short: shortName(name), color1: color, color2: botTrim(color, i), shape: i % 4, emblem: i % 6, stadium: `${name.split(' ').slice(-1)[0]} Stadium`,
+      club_type: type, money: CLUB_TYPES[type].money, tactic: aiTactic(0, [], hashSeed(l.id, i)),
+      fans: (18000 + Math.floor(r.next() * 14000)) >> (botDiv[i] - 1), division: botDiv[i], pattern: i % 3 === 0 ? 1 : 0,
+    };
+  });
+  // all bot clubs in one request
+  const made = await q(
+    `INSERT INTO clubs (league_id, user_id, name, short, color1, color2, shape, emblem, stadium, club_type, coins, money, tactic, fans, division, away1, away2, pattern)
+     SELECT $1, NULL, x.name, x.short, x.color1, x.color2, x.shape, x.emblem, x.stadium, x.club_type, 0, x.money, x.tactic, x.fans, x.division, '#F3EEFF', '#151018', x.pattern
+       FROM jsonb_to_recordset($2::jsonb) AS x(name text, short text, color1 text, color2 text, shape int, emblem int, stadium text, club_type text, money numeric, tactic jsonb, fans int, division int, pattern int)
+     RETURNING id, name`,
+    [l.id, JSON.stringify(bots)],
+  );
+  const idOf = new Map(made.map((c) => [c.name, c.id]));
+  const botIds: number[] = bots.map((b) => idOf.get(b.name));
   const rows: [string, number][] = [];
   const order = ['L', 'G', 'S', 'B'];
   const take = (line: string, band: string) => {
@@ -122,11 +127,7 @@ async function fillWithBots(l: Row, humanCount: number) {
     });
   }
   void AI_SQUAD;
-  for (let i = 0; i < rows.length; i += 300) {
-    const chunk = rows.slice(i, i + 300);
-    const vals = chunk.map((_, k) => `($1,$${k * 2 + 2},$${k * 2 + 3})`).join(',');
-    await q(`INSERT INTO squad (league_id, player_id, club_id) VALUES ${vals} ON CONFLICT DO NOTHING`, [l.id, ...chunk.flat()]);
-  }
+  if (rows.length) await q(`INSERT INTO squad (league_id, player_id, club_id) SELECT $1, x->>0, (x->>1)::int FROM jsonb_array_elements($2::jsonb) AS x ON CONFLICT DO NOTHING`, [l.id, JSON.stringify(rows)]);
 }
 
 // A second colour for an AI club that stands out against its main colour.
@@ -257,7 +258,7 @@ async function drawCup(l: Row, round: number) {
 // ---------------------------------------------------------------- the runner
 // Called by page loads and the 1-minute timer. Finishes live matches whose time is up,
 // kicks off due matches and processes finished days. Each unit of work counts toward `max`.
-export async function runDue(leagueId?: number, opts: { max?: number; prefer?: number } = {}) {
+export async function runDue(leagueId?: number, opts: { max?: number; prefer?: number; light?: boolean } = {}) {
   const max = opts.max ?? PER_REQUEST;
   let work = 0;
   const t0 = Date.now();
@@ -273,7 +274,8 @@ export async function runDue(leagueId?: number, opts: { max?: number; prefer?: n
       lp,
     );
     if (fin) {
-      try { await finalizeFixture(fin); } catch (e) {
+      const c0 = counter.n;
+      try { await finalizeFixture(fin); if (counter.n - c0 > 25) console.warn(`[queries] finish match ${fin.id}: ${counter.n - c0}`); } catch (e) {
         console.error('finalize failed', fin.id, e);
         await q(`UPDATE fixtures SET status='live' WHERE id=$1 AND status='finalizing'`, [fin.id]);
         break;
@@ -291,7 +293,8 @@ export async function runDue(leagueId?: number, opts: { max?: number; prefer?: n
       params,
     );
     if (f) {
-      try { await kickOff(f); } catch (e) {
+      const c0 = counter.n;
+      try { await kickOff(f); if (counter.n - c0 > 25) console.warn(`[queries] kick-off ${f.id}: ${counter.n - c0}`); } catch (e) {
         console.error('kick-off failed', f.id, e);
         await q(`UPDATE fixtures SET status='scheduled' WHERE id=$1 AND status='playing'`, [f.id]);
         break;
@@ -299,7 +302,8 @@ export async function runDue(leagueId?: number, opts: { max?: number; prefer?: n
       work++;
       continue;
     }
-    // 3) a finished day (paper, Team of the Week, cup draw, window, season end)
+    // 3) a finished day (paper, Team of the Week, cup draw, window, season end): heavy, so only the timer does it
+    if (opts.light) break;
     const d = await one(
       `UPDATE days d SET processed=true WHERE (d.league_id, d.day) = (
          SELECT x.league_id, x.day FROM days x WHERE x.processed=false AND x.kickoff_at <= now()${leagueId ? ' AND x.league_id=$1' : ''}
@@ -309,7 +313,8 @@ export async function runDue(leagueId?: number, opts: { max?: number; prefer?: n
       lp,
     );
     if (d) {
-      try { await processDay(d); } catch (e) {
+      const c0 = counter.n;
+      try { await processDay(d); if (counter.n - c0 > 25) console.warn(`[queries] day ${d.day} (${d.kind}${d.matchday ? ' md' + d.matchday : ''}): ${counter.n - c0}`); } catch (e) {
         console.error('day failed', d.league_id, d.day, e);
         await q(`UPDATE days SET processed=false WHERE league_id=$1 AND day=$2`, [d.league_id, d.day]);
         break;
@@ -321,8 +326,8 @@ export async function runDue(leagueId?: number, opts: { max?: number; prefer?: n
   }
   const rest = await one<{ n: number }>(
     `SELECT (SELECT COUNT(*) FROM fixtures WHERE ((status='scheduled' AND kickoff_at <= now()) OR (status='live' AND live_until <= now()))${lf})::int
-          + (SELECT COUNT(*) FROM days x WHERE x.processed=false AND x.kickoff_at <= now()${leagueId ? ' AND x.league_id=$1' : ''}
-               AND NOT EXISTS (SELECT 1 FROM fixtures f WHERE f.league_id=x.league_id AND f.day=x.day AND f.status<>'done'))::int AS n`,
+          + ${opts.light ? '0' : `(SELECT COUNT(*) FROM days x WHERE x.processed=false AND x.kickoff_at <= now()${leagueId ? ' AND x.league_id=$1' : ''}
+               AND NOT EXISTS (SELECT 1 FROM fixtures f WHERE f.league_id=x.league_id AND f.day=x.day AND f.status<>'done'))::int`} AS n`,
     lp,
   );
   return { played: work, remaining: rest?.n ?? 0 };
