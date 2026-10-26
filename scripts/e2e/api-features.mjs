@@ -156,6 +156,25 @@ const an3 = up3.ok ? await A(`/api/leagues/${lid}/analyst`) : null;
 check('analyst level 3 (12M)', !up3.ok ? /money/.test(up3.error) : an3.staff.level === 3 && an3.report.likely.length > 0 && !!an3.report.tip, up3.error || an3?.report?.tip);
 const useBest = await A(`/api/leagues/${lid}/setup`, { tactic: { preset: an2.report.best, formation: '4-3-3' } });
 check('use the analyst plan', !useBest.error, useBest.error || '');
+// friendlies, staff, shirt numbers, new shapes
+const frv = await A(`/api/leagues/${lid}/friendly`);
+check('friendly: opponents listed', frv.clubs.length === 15, `${frv.clubs.length}`);
+const fr = await A(`/api/leagues/${lid}/friendly`, { opponentId: frv.clubs[0].id });
+check('friendly played at once', Array.isArray(fr.score) && fr.stats?.shots && fr.fitness.after < fr.fitness.before, `${fr.score?.join('-')} vs ${fr.opp?.name} · stamina ${fr.fitness?.before}→${fr.fitness?.after}`);
+check('friendly listed as recent', (await A(`/api/leagues/${lid}/friendly`)).recent.length === 1);
+check('friendly needs another club', (await A(`/api/leagues/${lid}/friendly`, { opponentId: ov.club.id })).status === 400);
+const cond0 = await A(`/api/leagues/${lid}/condition`);
+const coachLv = Math.max(0, ...cond0.staff.filter((x) => x.role === 'coach').map((x) => x.level));
+if (coachLv < 5) {
+  const hire = await A(`/api/leagues/${lid}/hire`, { role: 'coach', level: coachLv + 1 });
+  check('hire a coach with money', !!hire.staff && hire.staff.level === coachLv + 1, hire.error || hire.staff?.name);
+}
+check('hire refused at the level you have', (await A(`/api/leagues/${lid}/hire`, { role: 'coach', level: Math.max(1, coachLv) })).status === 400);
+const sqN = await A(`/api/leagues/${lid}/squad`);
+const nums = sqN.players.map((p) => p.num);
+check('every player has his own shirt number', nums.every((n) => n > 0) && new Set(nums).size === nums.length, `${nums.length} players`);
+check('new shape 6-3-1 accepted', !(await A(`/api/leagues/${lid}/setup`, { tactic: { preset: 'Low block', formation: '6-3-1', mentality: 0, press: 0, line: 0, build: 2, focus: 1, width: 0, tempo: 1 } })).error);
+await A(`/api/leagues/${lid}/setup`, { tactic: { preset: 'Wing play', formation: '4-3-3', mentality: 1, press: 1, line: 1, build: 1, focus: 0, width: 2, tempo: 1 } });
 // a manager lists a cheap young player; during the window someone may buy him
 const sqF = await F(`/api/leagues/${lid}/squad`);
 const cheapSale = [...sqF.players].filter((p) => !p.loan && p.natPos !== 'GK').sort((a, b) => a.age - b.age)[0];

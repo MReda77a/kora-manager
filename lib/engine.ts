@@ -8,6 +8,7 @@ import { FORMATIONS, LINE, PRESETS, ROLES, stripDesc, tacticFit, type Tactic } f
 export type EPlayer = {
   id: string; name: string; pos: string; ovr: number; fitness: number;
   a: Record<string, number>;
+  num?: number; // shirt number
   mod?: number; // form: team of the week, player of the month, upset nominees
 };
 export type ESide = {
@@ -118,6 +119,23 @@ class Side {
       else if (role === 'False 9') { A.passing += 1 * eff; A.finishing -= 0.5; F.through += 0.004 * eff; }
       else if (role === 'Inside forward') { A.finishing += 0.8 * eff; F.longshot += 0.006 * eff; }
     }
+    // the shape itself: more defenders shut the door but blunt the attack, more forwards the other way round,
+    // a crowded midfield keeps the ball, wide players feed crosses, a narrow shape plays through the middle
+    {
+      const F0 = FORMATIONS[this.tactic.formation] || FORMATIONS['4-3-3'];
+      const n = (s: string) => F0.slots.filter((x) => x === s).length;
+      const nD = n('DEF'), nM = n('MID'), nF = n('FWD');
+      const holding = F0.slots.filter((s, i) => s === 'MID' && F0.xy[i][0] <= 36).length;
+      const advanced = F0.slots.filter((s, i) => s === 'MID' && F0.xy[i][0] >= 55).length;
+      const wide = F0.slots.filter((s, i) => (s === 'MID' || s === 'FWD') && (F0.xy[i][1] <= 20 || F0.xy[i][1] >= 80)).length;
+      const A = this.agg;
+      const block = (nD - 4) * 2.4 + holding * 1.0 - (nF - 2) * 1.0;
+      const attack = (nF - 2) * 2.4 + advanced * 0.6 - (nD - 4) * 1.2;
+      A.tackling += block; A.aerial_def += block * 0.8; A.pace_def += block * 0.4;
+      A.finishing += attack; A.pace_att += attack * 0.5; A.aerial_att += attack * 0.4;
+      A.passing += (nM - 3) * 0.5;
+      if (wide >= 2) this.flags.crossB += 0.004 * (wide - 1); else this.flags.through += 0.004;
+    }
     if (this.weather === 'rain') this.agg.passing -= 1.5;
     if (this.weather === 'snow') { this.agg.pace_att -= 4; this.agg.pace_def -= 4; }
     const fam = ((this.s.familiarity ?? 60) - 60) / 40;
@@ -172,7 +190,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const log = (type: string, side: 0 | 1, text: string, pid?: string, pid2?: string) => ev.push({ m: minute, type, side, text, pid, pid2 });
 
   const pickScorer = (side: 0 | 1, kind: string) => {
-    const pool = S[side].pitch.filter((o) => o.slot !== 'GK');
+    const outfield = S[side].pitch.filter((o) => o.slot !== 'GK');
+    const pool = outfield.length ? outfield : S[side].pitch; // never leave a goal without a scorer
     return r.weighted(pool, (o) => {
       const w = o.slot === 'FWD' ? 5 : o.slot === 'MID' ? 2 : 0.5;
       const skill = kind === 'cross' ? S[side].val(o, 'Heading') : kind === 'long shot' ? S[side].val(o, 'LongShots') : S[side].val(o, 'Finishing');

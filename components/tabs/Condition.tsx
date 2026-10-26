@@ -2,11 +2,16 @@
 import { useEffect, useState } from 'react';
 import { api, clock } from '../../lib/client.ts';
 import { BackHead, Spinner, Stars } from '../ui.tsx';
+import { STAFF_PRICES } from '../../lib/game.ts';
 import type { TabProps } from './types.ts';
 
-export default function ConditionTab({ lid, go }: TabProps) {
+export default function ConditionTab({ lid, go, reload, toast }: TabProps) {
   const [d, setD] = useState<any>(null);
-  useEffect(() => { api(`/api/leagues/${lid}/condition`).then(setD); }, [lid]);
+  const load = () => api(`/api/leagues/${lid}/condition`).then(setD);
+  useEffect(() => { load(); }, [lid]);
+  const hire = async (role: string, level: number) => {
+    try { const r = await api(`/api/leagues/${lid}/hire`, { role, level }); toast.ok(`${r.staff.name} joins your staff`); load(); reload(); } catch (e: any) { toast.bad(e.message); }
+  };
   if (!d) return <Spinner />;
   const injured = d.players.filter((p: any) => p.out);
   const fitColor = (v: number) => (v >= 85 ? '#7CE3A1' : v >= 70 ? '#F2C14E' : 'var(--red)');
@@ -49,10 +54,17 @@ export default function ConditionTab({ lid, go }: TabProps) {
                 <div key={r} className="row-item" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 2 }}>
                   <div className="row between" style={{ width: '100%' }}><b>{r === 'doctor' ? 'Club Doctor' : r === 'physio' ? 'Physio' : 'Coach'}</b>{s ? <Stars n={s.level} /> : <span className="tiny dim">none</span>}</div>
                   <span className="tiny muted">{s ? `${s.name} · ${s.effect}` : r === 'doctor' ? 'More injuries, longer layoffs' : r === 'physio' ? 'Slower recovery between matches' : 'Slower training, 2 slots'}</span>
+                  {(s?.level || 0) < 5 && (
+                    <div className="row wrap" style={{ gap: 4, marginTop: 2 }}>
+                      {[1, 2, 3, 4, 5].filter((lv) => lv > (s?.level || 0)).slice(0, 2).map((lv) => (
+                        <button key={lv} className="seg" style={{ minHeight: 28 }} onClick={() => hire(r, lv)}><span>Hire {'★'.repeat(lv)} · {STAFF_PRICES[lv]}M</span></button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
-            <button className="cta small" onClick={() => go('store')}><span>Staff pack · 80 coins</span></button>
+            <button className="ghost small" onClick={() => go('store')}><span>Or try your luck: staff pack · 80 coins</span></button>
           </div>
           <div className="tiny muted" style={{ lineHeight: 1.5 }}>Fitness drops in every match, more with high pressing and fast tempo. Players recover about {d.recoveryPerDay}% a day. Starting tired players lowers the whole team, so rotate. Injury risk rises with tiredness and injury-prone players.</div>
         </section>

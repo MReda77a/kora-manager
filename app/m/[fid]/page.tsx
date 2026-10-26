@@ -457,7 +457,7 @@ function Dots({ d, gm, events, revealed }: { d: any; gm: number; events: Ev[]; r
   const carrierName = carrier?.id ? lastName(d.names[carrier.id]?.name || '') : '';
   const dot = (p: any) => {
     const team = p.side === 0 ? d.home : d.away;
-    const no = p.id ? shirt(p.id, d.names[p.id]?.pos || 'CM') : '';
+    const no = p.id ? d.names[p.id]?.num ?? shirt(p.id, d.names[p.id]?.pos || 'CM') : '';
     return (
       <span key={`${p.side}${p.i}`} style={{ position: 'absolute', left: `${p.xy[0]}%`, top: `${p.xy[1]}%`, width: 17, height: 17, marginLeft: -8.5, marginTop: -8.5, borderRadius: '50%', background: team.color1, boxShadow: `0 0 0 2px ${team.kit2 || (p.side ? '#151018' : '#F3EEFF')}`, transition: 'left .25s linear, top .25s linear', zIndex: 2, display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 900, color: contrastInk(team.color1) }}>{no}</span>
     );

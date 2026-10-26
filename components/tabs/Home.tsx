@@ -63,7 +63,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
         <section className="col rise" style={{ gap: 6, animationDelay: '.12s' }}>
           {star && (
             <button onClick={() => go('players')} className="pcard holo" style={{ aspectRatio: '0.74', padding: '10px 12px', textAlign: 'left' }}>
-              <div className="no" style={{ fontSize: 96, opacity: 0.35 }}>{shirt(star.id, star.pos)}</div>
+              <div className="no" style={{ fontSize: 96, opacity: 0.35 }}>{star.num ?? shirt(star.id, star.pos)}</div>
               <div style={{ position: 'relative' }}><div className="ovr" style={{ fontSize: 30 }}>{star.ovr}</div><div className="pos">{star.pos}</div></div>
               <div style={{ marginTop: 'auto', position: 'relative', background: 'rgba(20,10,50,0.72)', color: '#F3EEFF', margin: '0 -12px -10px', padding: '6px 8px 14px', textAlign: 'center' }}>
                 <div style={{ fontWeight: 900, fontSize: 14 }} className="ellipsis">{star.name}</div>

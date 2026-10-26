@@ -185,14 +185,18 @@ table.t td.num, table.t th.num { text-align: right; }
 .segrow > .seg { flex: 1; }
 .pc {
   position: absolute; transform: translate(-50%, -50%); width: 64px; height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(14, 8, 40, 0.88); color: var(--ink); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); transition: background .15s, transform .15s;
+  background: linear-gradient(165deg, #4A3A9A, #2B1F6B); box-shadow: inset 0 -3px 0 #7FE9F7, 0 3px 8px rgba(0,0,0,0.35); color: var(--ink); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); transition: background .15s, transform .15s;
 }
 .pc i { position: absolute; top: 3px; left: 6px; font-style: normal; font-size: 9px; font-weight: 900; color: var(--cyan); }
 .pc b { font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1; }
 .pc small { font-size: 10px; font-weight: 800; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc.sel { background: var(--sel); color: var(--selInk); animation: pop .25s ease-out; transform: translate(-50%, -50%) scale(1.08); }
 .pc.swap { background: #2A6F8F; }
-.pc.wrong small { color: #FFB3BC; }
+.pc em { position: absolute; top: 3px; right: 6px; font-style: normal; font-size: 9px; font-weight: 900; color: #F2C14E; }
+.pc.wrong { background: linear-gradient(165deg, #D9434F, #8A1F33); box-shadow: inset 0 -3px 0 #FFB3BC, 0 3px 8px rgba(0,0,0,0.35); }
+.pc.wrong small, .pc.wrong em, .pc.wrong i { color: #FFE3E6; }
+.bench-group { padding-left: 6px; border-left: 1px solid rgba(255,255,255,0.15); }
+.bench-label { font-size: 10px; font-weight: 900; color: #F2C14E; writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 1px; }
 .pc.out { opacity: 0.45; }
 .bench { width: 58px; height: 42px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.08); clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
 .bench b { font-family: var(--display); font-weight: 400; font-size: 18px; line-height: 1; }
@@ -265,6 +269,7 @@ table.t td.num, table.t th.num { text-align: right; }
   .pc b { font-size: 17px; }
   .pc small { font-size: 9px; max-width: 48px; }
   .pc i { font-size: 8px; top: 2px; left: 4px; }
+  .pc em { font-size: 8px; top: 2px; right: 4px; }
   .content { padding: 4px 10px 14px; }
 }
 
@@ -301,3 +306,4 @@ table.t td.num, table.t th.num { text-align: right; }
 /* loading placeholders */
 .sk { display: block; background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.05) 100%); background-size: 200% 100%; animation: skel 1.3s ease-in-out infinite; }
 @keyframes skel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.pc.wrong.sel { background: var(--sel); }

@@ -3,6 +3,7 @@ import { body, fail, handle, requireUser } from '../../../../../lib/http.ts';
 import * as L from '../../../../../lib/league.ts';
 import * as T from '../../../../../lib/transfers.ts';
 import * as A from '../../../../../lib/analyst.ts';
+import * as FR from '../../../../../lib/friendly.ts';
 import * as S from '../../../../../lib/season.ts';
 import * as C from '../../../../../lib/club.ts';
 import * as P from '../../../../../lib/people.ts';
@@ -122,6 +123,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
     return q(`SELECT c.id, c.name, c.short, c.color1, c.color2, c.shape, c.emblem, c.club_type, c.user_id IS NOT NULL AS human, u.username,
       (SELECT COUNT(*)::int FROM squad s WHERE s.club_id=c.id) AS players FROM clubs c LEFT JOIN users u ON u.id=c.user_id WHERE c.league_id=$1 ORDER BY c.id`, [lid]);
   }
+  if (action === 'friendly') return FR.friendlyView(s.uid, lid);
   if (action === 'analyst') return A.analystReport(s.uid, lid, new URL(req.url).searchParams.get('refresh') === '1');
   if (action === 'scout') {
     const c = mustClub();
@@ -189,6 +191,8 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'comment': return C.postComment(s.uid, lid, b);
     case 'nextseason': return S.nextSeason(s.uid, lid);
     case 'analyst': return A.upgradeAnalyst(s.uid, lid);
+    case 'friendly': return FR.playFriendly(s.uid, lid, Number(b.opponentId));
+    case 'hire': return L.hireStaff(s.uid, lid, String(b.role), Number(b.level));
     case 'tutorial': await q('UPDATE users SET tutorial_done=true WHERE id=$1', [s.uid]); return { ok: true };
     case 'offer': return O.makeOffer(s.uid, lid, b);
     case 'respond': return O.respondOffer(s.uid, lid, Number(b.id), String(b.action), Number(b.amount));

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api, shirt } from '../../lib/client.ts';
-import { FORMATIONS, LINE, PRESETS, stripDesc, type Tactic } from '../../lib/game.ts';
+import { FORMATIONS, LINE, PRESETS, offPositionCost, slotLabel, stripDesc, type Tactic } from '../../lib/game.ts';
 import { BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
@@ -65,7 +65,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
   const forms = Object.keys(FORMATIONS);
   const out = (p: any) => p && p.outUntil >= d.nextDay;
   const bench = d.players.filter((p: any) => !xi.includes(p.id)).sort((a: any, b: any) => Number(out(a)) - Number(out(b)) || b.ovr - a.ovr);
-  const strength = Math.round(xi.map((id) => byId.get(id) as any).filter(Boolean).reduce((a: number, p: any) => a + p.ovr + (p.form || 0) - ((LINE[p.pos] || 'MID') !== F.slots[xi.indexOf(p.id)] ? 6 : 0), 0) / 11);
+  const strength = Math.round(xi.map((id) => byId.get(id) as any).filter(Boolean).reduce((a: number, p: any) => a + p.ovr + (p.form || 0) - offPositionCost(LINE[p.pos] || 'MID', F.slots[xi.indexOf(p.id)]), 0) / 11);
   const set = (fn: () => void) => { fn(); setDirty(true); };
 
   const tapSlot = (i: number) => {
@@ -105,26 +105,40 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
           <Pitch>
             {F.xy.map(([x, y], i) => {
               const p: any = byId.get(xi[i]);
-              const wrong = p && (LINE[p.pos] || 'MID') !== F.slots[i];
+              const label = slotLabel(F.slots[i], x, y);
+              const cost = p ? offPositionCost(LINE[p.pos] || 'MID', F.slots[i]) : 0;
+              const wrong = cost > 0;
               const on = sel?.kind === 'slot' && sel.v === i;
               return (
-                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(30px, ${x}%, calc(100% - 30px))`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={p?.name || 'Empty'}>
-                  <i>{p ? shirt(p.id, p.natPos || p.pos) : ''}</i>
-                  <b>{p ? p.ovr + (p.form || 0) : '–'}</b>
-                  <small>{p ? (wrong ? `${p.pos}→${F.slots[i]}` : lastName(p.name)) : F.slots[i]}</small>
+                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(30px, ${x}%, calc(100% - 30px))`, top: `${y}%` }} onClick={() => tapSlot(i)}
+                  aria-label={p ? `${p.name}, ${label}${wrong ? `, out of position (${p.pos}), minus ${cost}` : ''}` : `Empty ${label}`}>
+                  <i>{p ? p.num ?? shirt(p.id, p.natPos || p.pos) : ''}</i>
+                  <em>{label}</em>
+                  <b>{p ? p.ovr + (p.form || 0) - cost : '–'}</b>
+                  <small>{p ? (wrong ? `${p.pos} · −${cost}` : lastName(p.name)) : label}</small>
                 </button>
               );
             })}
           </Pitch>
           <div className="row" style={{ gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
             <span className="tiny" style={{ width: 40, flex: 'none', color: 'var(--muted)', fontWeight: 800 }}>Bench</span>
-            {bench.map((p: any) => (
-              <button key={p.id} className={`bench ${sel?.kind === 'bench' && sel.v === p.id ? 'sel' : ''}`} style={{ opacity: out(p) ? 0.5 : 1, width: out(p) ? 72 : 58 }} onClick={() => tapBench(p.id)}>
-                <b>{p.ovr + (p.form || 0)}</b><small>{lastName(p.name)}{out(p) ? ` · ${p.outReason === 'Suspended' ? 'Susp.' : 'Injured'}` : ` · ${p.pos}`}</small>
-              </button>
-            ))}
+            {/* the bench in groups: keepers, defenders, midfielders, forwards */}
+            {(['GK', 'DEF', 'MID', 'FWD'] as const).map((ln) => {
+              const group = bench.filter((p: any) => (p.pos === 'GK' ? 'GK' : LINE[p.pos] || 'MID') === ln);
+              if (!group.length) return null;
+              return (
+                <div key={ln} className="row bench-group" style={{ gap: 4, flex: 'none' }}>
+                  <span className="bench-label">{ln}</span>
+                  {group.map((p: any) => (
+                    <button key={p.id} className={`bench ${sel?.kind === 'bench' && sel.v === p.id ? 'sel' : ''}`} style={{ opacity: out(p) ? 0.5 : 1, width: out(p) ? 72 : 58 }} onClick={() => tapBench(p.id)}>
+                      <b>{p.ovr + (p.form || 0)}</b><small>{lastName(p.name)}{out(p) ? ` · ${p.outReason === 'Suspended' ? 'Susp.' : 'Injured'}` : ` · ${p.pos}`}</small>
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </div>
-          <div className="tiny muted">{hint}. Red names play out of position (−6).</div>
+          <div className="tiny muted">{hint}. A red card plays out of position and loses power (−8, or −30 in or out of goal).</div>
         </section>
         <section className="panel cut rise" style={{ gap: 9 }}>
           <div className="row between">

@@ -299,4 +299,18 @@ CREATE TABLE IF NOT EXISTS analyst_reports (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (club_id, fixture_id)
 );
+
+-- each player's shirt number at his club (unique within the club)
+ALTER TABLE squad ADD COLUMN IF NOT EXISTS shirt INT;
+
+-- friendlies: played on the spot, only the result and the stats are kept
+CREATE TABLE IF NOT EXISTS friendlies (
+  id SERIAL PRIMARY KEY,
+  league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  club_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  opp_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  day INT NOT NULL,
+  data JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;

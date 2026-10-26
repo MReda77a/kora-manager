@@ -38,7 +38,7 @@ export function Crest({ c1 = '#E8438C', c2 = '#F3EEFF', shape = 0, emblem = 0, s
   );
 }
 
-export type P = { id: string; name: string; pos: string; ovr: number; age?: number; nat?: string; foot?: string; fitness?: number; outUntil?: number; outReason?: string | null; attrs?: Record<string, number> };
+export type P = { id: string; num?: number | null; name: string; pos: string; ovr: number; age?: number; nat?: string; foot?: string; fitness?: number; outUntil?: number; outReason?: string | null; attrs?: Record<string, number> };
 
 export function PlayerCard({ p, style, onClick, selected, badge }: { p: P; style?: React.CSSProperties; onClick?: () => void; selected?: boolean; badge?: React.ReactNode }) {
   const last = p.name.split(' ').slice(-1)[0];
@@ -48,7 +48,7 @@ export function PlayerCard({ p, style, onClick, selected, badge }: { p: P; style
       onClick={onClick}
       style={{ cursor: onClick ? 'pointer' : undefined, outline: selected ? '3px solid #7FE9F7' : undefined, ...style }}
     >
-      <div className="no">{shirt(p.id, p.pos)}</div>
+      <div className="no">{p.num ?? shirt(p.id, p.pos)}</div>
       <div style={{ position: 'relative' }}>
         <div className="ovr">{p.ovr}</div>
         <div className="pos">{p.pos}</div>

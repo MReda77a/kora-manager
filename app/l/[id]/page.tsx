@@ -18,6 +18,7 @@ import AwardsTab from '../../../components/tabs/Awards.tsx';
 import { FixturesTab, LeadersTab, TableTab } from '../../../components/tabs/LeagueTabs.tsx';
 import HistoryTab from '../../../components/tabs/History.tsx';
 import AnalystTab from '../../../components/tabs/Analyst.tsx';
+import FriendlyTab from '../../../components/tabs/Friendly.tsx';
 import Tutorial from '../../../components/Tutorial.tsx';
 import LiveAlert from '../../../components/LiveAlert.tsx';
 import { SoundButton } from '../../../components/SoundButton.tsx';
@@ -110,6 +111,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'lineup' && <LineupTab {...props} />}
           {tab === 'tactics' && <TacticsTab {...props} />}
           {tab === 'analyst' && <AnalystTab {...props} />}
+          {tab === 'friendly' && <FriendlyTab {...props} />}
           {tab === 'players' && <PlayersTab {...props} />}
           {tab === 'training' && <TrainingTab {...props} />}
           {tab === 'condition' && <ConditionTab {...props} />}

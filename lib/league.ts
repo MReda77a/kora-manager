@@ -3,9 +3,9 @@
 import { q, one, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  CLUB_TYPES, CORNER_ROUTINES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK,
+  CLUB_TYPES, CORNER_ROUTINES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK, STAFF_PRICES, STAFF_ROLES,
   shortName, type ClubTypeKey, type PackKey, type Tactic,
-  windowFromDays,
+  windowFromDays, assignShirts,
 } from './game.ts';
 import { wakeTimer } from './wake.ts';
 import { rng, hashSeed } from './rng.ts';
@@ -260,8 +260,24 @@ export async function openStaffPack(uid: number, leagueId: number) {
   return { staff: s, coins: paid[0].coins };
 }
 
+export async function hireStaff(uid: number, leagueId: number, role: string, level: number) {
+  if (!STAFF_ROLES[role]) fail(400, 'Pick a role.');
+  const lv = Math.floor(Number(level));
+  if (!(lv >= 1 && lv <= 5)) fail(400, 'Pick a level from 1 to 5.');
+  const club = await myClub(uid, leagueId);
+  const best = await one<{ l: number }>('SELECT MAX(level)::int AS l FROM staff WHERE club_id=$1 AND role=$2', [club.id, role]);
+  if ((best?.l || 0) >= lv) fail(400, `You already have a ${best!.l}-star ${STAFF_ROLES[role].name.toLowerCase()}.`);
+  const price = STAFF_PRICES[lv];
+  const paid = await q('UPDATE clubs SET money = money - $1 WHERE id=$2 AND money >= $1 RETURNING money', [price, club.id]);
+  if (!paid[0]) fail(400, `Not enough money: a ${lv}-star ${STAFF_ROLES[role].name.toLowerCase()} costs ${price}M.`);
+  const name = `${STAFF_FIRST[Math.floor(Math.random() * STAFF_FIRST.length)]} ${STAFF_LAST[Math.floor(Math.random() * STAFF_LAST.length)]}`;
+  const [s] = await q('INSERT INTO staff (league_id, club_id, role, name, level) VALUES ($1,$2,$3,$4,$5) RETURNING *', [leagueId, club.id, role, name, lv]);
+  if (lv >= 4) await news(leagueId, club.id, 'staff', `${club.name} hire a ${lv}-star ${STAFF_ROLES[role].name.toLowerCase()}: ${name}.`);
+  return { staff: s, money: Number(paid[0].money) };
+}
+
 export function pub(p: Row) {
-  return { id: p.id, name: p.name, pos: p.pos, natPos: p.nat_pos ?? p.pos, ovr: p.ovr, pot: p.pot, age: p.age, nat: p.nat, foot: p.foot, height: p.height, attrs: p.attrs, academy: !!p.attrs?.Academy };
+  return { id: p.id, num: p.shirt ?? null, name: p.name, pos: p.pos, natPos: p.nat_pos ?? p.pos, ovr: p.ovr, pot: p.pot, age: p.age, nat: p.nat, foot: p.foot, height: p.height, attrs: p.attrs, academy: !!p.attrs?.Academy };
 }
 
 // ---------------------------------------------------------------- squads & line-ups
@@ -269,10 +285,17 @@ export function pub(p: Row) {
 export async function squadOf(clubId: number, day = 0) {
   const rows = await q(
     `SELECT p.*, s.fitness, s.out_until, s.out_reason, s.pos_override, s.boost, s.form_mod, s.form_until, s.form_note,
-       s.morale, s.ovr_delta, s.age_add, s.loan_from, s.request, s.talk_day, s.promise_day
+       s.morale, s.ovr_delta, s.age_add, s.loan_from, s.request, s.talk_day, s.promise_day, s.shirt
      FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1`,
     [clubId],
   );
+  // every player wears his own number: hand out numbers to newcomers (one write, only when needed)
+  const fix = assignShirts(rows.map((r) => ({ id: r.id, pos: r.pos, shirt: r.shirt, ovr: r.ovr })));
+  if (fix.length) {
+    await q(`UPDATE squad s SET shirt=x.n FROM jsonb_to_recordset($1::jsonb) AS x(id text, n int) WHERE s.club_id=$2 AND s.player_id=x.id`, [JSON.stringify(fix), clubId]);
+    const by = new Map(fix.map((x) => [x.id, x.n]));
+    for (const r of rows) if (by.has(r.id)) r.shirt = by.get(r.id);
+  }
   return rows.map((p) => applyMods(p, day)).sort(byPosition);
 }
 

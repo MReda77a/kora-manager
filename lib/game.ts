@@ -41,7 +41,29 @@ export const FORMATIONS: Record<string, { slots: ('GK' | 'DEF' | 'MID' | 'FWD')[
   '4-2-3-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [24, 14], [21, 38], [21, 62], [24, 86], [38, 38], [38, 62], [58, 18], [58, 50], [58, 82], [78, 50]] },
   '3-5-2': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'], xy: [[6, 50], [22, 26], [20, 50], [22, 74], [44, 10], [40, 34], [36, 50], [40, 66], [44, 90], [72, 38], [72, 62]] },
   '5-3-2': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD', 'FWD'], xy: [[6, 50], [26, 8], [20, 30], [18, 50], [20, 70], [26, 92], [44, 28], [40, 50], [44, 72], [70, 38], [70, 62]] },
+  '4-1-4-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [24, 14], [21, 38], [21, 62], [24, 86], [34, 50], [50, 14], [48, 38], [48, 62], [50, 86], [76, 50]] },
+  '4-5-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [24, 14], [21, 38], [21, 62], [24, 86], [46, 10], [42, 30], [39, 50], [42, 70], [46, 90], [74, 50]] },
+  '4-3-2-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [24, 14], [21, 38], [21, 62], [24, 86], [40, 28], [38, 50], [40, 72], [58, 34], [58, 66], [77, 50]] },
+  '4-4-1-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [24, 14], [21, 38], [21, 62], [24, 86], [44, 14], [41, 38], [41, 62], [44, 86], [60, 50], [77, 50]] },
+  '4-1-2-1-2': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'], xy: [[6, 50], [24, 14], [21, 38], [21, 62], [24, 86], [33, 50], [44, 30], [44, 70], [57, 50], [74, 38], [74, 62]] },
+  '4-2-4': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'FWD', 'FWD', 'FWD', 'FWD'], xy: [[6, 50], [24, 14], [21, 38], [21, 62], [24, 86], [40, 38], [40, 62], [68, 12], [74, 38], [74, 62], [68, 88]] },
+  '3-4-3': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'FWD'], xy: [[6, 50], [21, 26], [19, 50], [21, 74], [44, 12], [41, 38], [41, 62], [44, 88], [70, 18], [76, 50], [70, 82]] },
+  '3-4-2-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [21, 26], [19, 50], [21, 74], [43, 12], [40, 38], [40, 62], [43, 88], [60, 34], [60, 66], [77, 50]] },
+  '3-4-1-2': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'], xy: [[6, 50], [21, 26], [19, 50], [21, 74], [43, 12], [40, 38], [40, 62], [43, 88], [58, 50], [74, 38], [74, 62]] },
+  '5-4-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [26, 8], [20, 30], [18, 50], [20, 70], [26, 92], [44, 14], [41, 38], [41, 62], [44, 86], [73, 50]] },
+  '5-2-3': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'FWD', 'FWD', 'FWD'], xy: [[6, 50], [26, 8], [20, 30], [18, 50], [20, 70], [26, 92], [42, 38], [42, 62], [68, 18], [74, 50], [68, 82]] },
+  '6-3-1': { slots: ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'FWD'], xy: [[6, 50], [26, 6], [22, 22], [18, 40], [18, 60], [22, 78], [26, 94], [42, 28], [40, 50], [42, 72], [72, 50]] },
 };
+
+// The position a formation slot stands for, from where it sits on the pitch (x = depth, y = side).
+export function slotLabel(slot: string, x: number, y: number) {
+  if (slot === 'GK') return 'GK';
+  if (slot === 'DEF') return y <= 20 ? 'LB' : y >= 80 ? 'RB' : 'CB';
+  if (slot === 'MID') return y <= 20 ? 'LM' : y >= 80 ? 'RM' : x >= 55 ? 'CAM' : x <= 38 ? 'DM' : 'CM';
+  return y <= 25 ? 'LW' : y >= 75 ? 'RW' : 'ST';
+}
+/** what playing out of position costs (the match engine takes this off every skill) */
+export const offPositionCost = (natural: string, slot: string) => (natural === slot ? 0 : slot === 'GK' || natural === 'GK' ? 30 : 8);
 
 export type Tactic = {
   preset: string; formation: string;
@@ -97,6 +119,8 @@ export const STAFF_ROLES: Record<string, { name: string; effect: (lvl: number) =
   coach: { name: 'Coach', effect: (l) => `Training ${l * 10}% faster${l >= 4 ? ', 3 players at once' : ''}` },
 };
 export const STAFF_PACK = { name: 'Staff', price: 80 };
+// Or hire the exact role and level you want with club money (in millions), by stars.
+export const STAFF_PRICES: Record<number, number> = { 1: 1, 2: 2.5, 3: 5, 4: 9, 5: 15 };
 
 // Sponsor offers, chosen once per season in the Office.
 // Sponsors pay on results: a win pays in full, a draw pays less, a defeat pays nothing.
@@ -269,4 +293,31 @@ export function tacticFit(xi: FitPlayer[], t: Pick<Tactic, 'mentality' | 'press'
   const tw = parts.reduce((s, p) => s + p.weight, 0) || 1;
   const fit = parts.reduce((s, p) => s + p.value * p.weight, 0) / tw; // about -1.5 .. +1.5
   return { fit, score: Math.round(Math.max(0, Math.min(100, 50 + fit * 40))), parts };
+}
+
+// ---------------------------------------------------------------- shirt numbers
+const PREFERRED: Record<string, number[]> = {
+  GK: [1, 13, 12, 25, 31, 40], CB: [4, 5, 6, 15, 3, 23, 24, 26, 33], LB: [3, 12, 21, 26, 28], RB: [2, 22, 24, 20, 27],
+  DM: [6, 16, 18, 5, 14, 25], CM: [8, 14, 20, 16, 18, 15, 22], CAM: [10, 17, 19, 7, 11, 21], LW: [11, 7, 17, 19, 27],
+  RW: [7, 11, 17, 19, 21, 30], ST: [9, 19, 29, 18, 14, 10, 39],
+};
+/** shirt numbers for a squad: players keep theirs; newcomers and clashes get a free one that suits their position */
+export function assignShirts(players: { id: string; pos: string; shirt: number | null; ovr: number }[]) {
+  const taken = new Map<number, string>();
+  // the best player keeps a number two players share
+  for (const p of [...players].sort((a, b) => b.ovr - a.ovr)) if (p.shirt && !taken.has(p.shirt)) taken.set(p.shirt, p.id);
+  const changes: { id: string; n: number }[] = [];
+  for (const p of [...players].sort((a, b) => b.ovr - a.ovr || a.id.localeCompare(b.id))) {
+    if (p.shirt && taken.get(p.shirt) === p.id) continue;
+    let h = 0;
+    for (const c of p.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    const pref = PREFERRED[p.pos] || [];
+    const order = [...pref.slice(h % Math.max(1, pref.length)), ...pref.slice(0, h % Math.max(1, pref.length))];
+    let n = order.find((x) => !taken.has(x));
+    for (let x = 2; !n && x < 100; x++) if (!taken.has(x)) n = x;
+    n = n || 99;
+    taken.set(n, p.id);
+    changes.push({ id: p.id, n });
+  }
+  return changes;
 }

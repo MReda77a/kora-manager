@@ -343,14 +343,17 @@ export async function runDue(leagueId?: number, opts: { max?: number; prefer?: n
 }
 
 async function lastDayPlayed(clubId: number, beforeDay: number) {
+  // friendlies count too: players need rest after them as well
   const r = await one<{ d: number }>(
-    `SELECT MAX(day)::int AS d FROM fixtures WHERE (home_id=$1 OR away_id=$1) AND day < $2 AND status IN ('done','live','finalizing')`,
+    `SELECT GREATEST(
+       (SELECT MAX(day) FROM fixtures WHERE (home_id=$1 OR away_id=$1) AND day < $2 AND status IN ('done','live','finalizing')),
+       (SELECT MAX(day) FROM friendlies WHERE club_id=$1 AND day < $2))::int AS d`,
     [clubId, beforeDay],
   );
   return r?.d ?? null;
 }
 
-async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean, tone: string | null): Promise<ESide> {
+export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean, tone: string | null): Promise<ESide> {
   const day = f.day as number;
   const players = await squadOf(club.id, day);
   const lv = await staffLevels(club.id);
@@ -361,14 +364,14 @@ async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean, tone:
   let tactic: Tactic = club.tactic && club.tactic.formation ? club.tactic : DEFAULT_TACTIC;
   if (!club.user_id) {
     // the bot's real plan is chosen at kick-off, once both line-ups are known (planBot)
-    const forms = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '5-3-2'];
+    const forms = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '5-3-2', '4-1-4-1', '3-4-3', '5-4-1', '4-4-1-1', '3-4-2-1'];
     tactic = { ...DEFAULT_TACTIC, formation: forms[club.id % forms.length] };
   }
   const { xi, bench } = pickXI(players, tactic.formation, club.user_id ? club.lineup || [] : [], day);
   const toneMod = tone === 'provocative' ? 2 : tone === 'confident' ? 1 : 0;
   const bigGame = f.comp === 'cup' || (home ? isDerby(club, opp) : isDerby(opp, club));
   const toE = (p: Row): EPlayer => ({
-    id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), a: p.attrs,
+    id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), a: p.attrs, num: p.shirt,
     mod: Math.round(((p.mod || 0) + toneMod + (bigGame && traitOf(p.id) === 'Big-game player' ? 2 : 0)) * 10) / 10,
   });
   const pens = (club.pens || []).filter((id: string) => xi.some((p) => p.id === id));
