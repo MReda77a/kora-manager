@@ -7,10 +7,10 @@
 import { q, one, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, conditionsFor, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
+  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic,
 } from './game.ts';
-import { aiTactic, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
+import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
 import { AI_SQUAD, botListings, checkSquads, cleanTactic, getLeague, myClub, news, pickXI, squadOf, standings } from './league.ts';
 import { staffLevels } from './club.ts';
@@ -336,13 +336,9 @@ async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean, tone:
   for (const p of players) p.fitness = Math.min(100, (p.fitness ?? 100) + gap * (25 + lv.physio * 3));
   let tactic: Tactic = club.tactic && club.tactic.formation ? club.tactic : DEFAULT_TACTIC;
   if (!club.user_id) {
-    const hist = await q(
-      `SELECT report->'tactics' AS t, home_id FROM fixtures WHERE status='done' AND league_id=$1 AND (home_id=$2 OR away_id=$2) ORDER BY day DESC LIMIT 5`,
-      [l.id, opp.id],
-    );
-    const oppT = hist.map((h) => (h.t ? h.t[h.home_id === opp.id ? 0 : 1] : null)).filter(Boolean) as string[];
+    // the bot's real plan is chosen at kick-off, once both line-ups are known (planBot)
     const forms = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '5-3-2'];
-    tactic = aiTactic(l.ai_level, oppT, hashSeed(l.id, day, club.id), forms[club.id % forms.length]);
+    tactic = { ...DEFAULT_TACTIC, formation: forms[club.id % forms.length] };
   }
   const { xi, bench } = pickXI(players, tactic.formation, club.user_id ? club.lineup || [] : [], day);
   const toneMod = tone === 'provocative' ? 2 : tone === 'confident' ? 1 : 0;
@@ -418,6 +414,8 @@ async function kickOff(f: Row) {
   const rivals = derby || (!!home.user_id && !!away.user_id);
   const hs = await sideFor(home, l, f, away, true, rivals ? toneOf(home.id) : null);
   const as = await sideFor(away, l, f, home, false, rivals ? toneOf(away.id) : null);
+  if (!home.user_id) hs.tactic = await planBot(l, f, hs, as, away.id);
+  if (!away.user_id) as.tactic = await planBot(l, f, as, hs, home.id);
   const cond = conditionsFor(f.id, l.pool, f.day);
   const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, weather: cond.weather, strict: cond.referee.strict });
   await q(
@@ -425,6 +423,22 @@ async function kickOff(f: Row) {
        live_from=now(), live_until=now() + make_interval(secs => $4) WHERE id=$1 AND status='playing'`,
     [f.id, JSON.stringify([hs, as]), JSON.stringify(rep), (LIVE_MS + LIVE_GRACE_MS) / 1000],
   );
+}
+
+// What the other club has played in its last matches, most recent first (custom plans read as the nearest preset).
+async function recentPlans(leagueId: number, clubId: number) {
+  const rows = await q(
+    `SELECT CASE WHEN home_id=$2 THEN sides->0->'tactic' ELSE sides->1->'tactic' END AS t FROM fixtures
+     WHERE league_id=$1 AND status='done' AND (home_id=$2 OR away_id=$2) AND sides IS NOT NULL ORDER BY day DESC LIMIT 4`,
+    [leagueId, clubId],
+  );
+  return rows.map((x) => (x.t ? (x.t.preset && x.t.preset !== 'Custom' && PRESETS[x.t.preset] ? x.t.preset : nearestPreset(x.t)) : null)).filter(Boolean) as string[];
+}
+
+// The AI manager picks its plan for this match: beat what you have been playing, suit its own players,
+// and go after your weak spots (see aiPlan).
+async function planBot(l: Row, f: Row, me: ESide, opp: ESide, oppClubId: number) {
+  return aiPlan({ level: l.ai_level, oppHistory: await recentPlans(l.id, oppClubId), own: me.xi, opp: opp.xi, seed: hashSeed(l.id, f.day, me.clubId), formation: me.tactic.formation });
 }
 
 // Minute of a live match right now (0..90), from when it went live.
@@ -462,6 +476,20 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   }
   const all = [...changes, ch];
   const [hs, as] = f.sides as [ESide, ESide];
+  // an AI opponent reacts to a change of plan a few minutes later: normal sometimes, hard always
+  const l = await getLeague(f.league_id);
+  const botSide = (1 - side) as 0 | 1;
+  const botClub = await one('SELECT user_id FROM clubs WHERE id=$1', [botSide === 0 ? f.home_id : f.away_id]);
+  if (!botClub?.user_id && ch.kind === 'tactic' && l.ai_level > 0) {
+    const r = rng(hashSeed('react', f.id, minute));
+    if (l.ai_level === 2 || r.next() < 0.5) {
+      const mine = side === 0 ? hs : as;
+      const theirNow = nearestPreset({ ...mine.tactic, ...changes.filter((c) => c.side === side && c.kind === 'tactic').reduce((t, c) => ({ ...t, ...(c as any).tactic }), {}), ...ch.tactic });
+      const best = Object.keys(PRESETS).sort((a, b) => counterShare(b, theirNow) - counterShare(a, theirNow))[0];
+      const at = Math.min(88, minute + 4 + Math.floor(r.next() * 5));
+      all.push({ m: at, side: botSide, kind: 'tactic', tactic: { preset: best, ...stripDesc(PRESETS[best]) } });
+    }
+  }
   const derby = !!f.report?.derby;
   const cond = conditionsFor(f.id, (await getLeague(f.league_id)).pool, f.day);
   const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, changes: all, weather: cond.weather, strict: cond.referee.strict });

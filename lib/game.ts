@@ -203,3 +203,51 @@ export function conditionsFor(fixtureId: number, pool: string, day: number) {
   const strict = (h >>> 8) % 3; // 0 lenient, 1 normal, 2 strict
   return { weather, referee: { name: REFEREES[(h >>> 12) % REFEREES.length], strict, label: ['Lenient', 'Normal', 'Strict'][strict] } };
 }
+
+// ---------------------------------------------------------------- tactic fit
+// How well a tactic suits the players on the pitch. Each part of the tactic asks for certain
+// qualities from certain players (pressing needs stamina and work rate, crosses need crossers and
+// headers, a high line needs fast defenders...). Each quality is compared with the team's own level,
+// so a side with a great striker and an average midfield fits a different plan than the reverse.
+export type FitPlayer = { pos: string; slot?: string; ovr: number; a: Record<string, number> };
+export type FitPart = { label: string; value: number; weight: number };
+const WIDE = new Set(['LB', 'RB', 'LW', 'RW']);
+// typical attribute minus overall for each position, measured on the whole player database
+const TYPICAL: Record<string, Record<string, number>> = {"GK":{"Stamina":-24,"WorkRate":-25,"Aggression":-25,"Pace":-31,"Positioning":-30,"Marking":-50,"Tackling":-50,"Passing":-24,"FirstTouch":-25,"Composure":0,"Heading":-40,"Strength":-8,"Jumping":-6,"Crossing":-45,"Vision":-24,"Dribbling":-45,"LongShots":-50,"Finishing":-55,"Decisions":0},"CB":{"Stamina":-4,"WorkRate":-2,"Aggression":4,"Pace":-7,"Positioning":4,"Marking":6,"Tackling":5,"Passing":-8,"FirstTouch":-10,"Composure":-1,"Heading":5,"Strength":6,"Jumping":5,"Crossing":-24,"Vision":-14,"Dribbling":-18,"LongShots":-24,"Finishing":-34,"Decisions":1},"LB":{"Stamina":6,"WorkRate":5,"Aggression":-2,"Pace":6,"Positioning":-2,"Marking":0,"Tackling":1,"Passing":-4,"FirstTouch":-4,"Composure":-3,"Heading":-8,"Strength":-6,"Jumping":-6,"Crossing":3,"Vision":-8,"Dribbling":-6,"LongShots":-18,"Finishing":-28,"Decisions":-2},"RB":{"Stamina":6,"WorkRate":5,"Aggression":-2,"Pace":5,"Positioning":-2,"Marking":0,"Tackling":1,"Passing":-4,"FirstTouch":-4,"Composure":-4,"Heading":-8,"Strength":-6,"Jumping":-6,"Crossing":3,"Vision":-8,"Dribbling":-6,"LongShots":-18,"Finishing":-28,"Decisions":-2},"DM":{"Stamina":4,"WorkRate":5,"Aggression":3,"Pace":-8,"Positioning":3,"Marking":3,"Tackling":4,"Passing":1,"FirstTouch":-2,"Composure":1,"Heading":-2,"Strength":2,"Jumping":-3,"Crossing":-12,"Vision":-2,"Dribbling":-8,"LongShots":-8,"Finishing":-20,"Decisions":2},"CM":{"Stamina":5,"WorkRate":5,"Aggression":-4,"Pace":-5,"Positioning":-2,"Marking":-8,"Tackling":-6,"Passing":4,"FirstTouch":2,"Composure":1,"Heading":-8,"Strength":-4,"Jumping":-8,"Crossing":-6,"Vision":3,"Dribbling":0,"LongShots":-2,"Finishing":-10,"Decisions":2},"CAM":{"Stamina":-3,"WorkRate":-3,"Aggression":-14,"Pace":-2,"Positioning":0,"Marking":-26,"Tackling":-24,"Passing":5,"FirstTouch":5,"Composure":2,"Heading":-16,"Strength":-12,"Jumping":-14,"Crossing":-4,"Vision":7,"Dribbling":4,"LongShots":2,"Finishing":-2,"Decisions":2},"LW":{"Stamina":-2,"WorkRate":-3,"Aggression":-14,"Pace":7,"Positioning":0,"Marking":-32,"Tackling":-30,"Passing":-3,"FirstTouch":2,"Composure":-2,"Heading":-14,"Strength":-12,"Jumping":-12,"Crossing":2,"Vision":-3,"Dribbling":6,"LongShots":-2,"Finishing":0,"Decisions":-3},"RW":{"Stamina":-2,"WorkRate":-3,"Aggression":-14,"Pace":7,"Positioning":0,"Marking":-32,"Tackling":-30,"Passing":-3,"FirstTouch":2,"Composure":-2,"Heading":-14,"Strength":-12,"Jumping":-12,"Crossing":2,"Vision":-3,"Dribbling":6,"LongShots":-2,"Finishing":0,"Decisions":-3},"ST":{"Stamina":-6,"WorkRate":-8,"Aggression":-8,"Pace":2,"Positioning":5,"Marking":-38,"Tackling":-35,"Passing":-8,"FirstTouch":2,"Composure":4,"Heading":0,"Strength":0,"Jumping":-2,"Crossing":-12,"Vision":-8,"Dribbling":0,"LongShots":0,"Finishing":7,"Decisions":-2}};
+export function tacticFit(xi: FitPlayer[], t: Pick<Tactic, 'mentality' | 'press' | 'line' | 'build' | 'focus' | 'width' | 'tempo'>) {
+  const out = xi.filter((p) => (p.slot || LINE[p.pos]) !== 'GK');
+  const by = (s: string) => out.filter((p) => (p.slot || LINE[p.pos] || 'MID') === s);
+  const D = by('DEF'), M = by('MID'), F = by('FWD');
+  const G = xi.filter((p) => (p.slot || LINE[p.pos]) === 'GK');
+  const W = out.filter((p) => WIDE.has(p.pos));
+  // how much better (or worse) than usual each player is at these qualities, for his position and level
+  const q = (ps: FitPlayer[], keys: string[]) => {
+    if (!ps.length) return 0;
+    const v = ps.reduce((s, p) => {
+      const base = TYPICAL[p.pos] || TYPICAL.CM;
+      return s + keys.reduce((k, key) => k + ((p.a[key] ?? 50) - p.ovr - (base[key] ?? 0)), 0) / keys.length;
+    }, 0) / ps.length;
+    return Math.max(-1.5, Math.min(1.5, v / 4));
+  };
+  const parts: FitPart[] = [];
+  const add = (label: string, value: number, weight: number) => { if (weight > 0) parts.push({ label, value, weight }); };
+  // out of possession
+  add('Pressing: stamina and work rate', q(out, ['Stamina', 'WorkRate', 'Aggression']), [0, 0.3, 1, 1.6][t.press]);
+  if (t.line === 2) add('High line: defenders\' pace', q(D, ['Pace']), 1.2);
+  if (t.line === 0) add('Deep block: defending', q([...D, ...M], ['Positioning', 'Marking', 'Tackling']), 1.1);
+  if (t.mentality === 0) add('Defensive: tackling', q(D, ['Tackling', 'Marking']), 0.6);
+  // in possession
+  if (t.build === 0) add('Short build-up: passing', q([...D, ...M, ...G], ['Passing', 'FirstTouch', 'Composure']), 1.2);
+  if (t.build === 2) add('Direct: target up front', q(F, ['Heading', 'Strength', 'Jumping']), 1.0);
+  if (t.focus === 0) { add('Crosses: crossers', q(W.length ? W : M, ['Crossing']), 1.0); add('Crosses: headers in the box', q(F, ['Heading', 'Jumping']), 1.0); }
+  if (t.focus === 1) { add('Through balls: vision', q(M, ['Vision', 'Passing']), 0.9); add('Through balls: runners\' pace', q(F, ['Pace', 'Positioning']), 1.1); }
+  if (t.focus === 2) add('Work it in: technique', q([...M, ...F], ['Passing', 'Dribbling', 'FirstTouch']), 1.6);
+  if (t.focus === 3) add('Shoot early: long shots', q([...M, ...F], ['LongShots', 'Finishing']), 1.6);
+  if (t.width === 2) add('Wide play: pace on the flanks', q(W.length ? W : F, ['Pace', 'Dribbling']), 0.6);
+  if (t.tempo === 2) add('Fast tempo: stamina', q(out, ['Stamina']), 0.6);
+  if (t.tempo === 0) add('Slow tempo: composure', q(M, ['Composure', 'Decisions']), 0.5);
+  if (t.mentality === 2) add('Attacking: finishing', q(F, ['Finishing', 'Composure']), 0.8);
+  const tw = parts.reduce((s, p) => s + p.weight, 0) || 1;
+  const fit = parts.reduce((s, p) => s + p.value * p.weight, 0) / tw; // about -1.5 .. +1.5
+  return { fit, score: Math.round(Math.max(0, Math.min(100, 50 + fit * 40))), parts };
+}

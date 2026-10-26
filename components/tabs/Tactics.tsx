@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/client.ts';
-import { CORNER_ROUTINES, FORMATIONS, LINE, PRESETS, ROLES, stripDesc, type Tactic } from '../../lib/game.ts';
+import { CORNER_ROUTINES, FORMATIONS, LINE, PRESETS, ROLES, stripDesc, tacticFit, type Tactic } from '../../lib/game.ts';
 import { Bar, BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import { Pitch, autoXI, useSquad } from './Lineup.tsx';
 import type { TabProps } from './types.ts';
@@ -25,7 +25,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
   const setT = (x: Tactic) => setPlans((ps) => ({ ...ps, [plan]: x }));
   const [pens, setPens] = useState<string[]>([]);
   const [as, setAs] = useState<Record<string, boolean>>({});
-  const [panel, setPanel] = useState<'in' | 'out' | 'plans' | 'pens' | 'assistant' | 'roles' | 'setpieces'>('plans');
+  const [panel, setPanel] = useState<'in' | 'out' | 'plans' | 'pens' | 'assistant' | 'roles' | 'setpieces' | 'fit'>('plans');
   const [dirty, setDirty] = useState(false);
   useEffect(() => { api(`/api/leagues/${lid}/scout`).then(setScout).catch(() => {}); }, [lid]);
   useEffect(() => {
@@ -73,12 +73,18 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
   const space = ['Small', 'Medium', 'Large'][t.line];
   const cards = t.press >= 2 ? 'High' : t.press === 1 ? 'Medium' : 'Low';
   const xiPlayers = saved.map((id) => byId.get(id) as any).filter(Boolean);
+  // how well each plan suits the players in the line-up
+  const fitXi = saved.map((id, i) => { const p: any = byId.get(id); return p ? { pos: p.pos, slot: F.slots[i], ovr: p.ovr, a: p.attrs || {} } : null; }).filter(Boolean) as any[];
+  const fitNow = tacticFit(fitXi, t);
+  const fitOf = (n: string) => tacticFit(fitXi.map((p) => ({ ...p })), stripDesc(PRESETS[n])).score;
+  const fitColor = (v: number) => (v >= 65 ? '#7CE3A1' : v >= 45 ? '#7FE9F7' : '#FF9AA8');
   const takers = xiPlayers.filter((p: any) => p.pos !== 'GK').sort((a: any, b: any) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure));
   return (
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Tactics" onBack={() => go('lineup')} tag={<PlanTabs plan={plan} plans={plans} setPlan={setPlan} />}
         right={<>
           <span className="tag pink"><span>{t.preset}</span></span>
+          <button className="row tiny" onClick={() => setPanel('fit' as any)} title="How well this plan suits your players" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Suits squad</span><div style={{ width: 60 }}><Bar v={fitNow.score} color={fitColor(fitNow.score)} /></div><b style={{ color: fitColor(fitNow.score) }}>{fitNow.score}%</b></button>
           <span className="row tiny" title="Familiarity grows each match you play this shape" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Familiarity</span><div style={{ width: 70 }}><Bar v={fam} color={fam >= 80 ? '#7CE3A1' : fam >= 60 ? '#7FE9F7' : '#F2C14E'} /></div><b>{fam}</b></span>
           {scout?.opponent ? <span className="tag"><span>vs {scout.opponent.name}</span></span> : null}
         </>} />
@@ -99,7 +105,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
         </Pitch>
         <section className="panel cut" style={{ gap: 8 }}>
           <div className="row wrap" style={{ gap: 4 }}>
-            {([['plans', 'Style'], ['in', 'In possession'], ['out', 'Out of possession'], ['roles', 'Roles'], ['setpieces', 'Set pieces'], ['pens', 'Penalties'], ['assistant', 'Assistant']] as const).map(([k, l]) => (
+            {([['plans', 'Style'], ['fit', 'Squad fit'], ['in', 'In possession'], ['out', 'Out of possession'], ['roles', 'Roles'], ['setpieces', 'Set pieces'], ['pens', 'Penalties'], ['assistant', 'Assistant']] as const).map(([k, l]) => (
               <button key={k} className={`seg ${panel === k ? 'on' : ''}`} onClick={() => setPanel(k)}><span>{l}</span></button>
             ))}
           </div>
@@ -112,7 +118,8 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
               {plan !== 'A' && <div className="row tiny" style={{ gap: 8 }}><span className="muted grow">Switch to Plan {plan} live from the match screen.</span><button className="seg" onClick={() => change(() => setPlans({ ...plans, [plan]: null }))}><span>Delete Plan {plan}</span></button></div>}
               {Object.entries(PRESETS).map(([n, p]) => (
                 <button key={n} className={`row-item ${t.preset === n ? 'sel' : ''}`} onClick={() => change(() => setT({ ...t, preset: n, ...stripDesc(p) }))} style={{ textAlign: 'left' }}>
-                  <b style={{ width: 118, flex: 'none' }}>{n}</b><span className="tiny muted">{p.desc}</span>
+                  <b style={{ width: 118, flex: 'none' }}>{n}</b><span className="tiny muted grow">{p.desc}</span>
+                  <span className="tiny" title="How well this plan suits your line-up" style={{ fontWeight: 900, color: fitColor(fitOf(n)), whiteSpace: 'nowrap' }}>Fit {fitOf(n)}%</span>
                 </button>
               ))}
             </div>
@@ -131,6 +138,22 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
               <Line label="Pressing"><Seg small opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => setField('press', v)} /></Line>
               <Line label="Def. line"><Seg small opts={[[0, 'Deep'], [1, 'Mid'], [2, 'High']]} value={t.line} onPick={(v) => setField('line', v)} /></Line>
               <div className="tiny muted">A high press wins the ball near goal but drains legs. A high line squeezes the pitch but fast strikers run in behind. A deep block stops through balls but invites crosses and long shots.</div>
+            </div>
+          )}
+          {panel === 'fit' && (
+            <div className="col" style={{ gap: 6 }}>
+              <span className="tiny muted">Every part of a plan needs something from your players. A plan that suits them is carried out better; one that doesn't is carried out worse, even if it is the right idea against this opponent.</span>
+              {[...fitNow.parts].sort((a, b) => b.weight - a.weight).map((pt) => {
+                const v = Math.round(50 + pt.value * 33);
+                return (
+                  <div key={pt.label} className="row small" style={{ gap: 8, fontWeight: 700 }}>
+                    <span className="grow">{pt.label}</span>
+                    <div style={{ width: 90 }}><Bar v={Math.max(4, Math.min(100, v))} color={fitColor(v)} /></div>
+                    <b className="tiny" style={{ width: 70, textAlign: 'right', color: fitColor(v) }}>{v >= 65 ? 'Strength' : v >= 45 ? 'OK' : 'Weak spot'}</b>
+                  </div>
+                );
+              })}
+              <span className="tiny muted">Best plans for this line-up: {Object.keys(PRESETS).sort((a, b) => fitOf(b) - fitOf(a)).slice(0, 2).map((n) => `${n} (${fitOf(n)}%)`).join(', ')}.</span>
             </div>
           )}
           {panel === 'roles' && (
@@ -248,7 +271,10 @@ function scoutLine(s: any) {
   if (!s.opponent) return 'No match coming up.';
   const o = s.opponent, st = s.stats;
   const parts: string[] = [];
-  if (o.recent?.length) parts.push(`${o.name} played ${o.recent[0]} last time${o.ai ? ' (AI clubs read your last tactics and counter them)' : ''}.`);
+  const mine: string[] = s.myRecent || [];
+  if (o.ai && mine.length >= 2 && mine.every((m) => m === mine[0])) parts.push(`You have played ${mine[0]} ${mine.length} times in a row: ${o.name} will be ready for it. Surprise them.`);
+  else if (o.ai && mine.length) parts.push(`AI managers study your last plans (last time: ${mine[0]}) and pick one that beats it.`);
+  if (o.recent?.length) parts.push(`${o.name} played ${o.recent[0]} last time.`);
   if (st.fwdPace >= 80) parts.push(`Their strikers have pace ${st.fwdPace}: a high line leaves space for through balls.`);
   else if (st.defPace <= 68) parts.push(`Their defenders are slow (pace ${st.defPace}): through balls can hurt them.`);
   if (st.defAir <= 65) parts.push(`Weak in the air at the back (${st.defAir}): try crosses.`);

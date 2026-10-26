@@ -3,7 +3,7 @@
 // Every step is a duel between one side's tactic and players and the other side's.
 // Ported from the Python prototype that was balanced over 50,000+ simulated matches.
 import { rng as makeRng, type Rng } from './rng.ts';
-import { FORMATIONS, LINE, PRESETS, ROLES, stripDesc, type Tactic } from './game.ts';
+import { FORMATIONS, LINE, PRESETS, ROLES, stripDesc, tacticFit, type Tactic } from './game.ts';
 
 export type EPlayer = {
   id: string; name: string; pos: string; ovr: number; fitness: number;
@@ -43,6 +43,8 @@ export type Report = {
 };
 
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
+// how much a well-suited plan helps: fit runs about -1.5..+1.5, so up to about ±3 on every duel
+export const FIT_WEIGHT = 2.6;
 
 type OnPitch = { p: EPlayer; slot: 'GK' | 'DEF' | 'MID' | 'FWD'; tired: number; yc: number; on: number; line: PlayerLine };
 
@@ -69,6 +71,8 @@ class Side {
   // attribute of a player in his slot, after tiredness
   manual = false;
   weather = 'clear';
+  fit = 0;
+  fitKey = '';
   flags: Record<string, number> = { through: 0, crossB: 0, longshot: 0, holdup: 0, sweeper: 0, anchor: 0 };
   val(o: OnPitch, attr: string) {
     let v = (o.p.a[attr] ?? o.p.ovr) + (o.p.mod || 0);
@@ -117,7 +121,13 @@ class Side {
     if (this.weather === 'rain') this.agg.passing -= 1.5;
     if (this.weather === 'snow') { this.agg.pace_att -= 4; this.agg.pace_def -= 4; }
     const fam = ((this.s.familiarity ?? 60) - 60) / 40;
-    for (const k of Object.keys(this.agg)) this.agg[k] += fam;
+    // a plan that suits these players is carried out better (see tacticFit); worked out again only when the plan or players change
+    const key = `${this.tactic.press}${this.tactic.line}${this.tactic.build}${this.tactic.focus}${this.tactic.width}${this.tactic.tempo}${this.tactic.mentality}|${all.map((o) => o.p.id + o.slot).join(',')}`;
+    if (key !== this.fitKey) {
+      this.fitKey = key;
+      this.fit = tacticFit(all.map((o) => ({ pos: o.p.pos, slot: o.slot, ovr: o.p.ovr, a: o.p.a })), this.tactic).fit;
+    }
+    for (const k of Object.keys(this.agg)) this.agg[k] += fam + this.fit * FIT_WEIGHT;
     const tired = avg(all, (o) => o.tired, 0);
     const short = (11 - all.length) * 4;
     const pen = Math.min(9, Math.max(0, tired - 0.55) * 10) + short - this.form - homeAdv - (this.s.boost || 0);
@@ -262,7 +272,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     let q: number, two: number;
     const f = ta.focus;
     if (f === 0) {
-      q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) - (tb.line === 0 ? 0.012 : 0)
+      q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) + (tb.line === 0 ? 0.015 : 0)
         + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0);
       two = 0.25;
     } else if (f === 1) {
@@ -449,7 +459,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1));
         if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul) card(b, f);
       }
-      if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.3 : 0.22)) shot(b, tb.press === 3 ? 0.17 : 0.13, 'high turnover');
+      if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.25 : 0.2)) shot(b, tb.press === 3 ? 0.15 : 0.13, 'high turnover');
       else if (tb.mentality <= 1 && r.next() < 0.09 + 0.05 * (2 - tb.mentality)) counter(b);
       return;
     }
@@ -460,14 +470,17 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       return freeKick(a);
     }
     if (ta.build === 2 && r.next() < 0.5) {
-      const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.4 : 0) - (tb.press === 1 ? 0.35 : 0)
+      const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) - (tb.press === 1 ? 0.35 : 0)
         + S[a].flags.holdup - (weather === 'wind' || weather === 'rain' ? 0.3 : 0);
       if (r.next() < sig(duel - 1.45)) create(a, tb.line === 2 ? 0.02 : 0);
       else if (tb.mentality === 0 && r.next() < 0.06) counter(b);
       return;
     }
     let prog = (A(a, 'passing') - A(b, 'tackling')) * 0.03 + ta.mentality * 0.15 - tb.mentality * 0.12;
-    prog += tb.line === 0 ? -0.3 : tb.line === 2 ? 0.12 : 0;
+    prog += tb.line === 0 ? (ta.focus === 0 && ta.width >= 1 ? -0.08 : -0.24) : tb.line === 2 ? 0.12 : 0; // wide crossing teams go around a deep block
+    // game state: a team chasing the game late on throws bodies forward, more so when told to attack
+    const behind = goals[b] - goals[a];
+    if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 : ta.mentality === 0 ? -0.1 : 0);
     prog += ta.tempo === 2 ? 0.1 : ta.tempo === 0 ? -0.08 : 0;
     if (r.next() < sig(prog - 1.55)) create(a);
     else if (tb.mentality <= 1 && r.next() < (ta.mentality === 2 ? 0.07 : 0.035)) counter(b);
@@ -479,6 +492,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const bv = (t: Tactic) => (t.build === 0 ? 0.35 : t.build === 2 ? -0.2 : 0);
     x += bv(t0) - bv(t1) + (t0.press - t1.press) * 0.08;
     x += (S[0].pitch.length - S[1].pitch.length) * 0.15;
+    // late on, the team that is behind has more of the ball (the leader sits deeper)
+    if (minute >= 55 && goals[0] !== goals[1]) x += (goals[0] < goals[1] ? 1 : -1) * (0.25 + (T(goals[0] < goals[1] ? 0 : 1).mentality === 2 ? 0.2 : 0));
     return sig(x);
   };
 
@@ -583,22 +598,76 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 }
 
 // ---------------------------------------------------------------- AI manager
-const COUNTER: Record<string, number> = {"Tiki-taka|Tiki-taka":0.5,"Tiki-taka|Gegenpress":0.44,"Tiki-taka|Low block":0.38,"Tiki-taka|Wing play":0.52,"Tiki-taka|Long ball":0.4,"Tiki-taka|Shoot on sight":0.65,"Gegenpress|Tiki-taka":0.56,"Gegenpress|Gegenpress":0.5,"Gegenpress|Low block":0.24,"Gegenpress|Wing play":0.52,"Gegenpress|Long ball":0.28,"Gegenpress|Shoot on sight":0.66,"Low block|Tiki-taka":0.62,"Low block|Gegenpress":0.76,"Low block|Low block":0.5,"Low block|Wing play":0.46,"Low block|Long ball":0.45,"Low block|Shoot on sight":0.41,"Wing play|Tiki-taka":0.48,"Wing play|Gegenpress":0.48,"Wing play|Low block":0.54,"Wing play|Wing play":0.5,"Wing play|Long ball":0.47,"Wing play|Shoot on sight":0.54,"Long ball|Tiki-taka":0.6,"Long ball|Gegenpress":0.72,"Long ball|Low block":0.55,"Long ball|Wing play":0.53,"Long ball|Long ball":0.5,"Long ball|Shoot on sight":0.39,"Shoot on sight|Tiki-taka":0.35,"Shoot on sight|Gegenpress":0.34,"Shoot on sight|Low block":0.58,"Shoot on sight|Wing play":0.46,"Shoot on sight|Long ball":0.61,"Shoot on sight|Shoot on sight":0.5};
+// Win share of the row tactic against the column tactic on a neutral pitch with equal squads
+// (measured with this engine: scripts/tactics-study.ts). Every tactic has at least one clear counter.
+const M = {
+  'Tiki-taka': { 'Tiki-taka': 50, Gegenpress: 44, 'Low block': 35, 'Wing play': 58, 'Long ball': 47, 'Shoot on sight': 61 },
+  Gegenpress: { 'Tiki-taka': 56, Gegenpress: 50, 'Low block': 31, 'Wing play': 57, 'Long ball': 45, 'Shoot on sight': 62 },
+  'Low block': { 'Tiki-taka': 65, Gegenpress: 69, 'Low block': 50, 'Wing play': 49, 'Long ball': 55, 'Shoot on sight': 41 },
+  'Wing play': { 'Tiki-taka': 42, Gegenpress: 43, 'Low block': 51, 'Wing play': 50, 'Long ball': 54, 'Shoot on sight': 54 },
+  'Long ball': { 'Tiki-taka': 53, Gegenpress: 55, 'Low block': 45, 'Wing play': 46, 'Long ball': 50, 'Shoot on sight': 37 },
+  'Shoot on sight': { 'Tiki-taka': 39, Gegenpress: 38, 'Low block': 59, 'Wing play': 46, 'Long ball': 63, 'Shoot on sight': 50 },
+} as Record<string, Record<string, number>>;
+export const counterShare = (mine: string, theirs: string) => (M[mine]?.[theirs] ?? 50) / 100;
 
-// Bots read the opponent's recent tactics and counter them. level 0 easy, 1 normal, 2 hard.
-export function aiTactic(level: number, oppHistory: string[], seed: number, formation = '4-3-3'): Tactic {
-  const r = makeRng(seed);
-  const names = Object.keys(PRESETS);
-  let pick = r.pick(names);
-  if (level > 0 && oppHistory.length && !(level === 1 && r.next() < 0.5)) {
-    const counts: Record<string, number> = {};
-    oppHistory.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
-    const likely = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
-    const ranked = [...names].sort((a, b) => (COUNTER[`${b}|${likely}`] ?? 0.5) - (COUNTER[`${a}|${likely}`] ?? 0.5));
-    // hard bots usually pick the best counter, sometimes the second best, so they stay hard to read
-    pick = ranked[r.next() < (level === 2 ? 0.7 : 0.5) ? 0 : 1];
+// The preset closest to any tactic, so custom tactics can be read and countered too.
+export function nearestPreset(t: Partial<Tactic>) {
+  let best = 'Wing play', bd = 1e9;
+  for (const [n, p] of Object.entries(PRESETS)) {
+    const d = (['mentality', 'press', 'line', 'build', 'focus', 'width', 'tempo'] as const).reduce((s, k) => s + Math.abs((p[k] as number) - ((t[k] as number) ?? 1)) * (k === 'focus' || k === 'press' ? 1.5 : 1), 0);
+    if (d < bd) { bd = d; best = n; }
   }
-  const { desc, ...rest } = PRESETS[pick];
-  void desc;
-  return { preset: pick, formation, ...rest };
+  return best;
+}
+
+type PlanPlayer = { pos: string; ovr: number; a: Record<string, number> };
+const lineAvg = (xi: PlanPlayer[], line: string, keys: string[]) => {
+  const ps = xi.filter((p) => (LINE[p.pos] || 'MID') === line);
+  if (!ps.length) return 60;
+  return ps.reduce((s, p) => s + keys.reduce((k, key) => k + (p.a[key] ?? 50), 0) / keys.length, 0) / ps.length;
+};
+
+// The AI manager. It reads what the other manager has played lately (the latest match counts most),
+// picks a plan that beats it AND suits its own players, then aims at the other side's weak spots.
+// level 0 easy (random), 1 normal (decent but readable), 2 hard (sharp).
+export function aiPlan(o: { level: number; oppHistory: string[]; own: PlanPlayer[]; opp: PlanPlayer[]; seed: number; formation: string }): Tactic {
+  const r = makeRng(o.seed);
+  const names = Object.keys(PRESETS);
+  const slots = (FORMATIONS[o.formation] || FORMATIONS['4-3-3']).slots;
+  const own = o.own.map((p, i) => ({ ...p, slot: slots[i] }));
+  let pick = r.pick(names);
+  if (o.level > 0) {
+    const scored = names.map((n) => {
+      let c = 0, w = 0;
+      o.oppHistory.slice(0, 4).forEach((h, i) => { const wt = [1, 0.55, 0.3, 0.2][i]; c += counterShare(n, h) * wt; w += wt; });
+      const counter = w ? c / w : 0.5;
+      const fit = tacticFit(own, stripDesc(PRESETS[n])).fit;
+      return { n, v: counter + fit * 0.06 + (r.next() - 0.5) * (o.level === 2 ? 0.02 : 0.08) };
+    }).sort((x, y) => y.v - x.v);
+    pick = scored[o.level === 2 ? (r.next() < 0.85 ? 0 : 1) : Math.floor(r.next() * 3)].n;
+  }
+  const t: Tactic = { preset: pick, formation: o.formation, ...stripDesc(PRESETS[pick]) } as Tactic;
+  if (o.level === 0) return t;
+  // aim at weak spots (hard always, normal half the time)
+  if (o.level === 2 || r.next() < 0.5) {
+    const paceGap = lineAvg(o.own, 'FWD', ['Pace']) - lineAvg(o.opp, 'DEF', ['Pace']);
+    const airGap = lineAvg(o.own, 'FWD', ['Heading', 'Jumping', 'Strength']) - lineAvg(o.opp, 'DEF', ['Heading', 'Jumping', 'Strength']);
+    const theirKeeper = lineAvg(o.opp, 'GK', ['Reflexes', 'Handling']);
+    const theirRunners = lineAvg(o.opp, 'FWD', ['Pace']) - lineAvg(o.own, 'DEF', ['Pace']);
+    const edges = [
+      { v: paceGap - 4, set: () => { t.focus = 1; t.tempo = Math.max(t.tempo, 1); } },
+      { v: airGap - 4, set: () => { t.focus = 0; t.width = 2; } },
+      { v: 74 - theirKeeper, set: () => { t.focus = 3; } },
+    ].filter((e) => e.v > 0).sort((a, b) => b.v - a.v);
+    if (edges[0]) { edges[0].set(); t.preset = 'Custom'; }
+    if (theirRunners > 4 && t.line === 2) { t.line = 1; t.preset = 'Custom'; } // never a high line against fast strikers
+  }
+  return t;
+}
+
+// Kept for clubs being created: a plain random preset.
+export function aiTactic(_level: number, _oppHistory: string[], seed: number, formation = '4-3-3'): Tactic {
+  const r = makeRng(seed);
+  const pick = r.pick(Object.keys(PRESETS));
+  return { preset: pick, formation, ...stripDesc(PRESETS[pick]) } as Tactic;
 }
