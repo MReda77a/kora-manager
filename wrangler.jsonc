@@ -10,5 +10,8 @@
   "vars": { "MATCHES_PER_REQUEST": "1" },
   // Every minute: play matches whose kick-off time has passed.
   "triggers": { "crons": ["* * * * *"] },
+  // The timer keeps the next kick-off time here so the database can sleep between matches.
+  // Cloudflare creates this store on the first deploy.
+  "kv_namespaces": [{ "binding": "KORA" }],
   "observability": { "enabled": true }
 }

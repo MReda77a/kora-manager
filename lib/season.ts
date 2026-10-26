@@ -19,6 +19,7 @@ import { moraleAfterMatch, randomEvents } from './people.ts';
 import { endSeason, startNextSeason } from './career.ts';
 import { botBids, botShopping } from './offers.ts';
 import { notify, notifyMany } from './push.ts';
+import { wakeTimer } from './wake.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
 const LIVE_MS = LIVE_SECONDS * 1000;
@@ -46,6 +47,7 @@ export async function startSeason(uid: number, leagueId: number) {
     throw e;
   }
   await q(`UPDATE leagues SET status='running' WHERE id=$1`, [leagueId]);
+  await wakeTimer();
   await news(leagueId, null, 'season', `The season kicks off! ${l.max_clubs} clubs, home and away, plus ${CUP_NAMES[l.pool]}.`);
   await batch([
     { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'round',$2)`, params: [leagueId, '🏁 The first round has started! Every team plays every other team once.'] },

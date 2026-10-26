@@ -3,6 +3,7 @@
 // youth intake, loans returning, prize money and a fresh schedule).
 import { batch, q, one, writes, type Row } from './db.ts';
 import { notify, notifyMany } from './push.ts';
+import { wakeTimer } from './wake.ts';
 import { fail } from './errors.ts';
 import { CLUB_TYPES, LINE, MAX_SQUAD, SPONSORS, WINDOW_DAYS, type ClubTypeKey } from './game.ts';
 import { getLeague, news, standings } from './league.ts';
@@ -136,6 +137,7 @@ async function finishRollover(l: Row, schedule: (l: Row) => Promise<void>) {
   const next = { ...fresh, season: fresh.season + 1 };
   await batch([`DELETE FROM fixtures WHERE league_id=${Number(l.id)}`, `DELETE FROM days WHERE league_id=${Number(l.id)}`, `DELETE FROM papers WHERE league_id=${Number(l.id)}`]);
   await schedule(next);
+  await wakeTimer();
   await batch([
     { text: `UPDATE leagues SET status='running', season=season+1 WHERE id=$1`, params: [l.id] },
     { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'season',$2)`, params: [l.id, `Season ${next.season} begins!`] },

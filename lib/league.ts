@@ -7,6 +7,7 @@ import {
   shortName, type ClubTypeKey, type PackKey, type Tactic,
   windowFromDays,
 } from './game.ts';
+import { wakeTimer } from './wake.ts';
 import { rng, hashSeed } from './rng.ts';
 
 export const AI_SQUAD = 18;
@@ -100,6 +101,7 @@ export async function updateSchedule(uid: number, leagueId: number, b: { kickoff
       [leagueId],
     );
     await news(leagueId, null, 'schedule', 'The league creator changed the match time.');
+    await wakeTimer();
   }
   return { ok: true };
 }
