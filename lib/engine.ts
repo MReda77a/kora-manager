@@ -3,16 +3,24 @@
 // Every step is a duel between one side's tactic and players and the other side's.
 // Ported from the Python prototype that was balanced over 50,000+ simulated matches.
 import { rng as makeRng, type Rng } from './rng.ts';
-import { FORMATIONS, LINE, PRESETS, type Tactic } from './game.ts';
+import { FORMATIONS, LINE, PRESETS, stripDesc, type Tactic } from './game.ts';
 
 export type EPlayer = {
   id: string; name: string; pos: string; ovr: number; fitness: number;
   a: Record<string, number>;
+  mod?: number; // form: team of the week, player of the month, upset nominees
 };
 export type ESide = {
   clubId: number; name: string; xi: EPlayer[]; bench: EPlayer[]; tactic: Tactic;
   assistant: Record<string, boolean>; pens: string[]; homeBoost: number; boost?: number;
+  injuryRisk?: number; // 1 = normal, lower with a good doctor
 };
+// A manager's decision during a live match. It takes effect from minute m on.
+export type Change =
+  | { m: number; side: 0 | 1; kind: 'tactic'; tactic: Partial<Tactic> & { preset?: string } }
+  | { m: number; side: 0 | 1; kind: 'sub'; out: string; in: string };
+export type SimOpts = { changes?: Change[]; knockout?: boolean; derby?: boolean };
+export type Shootout = { kicks: { side: 0 | 1; pid: string; scored: boolean }[]; score: [number, number] };
 export type MatchEvent = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 export type PlayerLine = { id: string; name: string; side: 0 | 1; pos: string; r: number; g: number; a: number; mins: number; fitEnd: number; yc: number; rc: boolean; inj: boolean };
 export type Report = {
@@ -22,6 +30,10 @@ export type Report = {
   players: PlayerLine[];
   motm: string | null;
   tactics: [string, string];
+  lineups: { formation: string; preset: string; xi: string[]; bench: string[] }[];
+  shootout?: Shootout;
+  winner?: 0 | 1;
+  derby?: boolean;
 };
 
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
@@ -36,11 +48,11 @@ class Side {
   form: number;
   tactic: Tactic;
   agg: Record<string, number> = {};
-  constructor(s: ESide, r: Rng, idx: 0 | 1, lines: PlayerLine[]) {
+  constructor(s: ESide, r: Rng, idx: 0 | 1, lines: PlayerLine[], derbyForm = false) {
     this.s = s;
     this.tactic = { ...s.tactic };
     this.bench = [...s.bench];
-    this.form = r.gauss(0, 2.2);
+    this.form = r.gauss(0, derbyForm ? 3.4 : 2.2);
     const slots = (FORMATIONS[s.tactic.formation] || FORMATIONS['4-3-3']).slots;
     s.xi.forEach((p, i) => {
       const line = mkLine(p, idx, 0);
@@ -49,8 +61,9 @@ class Side {
     });
   }
   // attribute of a player in his slot, after tiredness
+  manual = false;
   val(o: OnPitch, attr: string) {
-    let v = o.p.a[attr] ?? o.p.ovr;
+    let v = (o.p.a[attr] ?? o.p.ovr) + (o.p.mod || 0);
     const natural = LINE[o.p.pos] || 'MID';
     if (natural !== o.slot) v -= o.slot === 'GK' || natural === 'GK' ? 30 : 8;
     return v;
@@ -74,7 +87,7 @@ class Side {
     };
     const tired = avg(all, (o) => o.tired, 0);
     const short = (11 - all.length) * 4;
-    const pen = Math.max(0, tired - 0.55) * 14 + short - this.form - homeAdv - (this.s.boost || 0);
+    const pen = Math.min(9, Math.max(0, tired - 0.55) * 10) + short - this.form - homeAdv - (this.s.boost || 0);
     for (const k of Object.keys(this.agg)) this.agg[k] -= pen;
   }
 }
@@ -85,10 +98,13 @@ function mkLine(p: EPlayer, side: 0 | 1, onAt: number): PlayerLine {
 
 const last = (n: string) => n.split(' ').slice(-1)[0];
 
-export function simulate(home: ESide, away: ESide, seed: number): Report {
+export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts = {}): Report {
   const r = makeRng(seed);
   const lines: PlayerLine[] = [];
-  const S: [Side, Side] = [new Side(home, r, 0, lines), new Side(away, r, 1, lines)];
+  const derby = !!opts.derby;
+  const S: [Side, Side] = [new Side(home, r, 0, lines, derby), new Side(away, r, 1, lines, derby)];
+  const changes = [...(opts.changes || [])].sort((a, b) => a.m - b.m);
+  let nextChange = 0;
   const goals: [number, number] = [0, 0], shots: [number, number] = [0, 0], onT: [number, number] = [0, 0];
   const xg: [number, number] = [0, 0], corners: [number, number] = [0, 0], yel: [number, number] = [0, 0], red: [number, number] = [0, 0];
   const possN: [number, number] = [0, 0];
@@ -244,6 +260,10 @@ export function simulate(home: ESide, away: ESide, seed: number): Report {
 
   const assistant = (side: 0 | 1) => {
     const sd = S[side];
+    if (sd.manual) {
+      // the manager took charge: the assistant only replaces exhausted players
+      return;
+    }
     const as = sd.s.assistant || {};
     const diff = goals[side] - goals[1 - side];
     if (as.tired && minute >= 60 && minute % 5 === 0) {
@@ -278,6 +298,29 @@ export function simulate(home: ESide, away: ESide, seed: number): Report {
     }
   };
 
+  const applyChange = (c: Change) => {
+    const sd = S[c.side];
+    sd.manual = true;
+    if (c.kind === 'tactic') {
+      const { preset, ...rest } = c.tactic;
+      sd.tactic = { ...sd.tactic, ...(preset && PRESETS[preset] ? stripDesc(PRESETS[preset]) : {}), ...rest, preset: preset || sd.tactic.preset };
+      log('tactic', c.side, `${sd.s.name} switch to ${sd.tactic.preset === 'Custom' ? 'a new plan' : sd.tactic.preset}${rest.mentality === 2 ? ', all out attack' : rest.mentality === 0 ? ', shutting up shop' : ''}`);
+      return;
+    }
+    if (sd.subsLeft <= 0) return;
+    const out = sd.pitch.find((o) => o.p.id === c.out);
+    const inn = sd.bench.find((p) => p.id === c.in);
+    if (!out || !inn) return;
+    sd.bench = sd.bench.filter((p) => p !== inn);
+    sd.subsLeft--;
+    out.line.mins += minute;
+    out.line.fitEnd = Math.round(100 - out.tired * 45);
+    const line = mkLine(inn, c.side, minute);
+    lines.push(line);
+    sd.pitch = sd.pitch.map((x) => (x === out ? { p: inn, slot: out.slot, tired: (100 - inn.fitness) / 45, yc: 0, on: minute, line } : x));
+    log('sub', c.side, `Manager's change: ${inn.name} on for ${out.p.name}`, inn.id, out.p.id);
+  };
+
   const phase = (a: 0 | 1) => {
     const b = (1 - a) as 0 | 1;
     const ta = T(a), tb = T(b);
@@ -288,7 +331,7 @@ export function simulate(home: ESide, away: ESide, seed: number): Report {
       // tackles can bring fouls and cards
       if (r.next() < 0.2 + (tb.press >= 2 ? 0.08 : 0)) {
         const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1));
-        if (f && r.next() < 0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) card(b, f);
+        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1)) card(b, f);
       }
       if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.3 : 0.22)) shot(b, tb.press === 3 ? 0.17 : 0.13, 'high turnover');
       else if (tb.mentality <= 1 && r.next() < 0.09 + 0.05 * (2 - tb.mentality)) counter(b);
@@ -322,6 +365,9 @@ export function simulate(home: ESide, away: ESide, seed: number): Report {
   for (let k = 1; k <= total; k++) {
     minute = k <= 45 + stoppage1 ? Math.min(k, 45) : k - stoppage1;
     if (k === 46 + stoppage1) log('ht', 0, `Half-time: ${home.name} ${goals[0]}–${goals[1]} ${away.name}`);
+    while (nextChange < changes.length && changes[nextChange].m <= minute && (k > 45 + stoppage1 || changes[nextChange].m <= 45)) {
+      applyChange(changes[nextChange++]);
+    }
     for (const i of [0, 1] as const) {
       const t = S[i].tactic;
       for (const o of S[i].pitch) {
@@ -329,11 +375,12 @@ export function simulate(home: ESide, away: ESide, seed: number): Report {
         o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01));
       }
       // injuries: rare, more likely when exhausted
-      if (r.next() < 0.0009 * S[i].pitch.length / 11) {
+      if (r.next() < 0.0009 * (S[i].s.injuryRisk ?? 1) * S[i].pitch.length / 11) {
         const v = r.weighted(S[i].pitch, (o) => (o.p.a.InjuryProne || 30) * (1 + o.tired));
         v.line.inj = true;
         log('injury', i, `${v.p.name} is injured`, v.p.id);
-        if (!substitute(i, v, 'Injury')) {
+        const autoSub = S[i].manual || (S[i].s.assistant || {}).injured !== false;
+        if (!autoSub || !substitute(i, v, 'Injury')) {
           v.line.mins += minute;
           S[i].pitch = S[i].pitch.filter((x) => x !== v);
         }
@@ -346,6 +393,42 @@ export function simulate(home: ESide, away: ESide, seed: number): Report {
   }
   minute = 90;
   log('ft', 0, `Full time: ${home.name} ${goals[0]}–${goals[1]} ${away.name}`);
+
+  // cup ties: a draw goes straight to penalties, taken in the order the managers set
+  let shootout: Shootout | undefined;
+  let winner: 0 | 1 | undefined = goals[0] > goals[1] ? 0 : goals[1] > goals[0] ? 1 : undefined;
+  if (opts.knockout && winner === undefined) {
+    const order = (i: 0 | 1) => {
+      const on = S[i].pitch;
+      const named = S[i].s.pens.map((id) => on.find((o) => o.p.id === id)).filter(Boolean) as OnPitch[];
+      const rest = on.filter((o) => !named.includes(o) && o.slot !== 'GK').sort((x, y) => (S[i].val(y, 'Finishing') + S[i].val(y, 'Composure')) - (S[i].val(x, 'Finishing') + S[i].val(x, 'Composure')));
+      const gk = on.filter((o) => o.slot === 'GK');
+      return [...named, ...rest, ...gk];
+    };
+    const ord: [OnPitch[], OnPitch[]] = [order(0), order(1)];
+    const keeper = (i: 0 | 1) => { const g = S[i].pitch.find((o) => o.slot === 'GK'); return g ? (S[i].val(g, 'Reflexes') + S[i].val(g, 'OneOnOne')) / 2 : 45; };
+    const sc: [number, number] = [0, 0];
+    const kicks: Shootout['kicks'] = [];
+    for (let n = 0; n < 30; n++) {
+      for (const i of [0, 1] as const) {
+        const t = ord[i][n % Math.max(1, ord[i].length)];
+        if (!t) continue;
+        const skill = S[i].val(t, 'Finishing') * 0.5 + S[i].val(t, 'Composure') * 0.5 - t.tired * 6;
+        const p = Math.min(0.92, Math.max(0.5, 0.75 + (skill - 75) * 0.006 - (keeper((1 - i) as 0 | 1) - 75) * 0.004));
+        const ok = r.next() < p;
+        if (ok) sc[i]++;
+        kicks.push({ side: i, pid: t.p.id, scored: ok });
+      }
+      const k = n + 1;
+      if (k <= 5) {
+        const left = 5 - k;
+        if (sc[0] > sc[1] + left || sc[1] > sc[0] + left) break;
+      } else if (sc[0] !== sc[1]) break;
+    }
+    shootout = { kicks, score: sc };
+    winner = sc[0] > sc[1] ? 0 : 1;
+    log('pens', winner, `${S[winner].s.name} win ${Math.max(...sc)}–${Math.min(...sc)} on penalties!`);
+  }
 
   // close player lines
   for (const i of [0, 1] as const) {
@@ -371,6 +454,8 @@ export function simulate(home: ESide, away: ESide, seed: number): Report {
     players: lines,
     motm: motm ? motm.id : null,
     tactics: [home.tactic.preset, away.tactic.preset],
+    lineups: [home, away].map((sd) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id) })),
+    shootout, winner, derby,
   };
 }
 

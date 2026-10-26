@@ -1,12 +1,19 @@
 import { q, one } from '../../../../../lib/db.ts';
 import { body, fail, handle, requireUser } from '../../../../../lib/http.ts';
 import * as L from '../../../../../lib/league.ts';
-import { CLUB_TYPES, PACKS, POOLS, type ClubTypeKey } from '../../../../../lib/game.ts';
+import * as S from '../../../../../lib/season.ts';
+import * as C from '../../../../../lib/club.ts';
+import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, type ClubTypeKey } from '../../../../../lib/game.ts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string; action: string }> };
+
+const FX_SELECT = `SELECT f.id, f.matchday, f.day, f.comp, f.round, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.home_id, f.away_id, f.winner_id, f.live_from,
+  h.name AS home, h.short AS hs, h.color1 AS hc, h.color2 AS hc2, h.shape AS hsh, h.emblem AS hem, h.club_type AS ht, h.user_id AS hu,
+  a.name AS away, a.short AS as_, a.color1 AS ac, a.color2 AS ac2, a.shape AS ash, a.emblem AS aem, a.club_type AS at, a.user_id AS au
+  FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id`;
 
 export const GET = handle(async (_req: Request, ctx: Ctx) => {
   const s = await requireUser();
@@ -14,68 +21,99 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
   const lid = Number(id);
   const l = await L.getLeague(lid);
   const club = await one('SELECT * FROM clubs WHERE league_id=$1 AND user_id=$2', [lid, s.uid]);
+  const mustClub = () => { if (!club) fail(403, 'Create your club first.'); return club!; };
 
   if (action === 'overview') {
-    const run = l.status === 'running' ? await L.runDue(lid) : { remaining: 0 };
+    const run = l.status === 'running' ? await S.runDue(lid) : { remaining: 0 };
+    await C.applyTrainings(lid);
     const fresh = await L.getLeague(lid);
-    const table = await L.standings(lid);
+    const table = fresh.status === 'setup' ? [] : await L.standings(lid);
     const win = await L.windowFor(fresh);
-    const mine = club
-      ? await q(
-          `SELECT f.id, f.matchday, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.home_id, f.away_id,
-             h.name AS home, h.short AS hs, h.color1 AS hc, h.club_type AS ht, h.user_id AS hu,
-             a.name AS away, a.short AS as_, a.color1 AS ac, a.club_type AS at, a.user_id AS au
-           FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id
-           WHERE f.league_id=$1 AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.matchday`,
-          [lid, club.id],
-        )
-      : [];
-    const news = await q('SELECT kind, text, created_at FROM news WHERE league_id=$1 ORDER BY id DESC LIMIT 20', [lid]);
+    const mine = club ? await q(`${FX_SELECT} WHERE f.league_id=$1 AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.day`, [lid, club.id]) : [];
+    const newsRows = await q('SELECT kind, text, created_at FROM news WHERE league_id=$1 ORDER BY id DESC LIMIT 20', [lid]);
     const md = await one<{ played: number; total: number }>(
-      `SELECT COUNT(DISTINCT matchday) FILTER (WHERE status='done')::int AS played, COUNT(DISTINCT matchday)::int AS total FROM fixtures WHERE league_id=$1`, [lid]);
-    let squadSize = 0, gks = 0;
+      `SELECT COUNT(DISTINCT matchday) FILTER (WHERE status='done')::int AS played, COUNT(DISTINCT matchday)::int AS total FROM fixtures WHERE league_id=$1 AND comp='league'`, [lid]);
+    let extra: Record<string, unknown> = {};
     if (club) {
-      const r = await one<{ n: number; g: number }>(`SELECT COUNT(*)::int n, COUNT(*) FILTER (WHERE p.pos='GK')::int g FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1`, [club.id]);
-      squadSize = r?.n ?? 0;
-      gks = r?.g ?? 0;
+      const day = await C.nextDay(lid, club.id);
+      const sq = await L.squadOf(club.id, day);
+      const xiFit = sq.slice().sort((a, b) => b.ovr - a.ovr).slice(0, 11);
+      const star = sq.slice().sort((a, b) => (b.ovr + (b.mod || 0)) - (a.ovr + (a.mod || 0)))[0];
+      const stats = star ? await one('SELECT goals, assists, apps FROM pstats WHERE league_id=$1 AND player_id=$2', [lid, star.id]) : null;
+      extra = {
+        squadSize: sq.length, gks: sq.filter((p) => p.nat_pos === 'GK').length,
+        strength: Math.round(xiFit.reduce((a, p) => a + p.ovr, 0) / Math.max(1, xiFit.length)),
+        fitness: Math.round(xiFit.reduce((a, p) => a + Math.min(100, p.fitness + 22), 0) / Math.max(1, xiFit.length)),
+        morale: Math.max(0, Math.min(100, 60 + Math.round(sq.reduce((a, p) => a + (p.mod || 0), 0) * 3) + Math.round((club.board - 60) / 2))),
+        star: star ? { ...L.pub(star), goals: stats?.goals ?? 0, assists: stats?.assists ?? 0 } : null,
+        staff: await C.staffLevels(club.id),
+      };
     }
     const pos = club ? table.findIndex((t) => t.id === club.id) + 1 : 0;
+    const live = mine.filter((f) => f.status === 'live');
     return {
-      league: { id: fresh.id, name: fresh.name, code: fresh.code, pool: fresh.pool, poolName: POOLS[fresh.pool], status: fresh.status, kickoffUtcMin: fresh.kickoff_utc_min, maxClubs: fresh.max_clubs, aiLevel: fresh.ai_level, interval: fresh.interval_min, intervalLabel: L.INTERVALS[fresh.interval_min], isOwner: fresh.owner_id === s.uid },
-      club: club ? { ...club, type: CLUB_TYPES[club.club_type as ClubTypeKey], squadSize, gks, pos, targetPos: CLUB_TYPES[club.club_type as ClubTypeKey].targetPos(fresh.max_clubs) } : null,
-      table, window: win, fixtures: mine, news, matchdays: md, pending: run.remaining, now: new Date().toISOString(),
+      league: { id: fresh.id, name: fresh.name, code: fresh.code, pool: fresh.pool, poolName: POOLS[fresh.pool], cupName: CUP_NAMES[fresh.pool], status: fresh.status, kickoffUtcMin: fresh.kickoff_utc_min, maxClubs: fresh.max_clubs, aiLevel: fresh.ai_level, isOwner: fresh.owner_id === s.uid },
+      club: club ? { ...club, money: Number(club.money), type: CLUB_TYPES[club.club_type as ClubTypeKey], pos, targetPos: CLUB_TYPES[club.club_type as ClubTypeKey].targetPos(fresh.max_clubs), ...extra } : null,
+      table, window: win, fixtures: mine, live, news: newsRows, matchdays: md, pending: run.remaining, now: new Date().toISOString(),
     };
   }
   if (action === 'squad') {
-    if (!club) fail(403, 'Create your club first.');
-    const players = await L.squadOf(club.id);
-    const stats = await q('SELECT * FROM pstats WHERE league_id=$1 AND club_id=$2', [lid, club.id]);
-    const listed = await q('SELECT player_id, id, price FROM listings WHERE seller_id=$1', [club.id]);
+    const c = mustClub();
+    await C.applyTrainings(lid);
+    const day = await C.nextDay(lid, c.id);
+    const players = await L.squadOf(c.id, day);
+    const stats = await q('SELECT * FROM pstats WHERE league_id=$1 AND club_id=$2', [lid, c.id]);
+    const listed = await q('SELECT player_id, id, price FROM listings WHERE seller_id=$1', [c.id]);
     const st = new Map(stats.map((x) => [x.player_id, x]));
     const li = new Map(listed.map((x) => [x.player_id, x]));
-    const md = await one<{ md: number }>(`SELECT COALESCE(MIN(matchday), 999)::int AS md FROM fixtures WHERE league_id=$1 AND status<>'done'`, [lid]);
+    const next = await one(`${FX_SELECT} WHERE f.league_id=$1 AND f.status='scheduled' AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.day LIMIT 1`, [lid, c.id]);
     return {
-      club: { id: club.id, name: club.name, short: club.short, color1: club.color1, color2: club.color2, tactic: club.tactic, lineup: club.lineup, pens: club.pens, assistant: club.assistant, coins: club.coins, money: Number(club.money) },
-      nextMatchday: md?.md ?? 999,
-      players: players.map((p) => ({ ...L.pub(p), fitness: p.fitness, outUntil: p.out_until, outReason: p.out_reason, stats: st.get(p.id) || null, listing: li.get(p.id) || null })),
+      club: { id: c.id, name: c.name, short: c.short, color1: c.color1, color2: c.color2, tactic: c.tactic, lineup: c.lineup, pens: c.pens, assistant: c.assistant, coins: c.coins, money: Number(c.money) },
+      nextDay: day, next,
+      players: players.map((p) => ({ ...L.pub(p), fitness: Math.round(p.fitness), outUntil: p.out_until, outReason: p.out_reason, form: p.mod, formNote: p.mod ? p.form_note : null, stats: st.get(p.id) || null, listing: li.get(p.id) || null })),
     };
   }
-  if (action === 'fixtures') {
-    return q(
-      `SELECT f.id, f.matchday, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.home_id, f.away_id,
-         h.name AS home, h.short AS hs, h.color1 AS hc, a.name AS away, a.short AS as_, a.color1 AS ac
-       FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id WHERE f.league_id=$1 ORDER BY f.matchday, f.id`,
-      [lid],
-    );
-  }
+  if (action === 'fixtures') return q(`${FX_SELECT} WHERE f.league_id=$1 ORDER BY f.day, f.id`, [lid]);
   if (action === 'stats') return L.leaders(lid);
   if (action === 'market') {
     const list = await L.market(lid);
     return { window: await L.windowFor(l), money: club ? Number(club.money) : 0, myClub: club?.id ?? null, listings: list.map((p) => ({ ...L.pub(p), listingId: p.listing_id, price: Number(p.price), seller: p.seller, sellerId: p.seller_id, bot: p.bot, listedAt: p.created_at })) };
   }
   if (action === 'clubs') {
-    return q(`SELECT c.id, c.name, c.short, c.color1, c.color2, c.club_type, c.user_id IS NOT NULL AS human, u.username,
+    return q(`SELECT c.id, c.name, c.short, c.color1, c.color2, c.shape, c.emblem, c.club_type, c.user_id IS NOT NULL AS human, u.username,
       (SELECT COUNT(*)::int FROM squad s WHERE s.club_id=c.id) AS players FROM clubs c LEFT JOIN users u ON u.id=c.user_id WHERE c.league_id=$1 ORDER BY c.id`, [lid]);
+  }
+  if (action === 'scout') {
+    const c = mustClub();
+    const next = await one(`SELECT * FROM fixtures WHERE league_id=$1 AND status='scheduled' AND (home_id=$2 OR away_id=$2) ORDER BY day LIMIT 1`, [lid, c.id]);
+    if (!next) return { opponent: null };
+    const oppId = next.home_id === c.id ? next.away_id : next.home_id;
+    const opp = await one('SELECT id, name, user_id, tactic FROM clubs WHERE id=$1', [oppId]);
+    const hist = await q(`SELECT report->'tactics' AS t, home_id FROM fixtures WHERE league_id=$1 AND status='done' AND (home_id=$2 OR away_id=$2) ORDER BY day DESC LIMIT 3`, [lid, oppId]);
+    const recent = hist.map((h) => (h.t ? h.t[h.home_id === oppId ? 0 : 1] : null)).filter(Boolean);
+    const sq = await L.squadOf(oppId, next.day);
+    const avg = (arr: any[], k: string) => Math.round(arr.reduce((a, p) => a + (p.attrs[k] ?? 60), 0) / Math.max(1, arr.length));
+    const top = (line: string, n: number) => sq.filter((p) => (p.pos === 'GK' ? 'GK' : ['CB', 'LB', 'RB'].includes(p.pos) ? 'DEF' : ['DM', 'CM', 'CAM'].includes(p.pos) ? 'MID' : 'FWD') === line).sort((a, b) => b.ovr - a.ovr).slice(0, n);
+    const fw = top('FWD', 3), df = top('DEF', 4), gk = top('GK', 1);
+    return {
+      opponent: { id: opp!.id, name: opp!.name, human: !!opp!.user_id, recent, ai: !opp!.user_id },
+      stats: { fwdPace: avg(fw, 'Pace'), fwdAir: avg(fw, 'Heading'), defPace: avg(df, 'Pace'), defAir: avg(df, 'Heading'), keeper: avg(gk, 'Reflexes'), strength: Math.round(sq.slice().sort((a, b) => b.ovr - a.ovr).slice(0, 11).reduce((a, p) => a + p.ovr, 0) / 11) },
+    };
+  }
+  if (action === 'training') return C.trainingView(s.uid, lid);
+  if (action === 'condition') return C.conditionView(s.uid, lid);
+  if (action === 'office') return C.officeView(s.uid, lid);
+  if (action === 'paper') return C.paperView(lid, s.uid);
+  if (action === 'cup') {
+    const cup = await S.cupState(lid);
+    const clubs = await q('SELECT id, name, short, color1, color2, shape, emblem, user_id FROM clubs WHERE league_id=$1', [lid]);
+    const fx = await q(`${FX_SELECT} WHERE f.league_id=$1 AND f.comp='cup' ORDER BY f.round, f.id`, [lid]);
+    return { cup, clubs, fixtures: fx, myClub: club?.id ?? null };
+  }
+  if (action === 'awards') {
+    const totw = await q(`SELECT day, data->'totw' AS totw, data->>'label' AS label FROM papers WHERE league_id=$1 AND kind='paper' AND data ? 'totw' ORDER BY day DESC LIMIT 6`, [lid]);
+    const potm = await q(`SELECT day, data FROM papers WHERE league_id=$1 AND kind='potm' ORDER BY day DESC LIMIT 6`, [lid]);
+    return { totw, potm: potm.map((p) => ({ day: p.day, ...p.data })), myClub: club?.id ?? null };
   }
   fail(404, 'Unknown action.');
 });
@@ -87,19 +125,25 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
   const b = await body<any>(req).catch(() => ({}));
   switch (action) {
     case 'club': return L.createClub(s.uid, lid, b);
-    case 'start': return L.startLeague(s.uid, lid);
-    case 'playnow': return L.playNow(s.uid, lid);
+    case 'start': return S.startSeason(s.uid, lid);
     case 'schedule': return L.updateSchedule(s.uid, lid, b);
     case 'pack': {
-      if (!(b.pack in PACKS)) fail(400, 'Unknown pack.');
       const l = await L.getLeague(lid);
       if (l.status !== 'setup' && !(await L.windowFor(l)).open) fail(400, 'Packs open in pre-season and in the mid-season window.');
+      if (b.pack === 'staff') return L.openStaffPack(s.uid, lid);
+      if (!(b.pack in PACKS)) fail(400, 'Unknown pack.');
       return L.openPack(s.uid, lid, b.pack);
     }
     case 'setup': return L.saveSetup(s.uid, lid, b);
     case 'list': return L.listPlayer(s.uid, lid, String(b.playerId), Number(b.price));
     case 'unlist': return L.unlist(s.uid, lid, Number(b.listingId));
     case 'buy': return L.buy(s.uid, lid, Number(b.listingId));
+    case 'train': return C.startTraining(s.uid, lid, b);
+    case 'untrain': return C.cancelTraining(s.uid, lid, Number(b.id));
+    case 'sponsor': return C.chooseSponsor(s.uid, lid, String(b.key));
+    case 'stadium': return C.renameStadium(s.uid, lid, String(b.name));
+    case 'expand': return C.expandStadium(s.uid, lid);
+    case 'comment': return C.postComment(s.uid, lid, b);
   }
   fail(404, 'Unknown action.');
 });

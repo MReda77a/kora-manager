@@ -1,327 +1,583 @@
 'use client';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
-import { api, clock, when } from '../../../lib/client.ts';
-import { FORMATIONS } from '../../../lib/game.ts';
-import { Crest, Icon, Spinner } from '../../../components/ui.tsx';
+import { api, clock } from '../../../lib/client.ts';
+import { FORMATIONS, PRESETS } from '../../../lib/game.ts';
+import { crowd, isMuted, setMuted, thud, whistle } from '../../../lib/sound.ts';
+import { Crest, Spinner, lastName, useToast } from '../../../components/ui.tsx';
 
-// A watched match lasts at most two real minutes at 1x.
-const REAL_SECONDS = 110;
+type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
+const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
+const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45.01 : e.m > 90 ? 89 + (e.m - 90) * 0.15 : e.m);
 
 export default function MatchPage({ params }: { params: Promise<{ fid: string }> }) {
   const { fid } = use(params);
   const [d, setD] = useState<any>(null);
   const [err, setErr] = useState('');
+  const [skip, setSkip] = useState(false);
   const load = () => api(`/api/fixtures/${fid}`).then(setD).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, [fid]);
   useEffect(() => {
-    if (!d || d.fixture.status === 'done') return;
+    load();
+    try { setSkip(new URL(location.href).searchParams.get('skip') === '1'); } catch {}
+  }, [fid]);
+  useEffect(() => {
+    if (!d || d.fixture.status !== 'scheduled') return;
     const ms = new Date(d.fixture.kickoff).getTime() - Date.now();
-    const t = setTimeout(load, ms < 0 ? 1200 : Math.min(ms + 1500, 60_000));
+    const t = setTimeout(load, ms < 0 ? 1500 : Math.min(ms + 1200, 60_000));
     return () => clearTimeout(t);
   }, [d]);
   if (err) return <div className="pad err">{err}</div>;
   if (!d) return <Spinner />;
-  if (d.fixture.status !== 'done' || !d.report) return <PreMatch d={d} />;
-  return <Watch d={d} />;
-}
-
-function TopBar({ d }: { d: any }) {
+  const theme = d.derby ? 'theme-derby' : d.fixture.comp === 'cup' ? 'theme-cup' : '';
   return (
-    <a href={`/l/${d.fixture.leagueId}`} className="row small" style={{ color: '#CFC6F0', fontWeight: 800, position: 'absolute', top: 10, left: 12, zIndex: 5 }}>
-      <Icon name="back" size={18} /> League
-    </a>
+    <div className={theme} style={{ minHeight: '100dvh' }}>
+      {d.fixture.status === 'scheduled' || d.fixture.status === 'playing' || !d.report ? <PreMatch d={d} reload={load} /> : <Watch d={d} setD={setD} skip={skip} />}
+    </div>
   );
 }
 
-function Team({ c, size = 64, align = 'center' }: { c: any; size?: number; align?: 'center' | 'flex-start' | 'flex-end' }) {
+function useNow(ms = 1000) {
+  const [n, setN] = useState(Date.now());
+  useEffect(() => { const i = setInterval(() => setN(Date.now()), ms); return () => clearInterval(i); }, [ms]);
+  return n;
+}
+
+function TeamBlock({ c, size = 60 }: { c: any; size?: number }) {
   return (
-    <div className="col" style={{ alignItems: align, gap: 2, minWidth: 0 }}>
+    <div className="col" style={{ alignItems: 'center', gap: 2, minWidth: 0 }}>
       <Crest c1={c.color1} c2={c.color2} size={size} shape={c.shape} emblem={c.human ? c.emblem : -1} short={c.short} />
-      <span className="lz ellipsis" style={{ fontSize: 18, maxWidth: '100%', color: c.mine ? '#7FE9F7' : undefined }}>{c.name}</span>
-      {c.human ? <span className="tag cyan" style={{ height: 16, fontSize: 9 }}><span>MANAGER</span></span> : <span className="tiny dim">AI club</span>}
+      <span className="lz ellipsis" style={{ fontSize: 19, maxWidth: '100%', color: c.mine ? 'var(--cyan)' : undefined }}>{c.name}</span>
+      <span className="tiny muted">{c.human ? `Manager: ${c.manager}` : 'AI club'}</span>
     </div>
   );
 }
 
-function PreMatch({ d }: { d: any }) {
-  const [, tick] = useState(0);
-  useEffect(() => { const i = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(i); }, []);
-  const gold = d.derby;
+function Back({ d }: { d: any }) {
+  return <a className="back" href={`/l/${d.fixture.leagueId}`} aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3EEFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></a>;
+}
+
+// ---------------------------------------------------------------- before kick-off
+function PreMatch({ d, reload }: { d: any; reload: () => void }) {
+  const now = useNow();
+  const toast = useToast();
+  const kick = new Date(d.fixture.kickoff).getTime();
+  const s = Math.max(0, Math.floor((kick - now) / 1000));
+  const cd = `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   const mine = d.home.mine || d.away.mine;
+  const [text, setText] = useState('');
+  const [tone, setTone] = useState('confident');
+  const title = d.derby ? `THE ${d.home.name.split(' ')[0].toUpperCase()} DERBY` : d.fixture.comp === 'cup' ? d.fixture.roundName : `Matchday ${d.fixture.matchday}`;
+  const post = async () => {
+    try { await api(`/api/leagues/${d.fixture.leagueId}/comment`, { text, tone: d.derby ? tone : undefined }); setText(''); toast.ok('Sent to the matchday paper'); reload(); } catch (e: any) { toast.bad(e.message); }
+  };
+  const tension = d.derby ? 70 + ((d.home.id * 7 + d.away.id * 13) % 25) : 0;
   return (
-    <div style={{ minHeight: '100dvh', position: 'relative', padding: '40px 16px 16px', background: gold ? 'radial-gradient(70% 90% at 50% 0%, rgba(242,193,78,0.3), transparent 70%)' : undefined }}>
-      <TopBar d={d} />
-      <div className="col" style={{ alignItems: 'center', gap: 10 }}>
-        <span className={`tag ${gold ? 'gold' : 'pink'}`}><span>{gold ? 'DERBY DAY · NILE CLASICO' : `Matchday ${d.fixture.matchday}`}</span></span>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16, width: '100%', maxWidth: 640 }}>
-          <Team c={d.home} />
-          <div className="col" style={{ alignItems: 'center', gap: 2 }}>
-            <span className="lz" style={{ fontSize: 40, color: gold ? '#F2C14E' : undefined }}>VS</span>
-            <span className="small muted">{clock(d.fixture.kickoff)}</span>
-            <b className="lz" style={{ fontSize: 20, color: '#7FE9F7' }}>{when(d.fixture.kickoff)}</b>
+    <div style={{ padding: '8px 14px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: '100dvh' }}>
+      <header className="row between" style={{ minHeight: 44 }}>
+        <div className="row" style={{ gap: 12 }}><Back d={d} /><span className="lz" style={{ fontSize: 24, color: d.derby ? '#F2C14E' : undefined }}>{title}</span><span className="small muted" style={{ fontWeight: 700 }}>{d.home.stadium}</span></div>
+        <div className="row" style={{ gap: 8 }}><span className="tiny muted" style={{ fontWeight: 900 }}>KICK-OFF IN</span><span className="lz" style={{ fontSize: 26 }}>{cd}</span></div>
+      </header>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(240px, 300px)', gap: 12, flex: 1 }}>
+        <section className="panel cut" style={{ gap: 14, justifyContent: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16 }}>
+            <TeamBlock c={d.home} size={72} />
+            <div className="col" style={{ alignItems: 'center', gap: 2 }}>
+              <span className="lz" style={{ fontSize: 44, color: d.derby ? '#F2C14E' : undefined }}>VS</span>
+              <span className="small muted">{clock(d.fixture.kickoff)}</span>
+            </div>
+            <TeamBlock c={d.away} size={72} />
           </div>
-          <Team c={d.away} />
-        </div>
-        <div className="small muted">{d.home.stadium}</div>
-        {mine ? (
-          <div className="glass cut pad col" style={{ maxWidth: 520, gap: 8, alignItems: 'center', textAlign: 'center' }}>
-            <div className="small">Set your line-up, game plan, penalty takers and assistant rules before kick-off. The match plays itself at kick-off time; come back to watch it (2 minutes) or skip to the result.</div>
-            <a className={`cta ${gold ? 'gold' : ''}`} href={`/l/${d.fixture.leagueId}`} onClick={() => { try { sessionStorage.setItem(`kora-tab-${d.fixture.leagueId}`, 'tactics'); } catch {} }}><span>Set tactics</span></a>
-          </div>
-        ) : null}
+          {d.derby && (
+            <div className="col" style={{ gap: 4 }}>
+              <div className="row between"><span className="kicker">Tension</span><span className="lz" style={{ fontSize: 24, color: '#F2C14E' }}>{tension}%</span></div>
+              <div style={{ height: 12, background: 'repeating-linear-gradient(135deg, #E0A22E 0 10px, #E8438C 10px 20px)', width: `${tension}%`, transform: 'skewX(-20deg)' }} />
+              <div className="row wrap tiny" style={{ gap: 6, fontWeight: 800 }}><span className="tag" style={{ background: 'rgba(232,67,140,0.3)' }}><span>Cards ×1.5</span></span><span className="tag" style={{ background: 'rgba(242,193,78,0.3)' }}><span>Fans swing ×2</span></span><span className="tag"><span>Form is wilder</span></span></div>
+            </div>
+          )}
+          {d.comments.length > 0 && (
+            <div className="col" style={{ gap: 4 }}>
+              <span className="kicker">From the press room</span>
+              {d.comments.map((c: any, i: number) => <div key={i} className="small" style={{ padding: '4px 10px', borderLeft: `3px solid ${c.club_id === d.home.id ? d.home.color1 : d.away.color1}`, background: 'rgba(0,0,0,0.15)' }}>“{c.text}” <span className="tiny muted">— {c.club}{c.tone ? ` · ${c.tone}` : ''}</span></div>)}
+            </div>
+          )}
+        </section>
+        <section className="col" style={{ gap: 10 }}>
+          {mine ? (
+            <>
+              <a className="cta" href={`/l/${d.fixture.leagueId}?tab=lineup`} style={{ minHeight: 56 }}><span>Set lineup</span></a>
+              <a className="ghost" href={`/l/${d.fixture.leagueId}?tab=tactics`}><span>Tactics, penalties & assistant</span></a>
+              <div className="panel cut" style={{ gap: 6 }}>
+                <span className="kicker">{d.derby ? 'Press conference' : 'Say something to the paper'}</span>
+                {d.derby && <div className="segrow">{(['calm', 'confident', 'provocative'] as const).map((t) => <button key={t} className={`seg ${tone === t ? 'on' : ''}`} onClick={() => setTone(t)}><span>{t[0].toUpperCase() + t.slice(1)}</span></button>)}</div>}
+                {d.derby && <span className="tiny muted">{tone === 'calm' ? 'Calm: no effect.' : tone === 'confident' ? 'Confident: your players +1 tonight.' : 'Provocative: +2, but the game gets dirtier.'}</span>}
+                <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={160} rows={2} placeholder="Your words go in the matchday paper…" style={{ background: 'rgba(10,4,30,0.45)', border: '1px solid rgba(255,255,255,0.12)', color: 'inherit', padding: 8, resize: 'none', font: 'inherit' }} />
+                <button className={`cta small ${d.derby ? 'gold' : ''}`} disabled={text.trim().length < 2} onClick={post}><span>Send to the matchday paper</span></button>
+              </div>
+            </>
+          ) : <div className="panel cut small muted">Comes on at the kick-off time. Open this page then to watch it live.</div>}
+          <span className="tiny muted">The match plays at kick-off whether you watch or not. Watching live lets you change tactics and make subs. If you skip, your assistant follows your rules.</span>
+        </section>
       </div>
+      {toast.node}
     </div>
   );
 }
 
-const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
+// ---------------------------------------------------------------- live / replay
+function hexDist(a: string, b: string) {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) || 0);
+  const [x, y] = [p(a), p(b)];
+  return Math.sqrt(x.reduce((s, v, i) => s + (v - y[i]) ** 2, 0));
+}
+// If both clubs wear similar colours, the away side switches to its second colour (or white).
+function kits(d: any) {
+  const h = d.home.color1;
+  let a = d.away.color1;
+  if (hexDist(h, a) < 90) a = hexDist(h, d.away.color2) >= 90 ? d.away.color2 : hexDist(h, '#F3EEFF') >= 90 ? '#F3EEFF' : '#151018';
+  return { h, a };
+}
 
-type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
-
-function Watch({ d }: { d: any }) {
+function Watch({ d: raw, setD, skip }: { d: any; setD: (x: any) => void; skip: boolean }) {
+  const toast = useToast();
+  const kit = kits(raw);
+  const d = { ...raw, away: { ...raw.away, color1: kit.a } };
   const rep = d.report;
   const events: Ev[] = rep.events;
-  const kickMs = new Date(d.fixture.kickoff).getTime();
-  const liveOffset = (Date.now() - kickMs) / 1000; // seconds since kick-off
-  const isLive = liveOffset >= 0 && liveOffset < REAL_SECONDS;
-  const [phase, setPhase] = useState<'intro' | 'play' | 'ft'>(isLive ? 'play' : 'intro');
-  const [gm, setGm] = useState(isLive ? (liveOffset / REAL_SECONDS) * 90 : 0); // game minute 0..90 (float)
+  const LIVE = d.liveSeconds;
+  const liveFrom = d.fixture.liveFrom ? new Date(d.fixture.liveFrom).getTime() : 0;
+  const clockSkew = useRef(new Date(d.now).getTime() - Date.now()).current;
+  const elapsed = () => (Date.now() + clockSkew - liveFrom) / 1000;
+  const isLiveNow = d.fixture.status !== 'done' && elapsed() < LIVE;
+  const [phase, setPhase] = useState<'intro' | 'play' | 'ft'>(skip ? 'ft' : isLiveNow ? 'play' : 'intro');
+  const [live] = useState(isLiveNow);
+  const [gm, setGm] = useState(isLiveNow ? Math.max(0, (elapsed() / LIVE) * 90) : 0);
   const [speed, setSpeed] = useState(1);
   const [fx, setFx] = useState<Ev | null>(null);
-  const shown = useRef(0);
-  const side = d.home.mine ? 0 : d.away.mine ? 1 : -1;
+  const [panel, setPanel] = useState<null | 'tactic' | 'sub'>(null);
+  const [subOut, setSubOut] = useState<string | null>(null);
+  const [muted, setMute] = useState(isMuted());
+  const shown = useRef(-1);
+  const mineSide: number = d.home.mine ? 0 : d.away.mine ? 1 : -1;
+  const team = (s: number) => (s === 0 ? d.home : d.away);
 
-  // event order: their index in the array; reveal when the clock passes their minute
-  const revealed = useMemo(() => {
-    let k = 0;
-    for (; k < events.length; k++) {
-      const e = events[k];
-      const at = e.type === 'ft' ? 90 : e.type === 'ht' ? 45.01 : e.m > 90 ? 89 + (e.m - 90) * 0.15 : e.m;
-      if (at > gm) break;
-    }
-    return k;
-  }, [gm, events]);
+  const revealed = useMemo(() => { let k = 0; for (; k < events.length; k++) if (evAt(events[k]) > gm) break; return k; }, [gm, events]);
 
+  // clock
   useEffect(() => {
     if (phase !== 'play') return;
-    const step = 0.2; // seconds per tick
-    const i = setInterval(() => setGm((g) => Math.min(90, g + (90 / REAL_SECONDS) * step * speed)), step * 1000);
+    const step = 0.2;
+    const i = setInterval(() => {
+      if (live) setGm(Math.min(90.6, (elapsed() / LIVE) * 90));
+      else setGm((g) => Math.min(90.6, g + (90 / LIVE) * step * speed));
+    }, step * 1000);
     return () => clearInterval(i);
-  }, [phase, speed]);
-
+  }, [phase, speed, live]);
+  // pick up the other manager's changes while live
+  useEffect(() => {
+    if (!live || phase !== 'play') return;
+    const i = setInterval(async () => { try { const n = await api(`/api/fixtures/${d.fixture.id}`); if (n.report) setD(n); } catch {} }, 6000);
+    return () => clearInterval(i);
+  }, [live, phase]);
+  // events -> animations + sound
   useEffect(() => {
     if (phase !== 'play') return;
+    if (shown.current < 0) { shown.current = revealed; whistle(1); crowd('murmur'); return; }
     if (revealed > shown.current) {
       const fresh = events.slice(shown.current, revealed);
       shown.current = revealed;
-      const big = [...fresh].reverse().find((e) => ['goal', 'red', 'penalty', 'penmiss', 'injury', 'yellow', 'sub', 'ht', 'save'].includes(e.type));
-      if (big) setFx(big);
+      const pri = ['goal', 'red', 'penalty', 'pens', 'penmiss', 'injury', 'yellow', 'sub', 'save', 'miss', 'tactic', 'ht', 'ft'];
+      const big = [...fresh].sort((a, b) => pri.indexOf(a.type) - pri.indexOf(b.type))[0];
+      if (big && pri.includes(big.type)) {
+        setFx(big);
+        const forMe = mineSide < 0 ? big.side === 0 : big.side === mineSide;
+        if (big.type === 'goal') crowd(forMe ? 'roar' : 'groan');
+        else if (big.type === 'red' || big.type === 'yellow') { whistle(1); thud(); }
+        else if (big.type === 'penalty') { whistle(2); crowd('roar'); }
+        else if (big.type === 'ht') whistle(2);
+        else if (big.type === 'ft') whistle(3);
+        else if (big.type === 'save' || big.type === 'miss') crowd(forMe ? 'groan' : 'murmur');
+        else if (big.type === 'injury') crowd('murmur');
+      }
     }
-    if (gm >= 90) setTimeout(() => setPhase('ft'), 1200);
-  }, [revealed, gm, phase, events]);
-
+    if (gm >= 90.5) { const t = setTimeout(() => setPhase('ft'), 1800); return () => clearTimeout(t); }
+  }, [revealed, gm, phase]);
   useEffect(() => {
     if (!fx) return;
-    const t = setTimeout(() => setFx(null), fx.type === 'goal' ? 2600 : 1600);
+    const t = setTimeout(() => setFx(null), fx.type === 'goal' ? 2700 : fx.type === 'injury' ? 2600 : 1800);
     return () => clearTimeout(t);
   }, [fx]);
 
+  // who is on the pitch right now (for subs)
+  const onPitch = (side: 0 | 1) => {
+    const set = new Set<string>(rep.lineups[side].xi);
+    const bench = new Set<string>(rep.lineups[side].bench);
+    for (const e of events.slice(0, revealed)) {
+      if (e.side !== side) continue;
+      if (e.type === 'sub' && e.pid && e.pid2) { set.delete(e.pid2); set.add(e.pid); bench.delete(e.pid); }
+      if ((e.type === 'red') && e.pid) set.delete(e.pid);
+    }
+    return { on: [...set], bench: [...bench] };
+  };
+  const subsUsed = (side: number) => events.slice(0, revealed).filter((e) => e.side === side && e.type === 'sub').length;
+  const change = async (body: Record<string, unknown>, msg: string) => {
+    try {
+      const r = await api(`/api/fixtures/${d.fixture.id}/change`, body);
+      setD({ ...raw, report: r.report });
+      toast.ok(msg);
+      setPanel(null); setSubOut(null);
+    } catch (e: any) { toast.bad(e.message); }
+  };
+
   const score = [0, 0];
   events.slice(0, phase === 'ft' ? events.length : revealed).forEach((e) => { if (e.type === 'goal') score[e.side]++; });
-  const gold = d.derby;
   const minute = Math.min(90, Math.floor(gm));
+  const canChange = live && mineSide >= 0 && phase === 'play' && gm < 88;
 
   if (phase === 'intro') {
     return (
-      <div style={{ minHeight: '100dvh', position: 'relative', padding: '40px 16px 16px', background: gold ? 'radial-gradient(70% 90% at 50% 0%, rgba(242,193,78,0.3), transparent 70%)' : undefined }}>
-        <TopBar d={d} />
-        <div className="col" style={{ alignItems: 'center', gap: 14 }}>
-          <span className={`tag ${gold ? 'gold' : 'pink'}`}><span>{gold ? 'DERBY DAY' : `Matchday ${d.fixture.matchday}`} · Full time</span></span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16, width: '100%', maxWidth: 640 }}>
-            <Team c={d.home} /><span className="lz" style={{ fontSize: 40 }}>VS</span><Team c={d.away} />
-          </div>
-          <div className="row">
-            <button className={`cta shine ${gold ? 'gold' : ''}`} onClick={() => setPhase('play')}><span className="row" style={{ gap: 6 }}><Icon name="play" size={16} />Watch (2 min)</span></button>
-            <button className="ghost" onClick={() => { setGm(90); setPhase('ft'); }}><span>Skip to result</span></button>
-          </div>
-          <div className="tiny muted">No spoilers: the score stays hidden until you watch or skip.</div>
+      <div style={{ padding: '8px 14px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <header className="row" style={{ gap: 12 }}><Back d={d} /><span className="lz" style={{ fontSize: 22 }}>{d.derby ? 'DERBY' : d.fixture.comp === 'cup' ? d.fixture.roundName : `Matchday ${d.fixture.matchday}`}</span><span className="tag"><span>Full time</span></span></header>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16, width: '100%', maxWidth: 640, margin: '20px auto 0' }}>
+          <TeamBlock c={d.home} size={76} /><span className="lz" style={{ fontSize: 44 }}>VS</span><TeamBlock c={d.away} size={76} />
         </div>
+        <div className="row center" style={{ gap: 12 }}>
+          <button className="cta shine" style={{ minHeight: 56, minWidth: 200 }} onClick={() => setPhase('play')}><span>Watch (2 min)</span></button>
+          <button className="ghost" style={{ minHeight: 56 }} onClick={() => setPhase('ft')}><span>Skip to result</span></button>
+        </div>
+        <span className="tiny muted" style={{ textAlign: 'center' }}>No spoilers: the score stays hidden until you watch or skip.</span>
       </div>
     );
   }
-  if (phase === 'ft') return <FullTime d={d} />;
+  if (phase === 'ft') return <FullTime d={d} skipped={skip} />;
 
+  // momentum: shots and goals in the last 12 minutes
+  const recent = events.slice(0, revealed).filter((e) => e.m > minute - 12);
+  const w = (s: number) => recent.filter((e) => e.side === s && ['goal', 'save', 'miss', 'penalty'].includes(e.type)).length * 10 + rep.stats.poss[s] / 4;
+  const mom = Math.round((w(0) / Math.max(1, w(0) + w(1))) * 100);
+  const lastEv = events[Math.max(0, revealed - 1)];
+  const { on, bench } = mineSide >= 0 ? onPitch(mineSide as 0 | 1) : { on: [], bench: [] };
+  const homeBig = mineSide !== 1;
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', padding: '8px 12px', gap: 8, position: 'relative', overflow: 'hidden' }}>
-      <div className="row" style={{ gap: 10 }}>
-        <a href={`/l/${d.fixture.leagueId}`} aria-label="Back"><Icon name="back" size={20} color="#CFC6F0" /></a>
-        <div className="glass row grow" style={{ padding: '4px 12px', gap: 10, background: gold ? 'linear-gradient(90deg, rgba(242,193,78,0.25), rgba(242,193,78,0.06))' : undefined }}>
-          <Crest c1={d.home.color1} c2={d.home.color2} size={26} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} />
-          <b className="ellipsis grow" style={{ textAlign: 'right' }}>{d.home.name}</b>
-          <span className="lz" style={{ fontSize: 30, minWidth: 74, textAlign: 'center', color: gold ? '#F2C14E' : undefined }}>{score[0]} – {score[1]}</span>
-          <b className="ellipsis grow">{d.away.name}</b>
-          <Crest c1={d.away.color1} c2={d.away.color2} size={26} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', padding: '6px 12px 8px', gap: 6, position: 'relative', overflow: 'hidden' }}>
+      <header className="row between" style={{ gap: 10 }}>
+        <Back d={d} />
+        <div className="row" style={{ gap: 10, minWidth: 0 }}>
+          <Crest c1={d.home.color1} c2={d.home.color2} size={30} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} />
+          <b className="lz ellipsis" style={{ fontSize: 19, maxWidth: 170 }}>{d.home.name}</b>
+          <div className="col" style={{ alignItems: 'center', gap: 0 }}>
+            <span className="lz" style={{ fontSize: 34, lineHeight: 1 }}>{score[0]} – {score[1]}</span>
+            <span className="tiny" style={{ color: live ? '#FF6B7A' : 'var(--cyan)', fontWeight: 900 }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))}</span>
+          </div>
+          <b className="lz ellipsis" style={{ fontSize: 19, maxWidth: 170 }}>{d.away.name}</b>
+          <Crest c1={d.away.color1} c2={d.away.color2} size={30} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />
         </div>
-        <span className="lz" style={{ fontSize: 22, width: 46, textAlign: 'center', color: '#7FE9F7' }}>{minute}&apos;</span>
+        <div className="row" style={{ gap: 4 }}>
+          {!live && [1, 2, 4].map((s) => <button key={s} className={`seg ${speed === s ? 'on' : ''}`} onClick={() => setSpeed(s)}><span>{s}x</span></button>)}
+          <button className="seg" onClick={() => { setMuted(!muted); setMute(!muted); }} aria-label="Sound"><span>{muted ? '🔇' : '🔊'}</span></button>
+        </div>
+      </header>
+      <div className="row tiny" style={{ gap: 8, fontWeight: 900 }}>
+        <span style={{ color: '#F29BC2' }}>Momentum {mom}%</span>
+        <div style={{ flex: 1, height: 7, background: d.away.color1, transform: 'skewX(-20deg)' }}><i style={{ display: 'block', height: '100%', width: `${mom}%`, background: `linear-gradient(90deg, ${d.home.color1}, #EE7650)`, transition: 'width .8s' }} /></div>
+        <span>{100 - mom}%</span>
       </div>
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(190px, 240px)', gap: 10 }}>
-        <Pitch d={d} gm={gm} events={events} revealed={revealed} />
-        <div className="glass col" style={{ padding: 8, gap: 4, overflowY: 'auto', minHeight: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(170px, 240px) minmax(0, 1fr)', gap: 10 }}>
+        <section className="panel" style={{ padding: 8, gap: 4, overflowY: 'auto', minHeight: 0 }}>
+          <span className="kicker">Live commentary</span>
           {events.slice(0, revealed).slice().reverse().map((e, i) => (
-            <div key={revealed - i} className="row tiny" style={{ gap: 6, alignItems: 'flex-start', animation: i === 0 ? 'slidein .4s both' : undefined, color: e.type === 'goal' ? '#F3EEFF' : '#CFC6F0', fontWeight: e.type === 'goal' ? 900 : 700 }}>
-              <b style={{ width: 34, color: '#7FE9F7', flex: 'none' }}>{fmtMin(e.m)}</b>
-              <span style={{ width: 8, height: 8, marginTop: 4, flex: 'none', background: ['kickoff', 'ht', 'ft'].includes(e.type) ? '#F3EEFF' : e.side === 0 ? d.home.color1 : d.away.color1 }} />
+            <div key={revealed - i} className="row small" style={{ gap: 8, alignItems: 'flex-start', animation: i === 0 ? 'slidein .4s both' : undefined, fontWeight: e.type === 'goal' ? 900 : 700, color: e.type === 'goal' ? '#F3EEFF' : '#CFC6F0' }}>
+              <b style={{ width: 34, flex: 'none', color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>
               <span>{e.text}</span>
             </div>
           ))}
+        </section>
+        <section className="field" style={{ position: 'relative', minHeight: 180, animation: fx && (fx.type === 'red' || (fx.type === 'goal' && fx.side !== mineSide && mineSide >= 0)) ? 'shake .5s ease' : fx?.type === 'goal' ? 'beat .6s ease' : undefined }}>
+          <Crowd color={team(homeBig ? 0 : 1).color1} alt={team(homeBig ? 1 : 0).color1} top loud={!!fx && ['goal', 'penalty'].includes(fx.type)} />
+          <Crowd color={d.home.color1} alt={d.away.color1} loud={!!fx && ['goal', 'penalty'].includes(fx.type)} />
+          <div className="ln" style={{ inset: '26px 10px' }} />
+          <div className="ln" style={{ top: 26, bottom: 26, left: '50%', width: 0, borderWidth: '0 0 0 1.5px' }} />
+          <div className="ln" style={{ left: '50%', top: '50%', width: 56, height: 56, margin: '-28px 0 0 -28px', borderRadius: '50%' }} />
+          <div className="ln" style={{ left: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderLeft: 'none' }} />
+          <div className="ln" style={{ right: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderRight: 'none' }} />
+          <Dots d={d} gm={gm} events={events} revealed={revealed} />
+          {lastEv && <span className="tiny ellipsis" style={{ position: 'absolute', left: 14, top: 30, background: 'rgba(14,8,40,0.85)', padding: '3px 10px', fontWeight: 900, color: lastEv.side === 0 ? '#F29BC2' : '#B5F3FB', zIndex: 3, maxWidth: '70%' }}>{team(lastEv.side).name} · {lastEv.text}</span>}
+          {fx && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
+        </section>
+      </div>
+      <div className="row" style={{ gap: 6, minHeight: 44 }}>
+        {canChange ? (
+          <>
+            <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ mentality: 2, press: 2 }, 'All out attack!')}><span>All-out attack</span></button>
+            <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ mentality: 0, line: 0, press: 0 }, 'Park the bus')}><span>Park the bus</span></button>
+            <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ press: 3 }, 'High press on')}><span>High press</span></button>
+            <button className={`seg ${panel === 'tactic' ? 'on' : ''}`} style={{ minHeight: 40 }} onClick={() => setPanel(panel === 'tactic' ? null : 'tactic')}><span>Game plan</span></button>
+            <button className={`seg ${panel === 'sub' ? 'on' : ''}`} style={{ minHeight: 40 }} disabled={subsUsed(mineSide) >= 5} onClick={() => setPanel(panel === 'sub' ? null : 'sub')}><span>Substitution ({5 - subsUsed(mineSide)})</span></button>
+          </>
+        ) : (
+          <span className="small" style={{ fontWeight: 800 }}><b style={{ color: 'var(--cyan)' }}>{lastEv ? fmtMin(lastEv.m) : ''}</b> {lastEv?.text}</span>
+        )}
+        <button className="ghost" style={{ marginLeft: 'auto' }} onClick={() => setPhase('ft')}><span>{live ? 'Skip to result' : 'Skip'}</span></button>
+      </div>
+      {panel === 'tactic' && (
+        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {Object.keys(PRESETS).map((p) => <button key={p} className="seg" style={{ minHeight: 36 }} onClick={() => change({ preset: p }, `Switched to ${p}`)}><span>{p}</span></button>)}
         </div>
-      </div>
-      <div className="row between">
-        <div className="row">{[1, 2, 4].map((s) => <button key={s} className={`chip ${speed === s ? 'on' : ''}`} onClick={() => setSpeed(s)}><span>{s}x</span></button>)}</div>
-        <span className="tiny muted">{isLive ? 'LIVE · in sync with kick-off' : 'Replay'} · your assistant handles subs and changes</span>
-        <button className="ghost" onClick={() => { setGm(90); setPhase('ft'); }}><span>Skip</span></button>
-      </div>
-      {fx && <FxOverlay e={fx} d={d} mineSide={side} />}
+      )}
+      {panel === 'sub' && (
+        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, gap: 6 }}>
+          <span className="kicker">{subOut ? 'Who comes on?' : 'Who comes off?'}</span>
+          <div className="row wrap" style={{ gap: 6 }}>
+            {(subOut ? bench : on).map((id) => {
+              const p = d.names[id];
+              return <button key={id} className={`bench ${subOut === id ? 'sel' : ''}`} style={{ width: 84 }} onClick={() => (subOut ? change({ kind: 'sub', out: subOut, in: id }, `${lastName(p?.name || '')} comes on`) : setSubOut(id))}><b>{p?.ovr ?? ''}</b><small>{lastName(p?.name || '?')} · {p?.pos}</small></button>;
+            })}
+          </div>
+          {subOut && <button className="tiny muted" onClick={() => setSubOut(null)}>‹ choose another player</button>}
+        </div>
+      )}
+      {toast.node}
     </div>
   );
 }
 
-function FxOverlay({ e, d, mineSide }: { e: Ev; d: any; mineSide: number }) {
-  const team = e.side === 0 ? d.home : d.away;
-  let title = '', color = '#F3EEFF', bg = 'rgba(10,4,30,0.55)';
-  if (e.type === 'goal') {
-    const forMe = mineSide === e.side, againstMe = mineSide >= 0 && mineSide !== e.side;
-    title = 'GOAL!';
-    color = againstMe ? '#FF9AA8' : '#F2C14E';
-    bg = forMe ? 'radial-gradient(circle, rgba(242,193,78,0.45), rgba(10,4,30,0.6))' : againstMe ? 'radial-gradient(circle, rgba(255,107,122,0.35), rgba(10,4,30,0.65))' : 'radial-gradient(circle, rgba(232,67,140,0.4), rgba(10,4,30,0.6))';
-  } else if (e.type === 'red') { title = 'RED CARD'; color = '#FF6B7A'; }
-  else if (e.type === 'yellow') { title = 'YELLOW CARD'; color = '#F2C14E'; }
-  else if (e.type === 'penalty') { title = 'PENALTY!'; color = '#7FE9F7'; }
-  else if (e.type === 'penmiss') { title = 'NO GOAL'; color = '#CFC6F0'; }
-  else if (e.type === 'injury') { title = 'INJURY'; color = '#FF9AA8'; }
-  else if (e.type === 'sub') { title = 'SUBSTITUTION'; color = '#7CE3A1'; }
-  else if (e.type === 'save') { title = 'WHAT A SAVE'; color = '#7FE9F7'; }
-  else if (e.type === 'ht') { title = 'HALF-TIME'; color = '#F3EEFF'; }
-  const small = ['yellow', 'sub', 'save', 'injury'].includes(e.type);
+function Crowd({ color, alt, top, loud }: { color: string; alt: string; top?: boolean; loud: boolean }) {
   return (
-    <div style={{ position: 'absolute', inset: small ? 'auto 0 56px 0' : 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', background: small ? undefined : bg, animation: 'flash 2.6s both' }}>
-      <div className="col" style={{ alignItems: 'center', gap: 4, animation: 'pop .5s both', padding: small ? '6px 18px' : 0, background: small ? 'rgba(10,4,30,0.8)' : undefined }}>
-        {e.type === 'yellow' || e.type === 'red' ? <div style={{ width: small ? 18 : 46, height: small ? 26 : 64, background: e.type === 'red' ? '#FF4757' : '#F2C14E', transform: 'rotate(-8deg)', borderRadius: 3 }} /> : null}
-        <span className="lz" style={{ fontSize: small ? 22 : 72, color, textShadow: '0 4px 24px rgba(0,0,0,0.5)', lineHeight: 1 }}>{title}</span>
-        <span className="small" style={{ fontWeight: 800, textAlign: 'center' }}>{e.text}</span>
-        {e.type === 'goal' && <span className="tiny" style={{ color: '#CFC6F0' }}>{team.name} · the crowd goes wild</span>}
-      </div>
+    <div className="crowd" style={top ? { top: 0 } : { bottom: 0, alignItems: 'flex-start' }}>
+      {Array.from({ length: 40 }, (_, i) => (
+        <i key={i} style={{ background: (i * 7 + (top ? 1 : 3)) % 5 === 0 ? alt : color, opacity: loud ? 1 : 0.7, animation: `${loud ? 'bobBig 0.35s' : 'bob 1.4s'} ease-in-out ${((i * 0.07) % 0.7).toFixed(2)}s infinite` }} />
+      ))}
     </div>
   );
 }
 
 // Moving dots: both teams shift with an imaginary ball that leans toward whoever attacks next.
-function Pitch({ d, gm, events, revealed }: { d: any; gm: number; events: Ev[]; revealed: number }) {
+function Dots({ d, gm, events, revealed }: { d: any; gm: number; events: Ev[]; revealed: number }) {
   const rep = d.report;
   const fh = FORMATIONS[rep.lineups?.[0]?.formation || '4-3-3'];
   const fa = FORMATIONS[rep.lineups?.[1]?.formation || '4-3-3'];
   const next = events.slice(revealed).find((e) => ['goal', 'save', 'miss', 'penalty', 'penmiss'].includes(e.type));
   const t = gm * 7.3;
-  let push = Math.sin(t * 0.21) * 0.45 + Math.sin(t * 0.077) * 0.35; // -1 home deep .. +1 home attacking
+  let push = Math.sin(t * 0.21) * 0.45 + Math.sin(t * 0.077) * 0.35;
   if (next && next.m - gm < 2.2 && next.m >= gm) push = next.side === 0 ? 0.95 : -0.95;
   const bx = 50 + push * 38 + Math.sin(t * 0.9) * 4;
-  const by = 50 + Math.sin(t * 0.53) * 28 + Math.cos(t * 0.31) * 8;
+  const by = 50 + Math.sin(t * 0.53) * 24 + Math.cos(t * 0.31) * 6;
   const dot = (x: number, y: number, c: string, k: string, ring: string) => (
-    <span key={k} style={{ position: 'absolute', left: `${x}%`, top: `${y}%`, width: 14, height: 14, marginLeft: -7, marginTop: -7, borderRadius: '50%', background: c, boxShadow: `0 0 0 2px ${ring}`, transition: 'left .25s linear, top .25s linear' }} />
+    <span key={k} style={{ position: 'absolute', left: `${x}%`, top: `${y}%`, width: 13, height: 13, marginLeft: -6.5, marginTop: -6.5, borderRadius: '50%', background: c, boxShadow: `0 0 0 2px ${ring}`, transition: 'left .25s linear, top .25s linear', zIndex: 2 }} />
   );
+  const clampY = (y: number) => Math.max(14, Math.min(86, y));
   return (
-    <div className="pitch" style={{ width: '100%', height: '100%', minHeight: 160 }}>
-      <div className="box" style={{ left: 0, borderLeft: 'none' }} />
-      <div className="box" style={{ right: 0, borderRight: 'none' }} />
-      {fh.xy.map(([x, y], i) => {
-        const shift = i === 0 ? 0 : push * 14 + (bx - 50) * 0.08;
-        const yy = y + (by - y) * (i === 0 ? 0.05 : 0.12) + Math.sin(t * 0.4 + i) * 1.5;
-        return dot(Math.max(3, Math.min(97, x * 0.9 + 3 + shift)), yy, d.home.color1, `h${i}`, '#F3EEFF');
-      })}
-      {fa.xy.map(([x, y], i) => {
-        const shift = i === 0 ? 0 : push * 14 + (bx - 50) * 0.08;
-        const yy = 100 - y + (by - (100 - y)) * (i === 0 ? 0.05 : 0.12) + Math.cos(t * 0.4 + i) * 1.5;
-        return dot(Math.max(3, Math.min(97, 100 - (x * 0.9 + 3) + shift)), yy, d.away.color1, `a${i}`, '#151018');
-      })}
-      <span style={{ position: 'absolute', left: `${bx}%`, top: `${by}%`, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff', transition: 'left .2s linear, top .2s linear' }} />
-    </div>
+    <>
+      {fh.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, x * 0.9 + 3 + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(y + (by - y) * (i ? 0.12 : 0.05) + Math.sin(t * 0.4 + i) * 1.5), d.home.color1, `h${i}`, '#F3EEFF'))}
+      {fa.xy.map(([x, y], i) => dot(Math.max(3, Math.min(97, 100 - (x * 0.9 + 3) + (i ? push * 14 + (bx - 50) * 0.08 : 0))), clampY(100 - y + (by - (100 - y)) * (i ? 0.12 : 0.05) + Math.cos(t * 0.4 + i) * 1.5), d.away.color1, `a${i}`, '#151018'))}
+      <span style={{ position: 'absolute', left: `${bx}%`, top: `${clampY(by)}%`, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff', transition: 'left .2s linear, top .2s linear', zIndex: 3 }} />
+    </>
   );
 }
 
-function FullTime({ d }: { d: any }) {
+function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number; names: any }) {
+  const team = e.side === 0 ? d.home : d.away;
+  const forMe = mineSide < 0 ? true : e.side === mineSide;
+  const who = (id?: string) => (id ? names[id]?.name || '' : '');
+  const conf = ['#FFE48A', '#E8438C', '#7FE9F7', '#F3EEFF', '#7CE3A1'];
+  const minute = fmtMin(e.m);
+  if (e.type === 'goal' && forMe) {
+    return (
+      <div className="ov" style={{ animation: 'flashP 1s ease-out forwards' }}>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', width: 600, height: 600, borderRadius: '50%', background: 'repeating-conic-gradient(rgba(255,228,138,0.25) 0deg 8deg, transparent 8deg 22deg)', animation: 'spin 6s linear infinite', WebkitMask: 'radial-gradient(circle, #000 0 15%, transparent 60%)', mask: 'radial-gradient(circle, #000 0 15%, transparent 60%)' }} />
+        <span className="big" style={{ fontSize: 'min(92px, 18vw)', color: '#FFE48A', textShadow: `0 4px 0 ${team.color1}, 0 0 30px rgba(255,228,138,0.8)`, animation: 'boom 0.8s cubic-bezier(.3,1.4,.5,1) both' }}>GOAL!</span>
+        <span style={{ fontSize: 16, fontWeight: 900, animation: 'fadeUp .4s .5s both' }}>{who(e.pid)} · {minute}</span>
+        <span className="tiny" style={{ fontWeight: 800, animation: 'fadeUp .4s .7s both' }}>{team.name}{e.pid2 ? ` · assist ${lastName(who(e.pid2))}` : ''}</span>
+        {Array.from({ length: 24 }).map((_, i) => <span key={i} className="conf" style={{ left: `${(i * 37) % 100}%`, background: conf[i % 5], animationDelay: `${((i * 0.06) % 0.8).toFixed(2)}s` }} />)}
+      </div>
+    );
+  }
+  if (e.type === 'goal') {
+    return (
+      <div className="ov" style={{ background: 'rgba(10,4,20,0.55)', animation: 'vign 1.6s ease-out forwards' }}>
+        <span className="big" style={{ fontSize: 70, color: '#8A7FB8', animation: 'shake .6s ease both' }}>GOAL</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: '#CFC6F0', animation: 'fadeUp .4s .4s both' }}>{who(e.pid)} scores for {team.name}</span>
+        <span className="tiny" style={{ fontWeight: 700, color: '#F29BC2', animation: 'fadeUp .4s .7s both' }}>Momentum swings to them</span>
+      </div>
+    );
+  }
+  if (e.type === 'yellow') {
+    return (
+      <div className="ov" style={{ perspective: 600, background: 'rgba(10,4,20,0.35)' }}>
+        <div style={{ width: 70, height: 96, background: 'linear-gradient(135deg,#FFE86B,#F2C14E)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,0.5)', animation: 'cardIn .8s cubic-bezier(.3,1.3,.5,1) both' }} />
+        <span className="lz" style={{ fontSize: 26, color: '#FFE86B', animation: 'fadeUp .4s .5s both' }}>Yellow card</span>
+        <span style={{ fontSize: 13, fontWeight: 800, animation: 'fadeUp .4s .7s both' }}>{who(e.pid)} · {team.name}</span>
+      </div>
+    );
+  }
+  if (e.type === 'red') {
+    return (
+      <div className="ov" style={{ animation: 'flashR 1.4s ease-out forwards' }}>
+        <div style={{ width: 80, height: 110, background: 'linear-gradient(135deg,#FF4A5E,#C8142C)', borderRadius: 6, boxShadow: '0 0 40px rgba(255,40,60,0.8)', animation: 'slam .55s cubic-bezier(.3,1.3,.5,1) both' }} />
+        <span className="lz" style={{ fontSize: 30, color: '#FFB3BC', animation: 'shake .5s .4s both' }}>SENT OFF</span>
+        <span style={{ fontSize: 13, fontWeight: 800, animation: 'fadeUp .4s .7s both' }}>{who(e.pid)} · {team.name} down to 10</span>
+      </div>
+    );
+  }
+  if (e.type === 'injury') {
+    return (
+      <div className="ov" style={{ background: 'rgba(10,4,20,0.45)' }}>
+        <div style={{ position: 'relative', width: 70, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ position: 'absolute', inset: 0, border: '3px solid #7CE3A1', borderRadius: '50%', animation: 'ringOut 1.2s ease-out infinite' }} />
+          <svg width="54" height="54" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="4" fill="#F3EEFF" /><path d="M10 6h4v4h4v4h-4v4h-4v-4H6v-4h4z" fill="#1F9D55" /></svg>
+        </div>
+        <span className="lz" style={{ fontSize: 24, color: '#7CE3A1' }}>Injury</span>
+        <span style={{ fontSize: 13, fontWeight: 800 }}>{who(e.pid)} · {team.name}</span>
+        <svg width="70" height="22" viewBox="0 0 70 22" aria-hidden="true" style={{ animation: 'stretcher 2.4s linear both' }}><rect x="4" y="6" width="62" height="6" rx="2" fill="#F3EEFF" /><circle cx="14" cy="17" r="4" fill="#CFC6F0" /><circle cx="56" cy="17" r="4" fill="#CFC6F0" /></svg>
+      </div>
+    );
+  }
+  if (e.type === 'penalty') {
+    return (
+      <div className="ov" style={{ background: 'rgba(10,4,20,0.5)' }}>
+        <span style={{ position: 'absolute', width: 120, height: 120, border: '3px solid #F3EEFF', borderRadius: '50%', animation: 'ringOut .9s ease-out 2' }} />
+        <span className="big" style={{ fontSize: 'min(64px, 13vw)', color: '#F3EEFF', animation: 'zoomIn .9s cubic-bezier(.2,.9,.3,1) both' }}>PENALTY!</span>
+        <svg width="160" height="70" viewBox="0 0 160 70" aria-hidden="true" style={{ animation: 'fadeUp .4s .6s both' }}><path d="M20 10h120v40" fill="none" stroke="#F3EEFF" strokeWidth="3" /><path d="M20 10v40" stroke="#F3EEFF" strokeWidth="3" /><circle cx="80" cy="62" r="5" fill="#F3EEFF" style={{ animation: 'ballUp .7s 1.3s ease-in forwards' }} /></svg>
+        <span style={{ fontSize: 13, fontWeight: 800 }}>{team.name}</span>
+      </div>
+    );
+  }
+  if (e.type === 'penmiss' || e.type === 'save' || e.type === 'miss') {
+    return (
+      <div className="ov" style={{ zIndex: 6, background: 'radial-gradient(circle, rgba(10,4,20,0) 30%, rgba(10,4,20,0.8) 85%)' }}>
+        <span className="big" style={{ fontSize: 48, color: '#F3EEFF', animation: 'beat 1s ease-in-out' }}>{e.type === 'save' ? 'WHAT A SAVE' : e.type === 'penmiss' ? 'NO GOAL!' : 'BIG CHANCE'}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--cyan)' }}>{e.text}</span>
+      </div>
+    );
+  }
+  if (e.type === 'sub') {
+    const p1 = names[e.pid || ''], p2 = names[e.pid2 || ''];
+    return (
+      <div className="ov" style={{ background: 'rgba(10,4,20,0.5)', gap: 10 }}>
+        <span className="lz" style={{ fontSize: 22, color: 'var(--cyan)', animation: 'fadeUp .3s both' }}>Substitution · {team.name}</span>
+        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(232,67,140,0.25)', animation: 'outL .9s .5s ease forwards' }}><span style={{ color: '#FF6B7A', fontWeight: 900 }}>▼ OUT</span><b>{p2?.name}</b><span className="lz" style={{ color: '#CFC6F0' }}>{p2?.ovr}</span></div>
+        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(124,227,161,0.25)', animation: 'inR .7s .7s cubic-bezier(.3,1.3,.5,1) both' }}><span style={{ color: '#7CE3A1', fontWeight: 900 }}>▲ IN</span><b>{p1?.name}</b><span className="lz" style={{ color: '#7CE3A1' }}>{p1?.ovr}</span></div>
+        <span className="tiny" style={{ color: '#CFC6F0', fontWeight: 700 }}>{e.text.startsWith("Manager") ? 'Manager’s decision' : 'Assistant’s decision'}</span>
+      </div>
+    );
+  }
+  if (e.type === 'tactic') {
+    return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="kicker" style={{ color: '#F3EEFF' }}>Change of plan</span><span className="lz" style={{ fontSize: 24, color: 'var(--cyan)', animation: 'fadeUp .5s both', maxWidth: '80%' }}>{e.text}</span></div>;
+  }
+  if (e.type === 'ht' || e.type === 'ft' || e.type === 'pens') {
+    return <div className="ov" style={{ background: 'rgba(10,4,20,0.55)' }}><span className="big" style={{ fontSize: 52, animation: 'zoomIn .8s both' }}>{e.type === 'ht' ? 'HALF-TIME' : e.type === 'pens' ? 'PENALTIES' : 'FULL TIME'}</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------- full time
+function FullTime({ d, skipped }: { d: any; skipped: boolean }) {
   const rep = d.report;
   const s = rep.stats;
   const [hg, ag] = rep.score;
   const mine = d.home.mine ? 0 : d.away.mine ? 1 : -1;
-  const res = mine < 0 ? null : rep.score[mine] > rep.score[1 - mine] ? 'WIN' : rep.score[mine] === rep.score[1 - mine] ? 'DRAW' : 'LOSS';
+  const won = mine >= 0 && (rep.winner !== undefined ? rep.winner === mine : rep.score[mine] > rep.score[1 - mine]);
+  const lost = mine >= 0 && (rep.winner !== undefined ? rep.winner !== mine : rep.score[mine] < rep.score[1 - mine]);
+  const res = mine < 0 ? null : won ? 'WIN' : lost ? 'LOSS' : 'DRAW';
+  useEffect(() => { whistle(3); if (res === 'WIN') setTimeout(() => crowd('roar'), 900); }, []);
   const motm = rep.players.find((p: any) => p.id === rep.motm);
   const name = (id?: string) => (id ? d.names[id]?.name || '' : '');
-  const key = rep.events.filter((e: Ev) => ['goal', 'red', 'penmiss', 'injury', 'sub'].includes(e.type));
+  const key = rep.events.filter((e: Ev) => ['goal', 'red', 'yellow', 'penmiss', 'injury', 'sub', 'tactic'].includes(e.type));
   const bars: [string, number, number, (v: number) => string][] = [
     ['Possession', s.poss[0], s.poss[1], (v) => `${v}%`], ['Shots', s.shots[0], s.shots[1], String], ['On target', s.onTarget[0], s.onTarget[1], String],
-    ['xG', s.xg[0], s.xg[1], (v) => v.toFixed(2)], ['Corners', s.corners[0], s.corners[1], String], ['Yellow cards', s.yellows[0], s.yellows[1], String],
+    ['Expected goals', s.xg[0], s.xg[1], (v) => v.toFixed(2)], ['Corners', s.corners[0], s.corners[1], String], ['Yellow cards', s.yellows[0], s.yellows[1], String],
   ];
-  const ratings = (side: 0 | 1) => rep.players.filter((p: any) => p.side === side && p.mins > 0).sort((a: any, b: any) => b.r - a.r);
+  const icon = (e: Ev) => {
+    const c = e.type === 'goal' ? '#F3EEFF' : e.type === 'yellow' ? '#FFE86B' : e.type === 'red' ? '#FF4A5E' : e.type === 'injury' ? '#7CE3A1' : e.type === 'sub' ? '#7FE9F7' : '#C5B3FF';
+    if (e.type === 'goal') return <span style={{ width: 12, height: 12, borderRadius: '50%', background: c, flex: 'none' }} />;
+    if (e.type === 'yellow' || e.type === 'red') return <span style={{ width: 10, height: 13, background: c, flex: 'none' }} />;
+    if (e.type === 'sub') return <span style={{ color: c, fontWeight: 900, width: 12, flex: 'none' }}>⇅</span>;
+    if (e.type === 'injury') return <span style={{ color: c, fontWeight: 900, width: 12, flex: 'none' }}>✚</span>;
+    return <span style={{ width: 11, height: 11, transform: 'rotate(45deg)', background: c, flex: 'none' }} />;
+  };
+  const isAst = (e: Ev) => (e.type === 'sub' && !e.text.startsWith("Manager")) || (e.type === 'tactic' && !e.text.includes('switch to'));
+  const txt = (e: Ev) => {
+    if (e.type === 'goal') return `${lastName(name(e.pid))} scores · ${countUpTo(rep.events, e)}`;
+    if (e.type === 'sub') return `${lastName(name(e.pid2))} off, ${lastName(name(e.pid))} on`;
+    if (e.type === 'yellow') return `${lastName(name(e.pid))} booked`;
+    if (e.type === 'red') return `${lastName(name(e.pid))} sent off`;
+    if (e.type === 'injury') return `${lastName(name(e.pid))} injured`;
+    return e.text;
+  };
+  const ratings = rep.players.filter((p: any) => p.mins > 0 && (mine < 0 ? p.side === 0 : p.side === mine)).sort((a: any, b: any) => b.r - a.r);
+  const so = rep.shootout;
   return (
-    <div style={{ minHeight: '100dvh', padding: '10px 14px 20px', position: 'relative' }}>
-      <div className="row between">
-        <a href={`/l/${d.fixture.leagueId}`} className="row small" style={{ color: '#CFC6F0', fontWeight: 800 }}><Icon name="back" size={18} /> League</a>
-        <span className={`tag ${d.derby ? 'gold' : res === 'WIN' ? 'green' : res === 'LOSS' ? 'pink' : ''}`}><span>{res ? `FULL TIME · ${res}` : 'FULL TIME'}</span></span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12, margin: '8px auto', maxWidth: 640 }} className="rise">
-        <Team c={d.home} size={52} />
-        <span className="lz" style={{ fontSize: 48, color: d.derby ? '#F2C14E' : undefined, animation: 'pop .6s both' }}>{hg} – {ag}</span>
-        <Team c={d.away} size={52} />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
-        <div className="glass cut pad col" style={{ gap: 4 }}>
-          <span className="tag pink"><span>Key moments</span></span>
+    <div style={{ padding: '8px 14px 16px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative' }}>
+      <header style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
+        <Back d={d} />
+        <div className="row" style={{ justifyContent: 'flex-end', gap: 10, minWidth: 0 }}><span className="lz ellipsis" style={{ fontSize: 22 }}>{d.home.name}</span><Crest c1={d.home.color1} c2={d.home.color2} size={40} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} /></div>
+        <div className="col" style={{ alignItems: 'center', gap: 0 }}>
+          <span className="lz" style={{ fontSize: 46, lineHeight: 1, animation: 'pop .6s both', whiteSpace: 'nowrap' }}>{hg} – {ag}</span>
+          <span className="tiny" style={{ color: '#7CE3A1', fontWeight: 900 }}>{so ? `${rep.winner === 0 ? d.home.name : d.away.name} win ${Math.max(...so.score)}–${Math.min(...so.score)} on penalties` : res ? `FULL TIME · ${res}` : 'FULL TIME'}</span>
+        </div>
+        <div className="row" style={{ gap: 10, minWidth: 0 }}><Crest c1={d.away.color1} c2={d.away.color2} size={40} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} /><span className="lz ellipsis" style={{ fontSize: 22 }}>{d.away.name}</span></div>
+        {skipped ? <span className="tag cyan"><span>SIMULATED · YOU SKIPPED</span></span> : <span />}
+      </header>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.1fr) minmax(200px, 0.9fr)', gap: 10, flex: 1 }}>
+        <section className="panel cut" style={{ gap: 4, overflowY: 'auto', maxHeight: 330 }}>
+          <span className="kicker">What happened · <span style={{ color: 'var(--cyan)' }}>AST</span> = your assistant</span>
           {key.length === 0 && <span className="small muted">A quiet one.</span>}
           {key.map((e: Ev, i: number) => (
-            <div key={i} className="row tiny" style={{ gap: 6, justifyContent: e.side === 0 ? 'flex-start' : 'flex-end', textAlign: e.side === 0 ? 'left' : 'right' }}>
-              {e.side === 0 && <b style={{ color: '#7FE9F7' }}>{fmtMin(e.m)}</b>}
-              <span className="ellipsis">{e.type === 'goal' ? '⚽ ' : e.type === 'red' ? '🟥 ' : e.type === 'sub' ? '⇄ ' : e.type === 'injury' ? '✚ ' : '✗ '}{e.type === 'goal' ? name(e.pid) : e.type === 'sub' ? `${name(e.pid)} for ${name(e.pid2)}` : name(e.pid)}{e.type === 'sub' && <span className="tag" style={{ height: 14, fontSize: 8, marginLeft: 4 }}><span>AST</span></span>}</span>
-              {e.side === 1 && <b style={{ color: '#7FE9F7' }}>{fmtMin(e.m)}</b>}
+            <div key={i} className="row small" style={{ gap: 8, fontWeight: 800, color: e.type === 'goal' ? (e.side === mine || mine < 0 ? '#7CE3A1' : '#FF9AA8') : undefined }}>
+              <b style={{ width: 38, color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>{icon(e)}<span className="grow ellipsis">{txt(e)} <span className="tiny muted">{e.side === 0 ? d.home.short : d.away.short}</span></span>
+              {isAst(e) && (e.side === mine) && <span className="tag" style={{ height: 16, fontSize: 9, background: 'rgba(127,233,247,0.25)', color: '#7FE9F7' }}><span>AST</span></span>}
             </div>
           ))}
-        </div>
-        <div className="glass cut pad col" style={{ gap: 6 }}>
-          <span className="tag cyan"><span>Stats</span></span>
-          {bars.map(([l, a, b, f]) => (
-            <div key={l} className="col" style={{ gap: 2 }}>
-              <div className="row tiny between"><b>{f(a)}</b><span className="muted">{l}</span><b>{f(b)}</b></div>
-              <div className="row" style={{ gap: 3 }}>
-                <div className="bar" style={{ direction: 'rtl' }}><i style={{ width: `${(a / Math.max(0.01, a + b)) * 100}%`, background: d.home.color1 }} /></div>
-                <div className="bar"><i style={{ width: `${(b / Math.max(0.01, a + b)) * 100}%`, background: d.away.color1 }} /></div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="glass cut pad col" style={{ gap: 4 }}>
-          {motm && (
-            <div className="row" style={{ gap: 8, padding: '4px 8px', background: 'rgba(242,193,78,0.15)' }}>
-              <span className="tag gold"><span>Man of the match</span></span>
-              <b className="grow ellipsis">{name(motm.id)}</b><b className="lz" style={{ fontSize: 20, color: '#F2C14E' }}>{motm.r.toFixed(1)}</b>
+          {so && (
+            <div className="col" style={{ gap: 3, marginTop: 4 }}>
+              {[0, 1].map((side) => (
+                <div key={side} className="row tiny" style={{ gap: 4, fontWeight: 900 }}>
+                  <span style={{ width: 36 }}>{side === 0 ? d.home.short : d.away.short}</span>
+                  {so.kicks.filter((k: any) => k.side === side).map((k: any, i: number) => <span key={i} title={name(k.pid)} style={{ width: 16, height: 16, borderRadius: '50%', display: 'grid', placeItems: 'center', background: k.scored ? '#7CE3A1' : '#FF6B7A', color: '#1B1048', fontSize: 10, animation: `pop .3s ${i * 0.15}s both` }}>{k.scored ? '✓' : '✕'}</span>)}
+                </div>
+              ))}
             </div>
           )}
-          <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
-            {[0, 1].map((sd) => (
-              <div key={sd} className="col grow" style={{ gap: 1, minWidth: 0 }}>
-                <span className="tiny dim">{(sd ? d.away : d.home).short} ratings</span>
-                {ratings(sd as 0 | 1).slice(0, 14).map((p: any) => (
-                  <div key={p.id} className="row tiny" style={{ gap: 4 }}>
-                    <span className="grow ellipsis">{name(p.id).split(' ').slice(-1)[0]}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span>
-                    <b style={{ color: p.r >= 7.5 ? '#7CE3A1' : p.r < 6 ? '#FF9AA8' : undefined }}>{p.r.toFixed(1)}</b>
-                  </div>
-                ))}
+        </section>
+        <section className="panel cut" style={{ gap: 7 }}>
+          <span className="kicker">Match stats</span>
+          {bars.map(([l, a, b, f]) => (
+            <div key={l} className="col" style={{ gap: 2 }}>
+              <div className="row tiny between" style={{ fontWeight: 900 }}><b>{f(a)}</b><span className="muted">{l}</span><b>{f(b)}</b></div>
+              <div className="row" style={{ gap: 3 }}>
+                <div className="bar" style={{ direction: 'rtl' }}><i style={{ width: `${(a / Math.max(0.01, a + b)) * 100}%`, background: '#E8438C' }} /></div>
+                <div className="bar"><i style={{ width: `${(b / Math.max(0.01, a + b)) * 100}%`, background: '#1F9D55' }} /></div>
               </div>
+            </div>
+          ))}
+          <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
+            <a className="ghost grow" href={`/m/${d.fixture.id}`}><span>Watch highlights</span></a>
+            <a className="cta grow" href={`/l/${d.fixture.leagueId}`}><span>Continue</span></a>
+          </div>
+        </section>
+        <section className="col" style={{ gap: 8 }}>
+          {motm && (
+            <div className="panel cut" style={{ gap: 2, background: 'linear-gradient(160deg, rgba(242,193,78,0.2), rgba(242,193,78,0.04))' }}>
+              <div className="row between"><span className="tiny" style={{ fontWeight: 900, color: '#F2C14E' }}>MAN OF THE MATCH</span><span className="lz" style={{ fontSize: 26, color: '#F2C14E' }}>{motm.r.toFixed(1)}</span></div>
+              <b className="lz" style={{ fontSize: 20 }}>{name(motm.id)}</b>
+              <span className="tiny muted">{motm.g ? `${motm.g} goal${motm.g > 1 ? 's' : ''} · ` : ''}{motm.a ? `${motm.a} assist · ` : ''}{motm.side === 0 ? d.home.name : d.away.name}</span>
+            </div>
+          )}
+          <div className="panel cut" style={{ gap: 2 }}>
+            <span className="kicker">{mine >= 0 ? 'Your ratings' : 'Ratings'}</span>
+            {ratings.slice(0, 8).map((p: any) => (
+              <div key={p.id} className="row small between" style={{ fontWeight: 800 }}><span className="ellipsis">{name(p.id)}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span><b style={{ color: p.r >= 7.5 ? '#7CE3A1' : p.r < 6 ? '#FF9AA8' : undefined }}>{p.r.toFixed(1)}</b></div>
             ))}
           </div>
-        </div>
-      </div>
-      <div className="row center" style={{ marginTop: 12 }}>
-        <a className="cta" href={`/l/${d.fixture.leagueId}`}><span>Back to league</span></a>
+          {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'rgba(124,227,161,0.12)', fontWeight: 800, color: '#7CE3A1' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}
+        </section>
       </div>
     </div>
   );
 }
+
+function countUpTo(events: Ev[], upto: Ev) {
+  const s = [0, 0];
+  for (const e of events) { if (e.type === 'goal') s[e.side]++; if (e === upto) break; }
+  return `${s[0]}–${s[1]}`;
+}
+

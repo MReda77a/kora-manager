@@ -4,20 +4,14 @@ A football manager game for phones (landscape). Build a club from packs, set tac
 
 ## What is in this version
 
-- Accounts (username + password)
-- Create a league: player pool (8 leagues), 10/16/20/30 clubs, AI difficulty, match time (every day at a time you pick, every hour, or every 15 minutes for testing)
-- Join with a 6-letter code, create your club (name, short name, stadium, crest, colours, club type)
-- Pack store with 1000 coins: Legend 200, Gold 150, Silver 60, Bronze 25 (always a keeper). Packs only give players from the league's pool and every player has one owner per league
-- Squad, fitness, injuries and suspensions
-- Tactics: 5 formations, 6 game plans, 7 settings, drag-free line-up editor, penalty takers in order, assistant rules
-- Match engine with tactical counters, fatigue, cards, injuries, penalties and assistant subs
-- Watch a match in 2 minutes (1x/2x/4x, skip), live if you open it at kick-off, full-time report with stats, ratings and man of the match
-- Derby (two manager Fan Clubs) in gold
-- Table, fixtures, top scorers, assists, clean sheets, ratings, news feed
-- Transfer market: only listed players; open before matchday 1 and at the halfway break
-- League creator tools: change the match time, play the next matchday now (for testing)
-
-Not in this version yet: cups, training, staff packs, team of the week and player of the month, live in-match decisions, newspaper comments.
+- **Leagues**: 8 player pools, 10/16/20/30 clubs, AI difficulty. Empty places become AI clubs with names from that country.
+- **Fixed daily schedule**: one match day every day at the league's chosen time (home and away league, a knockout cup, a free day at the halfway break). Nobody can play a match early.
+- **Live matches**: a match goes live at kick-off for about 2 minutes. Managers get a kick-off alert (watch or skip), and while watching can change the game plan or make subs; the match is re-simulated from that minute. Skipped matches are run by the assistant. Goal, card, injury, penalty, sub, crowd animations and sounds.
+- **Derby**: two manager Fan Clubs meet in a gold derby with tension, a press conference tone and more cards.
+- **Cup**: single-leg knockout with an animated draw, penalties straight after a draw in the order you set.
+- **Club**: packs (Legend, Gold, Silver, Bronze, Staff), line-up editor, advanced tactics with a scout report, penalties and assistant rules, training (a skill or a new position), squad condition with doctor, physio and coach, office with board, sponsor and squad targets, sponsor deals, fans, stadium name and expansion.
+- **League life**: table, fixtures, stat leaders, a newspaper for every match day with managers' comments, Team of the Week (+2 for 2 days) and Player of the Month (winner +3, sulking nominees −2).
+- **Transfer market**: only listed players, open in pre-season and at the halfway break.
 
 ## Run on your computer
 
@@ -27,7 +21,7 @@ npm run seed      # creates the local database in ./.data and loads the players
 npm run dev
 ```
 
-Open http://localhost:3000. Season test without the browser: `npm run test:league -- ENG 20`
+Open http://localhost:3000. Full season test without the browser: `npm run test:season -- ENG 10`
 
 ## Online on Cloudflare (free)
 

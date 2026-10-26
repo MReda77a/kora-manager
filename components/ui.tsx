@@ -97,9 +97,18 @@ const ICONS: Record<string, string> = {
   stats: 'M5 20V10M10 20V4M15 20v-7M20 20v-11',
   back: 'M15 5l-7 7 7 7',
   play: 'M7 4l13 8-13 8z',
+  lineup: 'M4 4h16v16H4zM12 4v16M8 9h.01M16 9h.01M8 15h.01M16 15h.01',
+  training: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12',
+  condition: 'M3 12h4l2-5 4 10 2-5h6',
+  office: 'M4 21V7l8-4 8 4v14M9 21v-6h6v6M9 10h.01M15 10h.01',
+  cup: 'M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8 21h8M10 17h4',
+  paper: 'M5 4h12v16H7a2 2 0 01-2-2zM17 8h2v10a2 2 0 01-2 2M8 8h6M8 12h6M8 16h4',
+  awards: 'M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19l1-5.8L3.5 9.2l5.9-.9z',
+  players: 'M9 7a3 3 0 106 0 3 3 0 00-6 0M5 21v-2a5 5 0 015-5h4a5 5 0 015 5v2',
+  bell: 'M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20a2 2 0 004 0',
 };
 export function Icon({ name, size = 22, color = 'currentColor' }: { name: string; size?: number; color?: string }) {
-  const filled = ['home', 'squad', 'play'].includes(name);
+  const filled = ['home', 'squad', 'play', 'awards'].includes(name);
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill={filled ? color : 'none'} stroke={filled ? 'none' : color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d={ICONS[name]} />
@@ -120,3 +129,51 @@ export function MiniCard({ p, selected, dim }: { p: P; selected?: boolean; dim?:
     </div>
   );
 }
+
+export function BackHead({ title, sub, onBack, href, right, tag }: { title: string; sub?: React.ReactNode; onBack?: () => void; href?: string; right?: React.ReactNode; tag?: React.ReactNode }) {
+  const arrow = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3EEFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>;
+  return (
+    <header className="row between" style={{ minHeight: 44, flex: 'none', gap: 12 }}>
+      <div className="row" style={{ gap: 12, minWidth: 0 }}>
+        {href ? <a className="back" href={href} aria-label="Back">{arrow}</a> : onBack ? <button className="back" onClick={onBack} aria-label="Back">{arrow}</button> : null}
+        <span className="lz" style={{ fontSize: 24, whiteSpace: 'nowrap', flex: 'none' }}>{title}</span>
+        {tag}
+        {sub && <span className="small muted ellipsis" style={{ fontWeight: 700 }}>{sub}</span>}
+      </div>
+      {right && <div className="row" style={{ gap: 8, flex: 'none' }}>{right}</div>}
+    </header>
+  );
+}
+
+export function Ring({ v, size = 64, color = '#E8438C', track = 'rgba(255,255,255,0.12)', label, font = 22 }: { v: number; size?: number; color?: string; track?: string; label?: React.ReactNode; font?: number }) {
+  const r = size / 2 - 6, c = 2 * Math.PI * r;
+  return (
+    <div className="ring" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth="6" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0, Math.min(1, v / 100)))} transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: 'stroke-dashoffset .8s' }} />
+      </svg>
+      <span style={{ fontSize: font }}>{label ?? Math.round(v)}</span>
+    </div>
+  );
+}
+
+export function Seg<T extends string | number>({ opts, value, onPick, small }: { opts: [T, string][]; value: T; onPick: (v: T) => void; small?: boolean }) {
+  return (
+    <div className="segrow">
+      {opts.map(([v, t]) => (
+        <button key={String(v)} className={`seg ${value === v ? 'on' : ''}`} style={small ? { minHeight: 26, fontSize: 11, padding: '0 8px' } : undefined} onClick={() => onPick(v)}><span>{t}</span></button>
+      ))}
+    </div>
+  );
+}
+
+export function Bar({ v, color = '#7FE9F7', h = 6, max = 100 }: { v: number; color?: string; h?: number; max?: number }) {
+  return <div className="bar" style={{ height: h }}><i style={{ width: `${Math.max(2, Math.min(100, (v / max) * 100))}%`, background: color }} /></div>;
+}
+
+export function Stars({ n }: { n: number }) {
+  return <span className="stars">{'★'.repeat(n)}<span style={{ opacity: 0.25 }}>{'★'.repeat(Math.max(0, 5 - n))}</span></span>;
+}
+
+export const lastName = (n: string) => n.split(' ').slice(-1)[0];

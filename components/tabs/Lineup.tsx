@@ -1,0 +1,147 @@
+'use client';
+import { useEffect, useMemo, useState } from 'react';
+import { api, shirt } from '../../lib/client.ts';
+import { FORMATIONS, LINE, PRESETS, stripDesc, type Tactic } from '../../lib/game.ts';
+import { BackHead, Seg, Spinner, lastName } from '../ui.tsx';
+import type { TabProps } from './types.ts';
+
+export function autoXI(players: any[], formation: string, nextDay: number) {
+  const slots = FORMATIONS[formation].slots;
+  const avail = players.filter((p) => !(p.outUntil >= nextDay));
+  const used = new Set<string>();
+  const xi: string[] = slots.map(() => '');
+  const score = (p: any) => (p.ovr + (p.form || 0)) * (0.6 + 0.4 * Math.min(100, p.fitness + 22) / 100);
+  for (const strict of [true, false]) {
+    slots.forEach((s, i) => {
+      if (xi[i]) return;
+      const best = avail.filter((p) => !used.has(p.id) && (!strict || (LINE[p.pos] || 'MID') === s)).sort((a, b) => score(b) - score(a))[0];
+      if (best) { used.add(best.id); xi[i] = best.id; }
+    });
+  }
+  return xi;
+}
+
+export function useSquad(lid: number) {
+  const [d, setD] = useState<any>(null);
+  const load = () => api(`/api/leagues/${lid}/squad`).then(setD);
+  useEffect(() => { load(); }, [lid]);
+  return { d, load };
+}
+
+export function Pitch({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div className="field" style={{ flex: 1, minHeight: 230, ...style }}>
+      <div className="ln" style={{ inset: 8 }} />
+      <div className="ln" style={{ top: 8, bottom: 8, left: '50%', width: 0, borderWidth: '0 0 0 1.5px' }} />
+      <div className="ln" style={{ left: '50%', top: '50%', width: 64, height: 64, margin: '-32px 0 0 -32px', borderRadius: '50%' }} />
+      <div className="ln" style={{ left: 8, top: '50%', width: 52, height: 120, marginTop: -60, borderLeft: 'none' }} />
+      <div className="ln" style={{ right: 8, top: '50%', width: 52, height: 120, marginTop: -60, borderRight: 'none' }} />
+      {children}
+    </div>
+  );
+}
+
+export default function LineupTab({ lid, toast, go }: TabProps) {
+  const { d } = useSquad(lid);
+  const [t, setT] = useState<Tactic | null>(null);
+  const [xi, setXi] = useState<string[]>([]);
+  const [sel, setSel] = useState<{ kind: 'slot' | 'bench'; v: number | string } | null>(null);
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!d) return;
+    const tac = d.club.tactic?.formation ? d.club.tactic : { preset: 'Wing play', formation: '4-3-3', ...stripDesc(PRESETS['Wing play']) };
+    setT(tac);
+    const saved: string[] = d.club.lineup || [];
+    const ids = new Set(d.players.map((p: any) => p.id));
+    const ok = saved.length === 11 && saved.every((x) => ids.has(x));
+    setXi(ok ? saved : autoXI(d.players, tac.formation, d.nextDay));
+  }, [d]);
+  const byId = useMemo(() => new Map((d?.players || []).map((p: any) => [p.id, p])), [d]);
+  if (!d || !t) return <Spinner />;
+  const F = FORMATIONS[t.formation];
+  const forms = Object.keys(FORMATIONS);
+  const out = (p: any) => p && p.outUntil >= d.nextDay;
+  const bench = d.players.filter((p: any) => !xi.includes(p.id)).sort((a: any, b: any) => Number(out(a)) - Number(out(b)) || b.ovr - a.ovr);
+  const strength = Math.round(xi.map((id) => byId.get(id) as any).filter(Boolean).reduce((a: number, p: any) => a + p.ovr + (p.form || 0) - ((LINE[p.pos] || 'MID') !== F.slots[xi.indexOf(p.id)] ? 6 : 0), 0) / 11);
+  const set = (fn: () => void) => { fn(); setDirty(true); };
+
+  const tapSlot = (i: number) => {
+    if (!sel) return setSel({ kind: 'slot', v: i });
+    if (sel.kind === 'slot') {
+      if (sel.v === i) return setSel(null);
+      set(() => { const n = [...xi]; [n[i], n[sel.v as number]] = [n[sel.v as number], n[i]]; setXi(n); });
+      return setSel(null);
+    }
+    set(() => { const n = [...xi]; n[i] = sel.v as string; setXi(n); });
+    setSel(null);
+  };
+  const tapBench = (id: string) => {
+    if (sel?.kind === 'slot') {
+      set(() => { const n = [...xi]; n[sel.v as number] = id; setXi(n); });
+      return setSel(null);
+    }
+    setSel(sel?.kind === 'bench' && sel.v === id ? null : { kind: 'bench', v: id });
+  };
+  const setF = (dir: number) => set(() => {
+    const f = forms[(forms.indexOf(t.formation) + dir + forms.length) % forms.length];
+    setT({ ...t, formation: f });
+    setXi(autoXI(d.players, f, d.nextDay));
+    setSel(null);
+  });
+  const save = async () => {
+    try { await api(`/api/leagues/${lid}/setup`, { tactic: t, lineup: xi }); setDirty(false); toast.ok('Lineup saved for the next match'); } catch (e: any) { toast.bad(e.message); }
+  };
+  const opp = d.next ? (d.next.home_id === d.club.id ? d.next.away : d.next.home) : null;
+  const hint = sel ? (sel.kind === 'slot' ? 'Tap another player to swap, or a bench player to bring him on' : 'Now tap the player on the pitch to replace') : 'Tap a player to move or replace him';
+  return (
+    <div className="col" style={{ gap: 8, height: '100%' }}>
+      <BackHead title="Lineup" tag={opp ? <span className="tag pink"><span>vs {opp}</span></span> : undefined}
+        right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: '#7FE9F7' }}>{strength}</span></>} />
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
+        <section className="col" style={{ gap: 8, minWidth: 0 }}>
+          <Pitch>
+            {F.xy.map(([x, y], i) => {
+              const p: any = byId.get(xi[i]);
+              const wrong = p && (LINE[p.pos] || 'MID') !== F.slots[i];
+              const on = sel?.kind === 'slot' && sel.v === i;
+              return (
+                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={p?.name || 'Empty'}>
+                  <i>{p ? shirt(p.id, p.natPos || p.pos) : ''}</i>
+                  <b>{p ? p.ovr + (p.form || 0) : '–'}</b>
+                  <small>{p ? (wrong ? `${p.pos}→${F.slots[i]}` : lastName(p.name)) : F.slots[i]}</small>
+                </button>
+              );
+            })}
+          </Pitch>
+          <div className="row" style={{ gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+            <span className="tiny" style={{ width: 40, flex: 'none', color: '#B4A8E0', fontWeight: 800 }}>Bench</span>
+            {bench.map((p: any) => (
+              <button key={p.id} className={`bench ${sel?.kind === 'bench' && sel.v === p.id ? 'sel' : ''}`} style={{ opacity: out(p) ? 0.5 : 1, width: out(p) ? 72 : 58 }} onClick={() => tapBench(p.id)}>
+                <b>{p.ovr + (p.form || 0)}</b><small>{lastName(p.name)}{out(p) ? ` · ${p.outReason === 'Suspended' ? 'Susp.' : 'Injured'}` : ` · ${p.pos}`}</small>
+              </button>
+            ))}
+          </div>
+          <div className="tiny muted">{hint}. Red names play out of position (−6).</div>
+        </section>
+        <section className="panel cut rise" style={{ gap: 9 }}>
+          <div className="row between">
+            <span className="tag"><span>Formation</span></span>
+            <div className="row" style={{ gap: 8 }}>
+              <button onClick={() => setF(-1)} aria-label="Previous formation" style={{ width: 30, height: 30, border: '1px solid rgba(255,255,255,0.25)', fontSize: 16 }}>‹</button>
+              <span className="lz" style={{ fontSize: 22, minWidth: 60, textAlign: 'center' }}>{t.formation}</span>
+              <button onClick={() => setF(1)} aria-label="Next formation" style={{ width: 30, height: 30, border: '1px solid rgba(255,255,255,0.25)', fontSize: 16 }}>›</button>
+            </div>
+          </div>
+          <span className="tiny muted" style={{ fontWeight: 800 }}>Mentality</span>
+          <Seg opts={[[0, 'Defensive'], [1, 'Balanced'], [2, 'Attacking']]} value={t.mentality} onPick={(v) => set(() => setT({ ...t, mentality: v, preset: 'Custom' }))} />
+          <span className="tiny muted" style={{ fontWeight: 800 }}>Pressing</span>
+          <Seg opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => set(() => setT({ ...t, press: v, preset: 'Custom' }))} />
+          <span className="tiny muted" style={{ fontWeight: 800 }}>Passing</span>
+          <Seg opts={[[0, 'Short'], [1, 'Mixed'], [2, 'Long']]} value={t.build} onPick={(v) => set(() => setT({ ...t, build: v, preset: 'Custom' }))} />
+          <button className="ghost" style={{ marginTop: 'auto', borderColor: '#7FE9F7', color: '#7FE9F7' }} onClick={() => go('tactics')}><span>Advanced tactics</span></button>
+          <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty}><span>{dirty ? 'Save lineup' : 'Saved'}</span></button>
+        </section>
+      </div>
+    </div>
+  );
+}

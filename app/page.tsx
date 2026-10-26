@@ -157,7 +157,7 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
 
 function CreateLeague({ onCreated, toast }: { onCreated: (id: number) => void; toast: ReturnType<typeof useToast> }) {
   const [meta, setMeta] = useState<{ pools: Record<string, string>; caps: Record<string, number> } | null>(null);
-  const [f, setF] = useState({ name: '', pool: 'ENG', maxClubs: 16, aiLevel: 2, interval: 1440, time: '18:00' });
+  const [f, setF] = useState({ name: '', pool: 'ENG', maxClubs: 16, aiLevel: 2, time: '18:00' });
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     api('/api/leagues').then(setMeta).catch(() => {});
@@ -167,7 +167,7 @@ function CreateLeague({ onCreated, toast }: { onCreated: (id: number) => void; t
   const go = async () => {
     setBusy(true);
     try {
-      const r = await api('/api/leagues', { name: f.name, pool: f.pool, maxClubs: Math.min(f.maxClubs, cap), aiLevel: f.aiLevel, interval: f.interval, kickoffUtcMin: localToUtcMin(f.time) });
+      const r = await api('/api/leagues', { name: f.name, pool: f.pool, maxClubs: Math.min(f.maxClubs, cap), aiLevel: f.aiLevel, kickoffUtcMin: localToUtcMin(f.time) });
       onCreated(r.id);
     } catch (x: any) {
       toast.bad(x.message);
@@ -203,20 +203,13 @@ function CreateLeague({ onCreated, toast }: { onCreated: (id: number) => void; t
       </div>
       <div className="glass cut pad col" style={{ gap: 12 }}>
         <div className="lz" style={{ fontSize: 22 }}>Match schedule</div>
-        <div className="row wrap">
-          {[[1440, 'Every day'], [60, 'Every hour'], [15, 'Every 15 min (test)']].map(([v, t]) => (
-            <button key={v} className={`chip ${f.interval === v ? 'on' : ''}`} onClick={() => set('interval', v)}><span>{t}</span></button>
-          ))}
-        </div>
-        {f.interval === 1440 && (
-          <label className="col" style={{ gap: 4 }}>
-            <span className="small muted">Kick-off time (your time)</span>
-            <input type="time" value={f.time} onChange={(e) => set('time', e.target.value || '18:00')} style={{ maxWidth: 160, fontSize: 18, fontWeight: 900 }} />
-          </label>
-        )}
+        <label className="col" style={{ gap: 4 }}>
+          <span className="small muted">Every day at (your time)</span>
+          <input type="time" value={f.time} onChange={(e) => set('time', e.target.value || '18:00')} style={{ maxWidth: 170, fontSize: 20, fontWeight: 900 }} />
+        </label>
         <div className="small muted" style={{ lineHeight: 1.5 }}>
-          {f.interval === 1440 ? <>One matchday every day at <b style={{ color: '#F2C14E' }}>{f.time}</b>. Each friend sees it in their own time zone.</> : <>A matchday every {f.interval === 60 ? 'hour' : '15 minutes'}. Good for a quick test.</>}
-          <br />Every club plays home and away. The transfer market opens before matchday 1 and at the halfway break. You can change the time later.
+          One match every day at <b style={{ color: '#F2C14E' }}>{f.time}</b>, for everyone, in their own time zone. Nobody can play a match early, not even you.
+          <br />Home and away league, plus a knockout cup. The transfer market opens before matchday 1 and at the halfway break.
         </div>
         <button className="cta shine" onClick={go} disabled={busy || f.name.trim().length < 3} style={{ marginTop: 'auto' }}><span>Create league</span></button>
       </div>

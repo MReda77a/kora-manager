@@ -8,6 +8,8 @@ import { academyFor, type RawPlayer } from './academy.ts';
 export async function ensureSeeded() {
   const impl = await db();
   for (const stmt of SCHEMA.split(';').map((s) => s.trim()).filter(Boolean)) await impl.q(stmt);
+  // leagues started with the first test version (no day schedule) cannot run on the new season clock
+  await impl.q(`DELETE FROM leagues WHERE status <> 'setup' AND NOT EXISTS (SELECT 1 FROM days d WHERE d.league_id = leagues.id)`);
   const [{ n }] = await impl.q('SELECT COUNT(*)::int AS n FROM players');
   if (n > 0) return n as number;
   const file = path.join(process.cwd(), 'data', 'players.json');

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { runDue } from '../../../lib/league.ts';
+import { runDue } from '../../../lib/season.ts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;

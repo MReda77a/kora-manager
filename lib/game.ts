@@ -75,12 +75,41 @@ export const TACTIC_FIELDS: { key: keyof Tactic; label: string; opts: string[] }
   { key: 'tempo', label: 'Tempo', opts: ['Slow', 'Normal', 'Fast'] },
 ];
 
-export const AI_NAMES = [
-  'Cairo Falcons', 'Aswan Stars', 'Port Said Mariners', 'Luxor Pharaohs', 'Delta Lions', 'Canal Sailors', 'Upper Nile FC', 'Sinai Wolves',
-  'Red Sea Sharks', 'Giza Knights', 'North United', 'Desert Hawks', 'Alexandria Waves', 'Fayoum Oasis', 'Suez Anchors', 'Mansoura Bulls',
-  'Tanta Tigers', 'Minya Royals', 'Sohag Spartans', 'Qena Kings', 'Hurghada Reef', 'Damietta Dolphins', 'Ismailia Eagles', 'Zagazig Rovers',
-  'Beni Suef Bees', 'Matrouh Marlins', 'Dakhla Dunes', 'Siwa Scorpions', 'Helwan Hammers', 'Nasr City Comets',
-];
+// AI clubs get fictional names that fit the chosen country.
+export const AI_NAMES_BY_POOL: Record<string, string[]> = {
+  ENG: ['Kingsbridge United', 'Harrowgate Town', 'Thamesbury FC', 'Northvale Athletic', 'Westmoor Rangers', 'Elmwood City', 'Redcliffe Albion', 'Brackenfield Town', 'Hollowbrook United', 'Stonebridge Wanderers', 'Marlow Heath', 'Fenwick Athletic', 'Oakhurst City', 'Calder Vale', 'Mersey Bay FC', 'Pennine Rovers', 'Wexley Town', 'Ravensworth United', 'Blackmoor Athletic', 'Saxonford City', 'Highfield Rangers', 'Cobham Vale', 'Ironbridge United', 'Linton Albion', 'Moorgate FC', 'Thornbury Town', 'Ashcombe City', 'Kestrel Park FC', 'Riverside Athletic', 'Wolverley United'],
+  ESP: ['Atlético Sierra Norte', 'Real Costa Dorada', 'CD Valle Verde', 'Unión Montealto', 'SD Puerto Azul', 'Racing Las Dunas', 'CF Torre Blanca', 'Deportivo Río Claro', 'UD Serranía', 'Sporting Alameda', 'CD Almenara', 'Atlético Vega Alta', 'Real Peñaroja', 'CF Marisma', 'UD Olivares', 'Club Ciudad Sol', 'CD Faro Viejo', 'Atlético Cumbres', 'Real Bahía Sur', 'SD Castillejo', 'CF Los Pinares', 'UD Campo Norte', 'Racing Ribera', 'CD Montañeros', 'Atlético Arenal', 'Real Navarrete', 'CF Altamira', 'UD Mirador', 'SD Cala Brava', 'CD Robledo'],
+  ITA: ['AC Vesuvio', 'Sporting Valdarno', 'US Lagunare', 'FC Montebello', 'AS Collina', 'Virtus Alpina', 'Pro Tirreno', 'AC Valtellina', 'US Portofino', 'FC Arcobaleno', 'AS Bellavista', 'Polisportiva Etna', 'AC Torrebianca', 'US Marina Alta', 'FC Castelvetro', 'AS Pianura', 'Real Adriatica', 'AC Sangallo', 'US Montefiore', 'FC Lago Verde', 'AS Ponte Vecchio', 'Sporting Monterosso', 'AC Valdoro', 'US Riviera', 'FC San Lupo', 'AS Cervia Nord', 'Virtus Colline', 'AC Dolomiti', 'US Gran Sasso', 'FC Aurora'],
+  GER: ['FC Rheinstadt', 'SV Waldheim', 'Eintracht Nordberg', 'Borussia Talheim', 'SC Elbtal', 'VfR Steinbach', 'TSV Bergland', 'FC Hafenstadt', 'SpVgg Mühlbach', 'Union Ostheim', 'SV Lindenau', 'VfB Rosenfeld', 'Fortuna Kesselberg', 'SC Seetal', 'FC Sonnenberg', 'Alemannia Westerholz', 'TuS Falkenau', 'SV Grünwiese', 'FSV Donaufeld', 'Arminia Kirchberg', 'Rot-Weiss Altdorf', 'SC Moorbach', 'VfL Brückenau', 'FC Eichenhain', 'Germania Nordhafen', 'SV Bergquell', 'TSG Wolfstal', 'Viktoria Adlershorst', 'SC Isarau', 'FC Sternfeld'],
+  FRA: ['Olympique Provence', 'AS Côte Bleue', 'Stade Montclair', 'FC Val de Loire', 'RC Bellerive', 'SC Mont-Blanc', 'US Pays Basque', 'Racing Saint-Aubin', 'AS Rivemont', 'FC Lavande', 'Stade Bretagne Nord', 'Olympique Alpin', 'AS Beaulieu', "FC Côte d'Opale", 'US Gironde', 'RC Vallon', 'Stade Fontaine', 'AS Haut-Rhin', 'FC Bois-Joli', 'Olympique Camargue', 'AS Pointe-Rouge', 'FC Normandie Ouest', 'US Belvédère', 'Stade Lumière', 'RC Mirabeau', 'AS Vieux-Port', 'FC Sainte-Clair', 'SC Ardennes', 'US Cévennes', 'Olympique Rivoli'],
+  KSA: ['Najd Falcons', 'Asir Eagles', 'Hejaz Stars', 'Tabuk Knights', 'Qassim Lions', 'Red Sea United', 'Riyadh Comets', 'Jeddah Mariners', 'Dammam Sharks', 'Hail Hawks', 'Taif Roses', 'Jazan Waves', 'Abha Peaks', 'Khobar Pearls', 'Yanbu Sails', 'Al-Ula Rocks', 'Najran Scorpions', 'Madinah Palms', 'Makkah Crescent', 'Buraidah Dates', 'Al-Ahsa Oasis', 'Jubail Anchors', 'Rafha Desert', 'Sakaka Wolves', 'Baha Mountains', 'Qurayyat Hawks', 'Diriyah Knights', 'Unaizah Stallions', 'Arar Falcons', 'Tayma Stars'],
+  USA: ['Austin Stallions', 'Portland Pines', 'Denver Summit', 'Carolina Tides', 'Ohio Ironmen', 'Phoenix Firebirds', 'Boston Harbors', 'Nashville Notes', 'Tampa Bay Pelicans', 'Sacramento Gold', 'Memphis Blues', 'Detroit Motors', 'Oakland Redwoods', 'Milwaukee Harbor', 'Albuquerque Suns', 'Kansas City Prairie', 'Buffalo Snowbirds', 'Tucson Desert FC', 'Richmond Rebels', 'Omaha Thunder', 'Pittsburgh Steel FC', 'San Diego Surf', 'Las Vegas Neon', 'Baltimore Bay', 'Raleigh Oaks', 'Anchorage Glaciers', 'Honolulu Waves', 'El Paso Rattlers', 'Savannah Sails', 'Boise Peaks'],
+  EGY: ['Cairo Falcons', 'Aswan Stars', 'Port Said Mariners', 'Luxor Pharaohs', 'Delta Lions', 'Canal Sailors', 'Upper Nile FC', 'Sinai Wolves', 'Red Sea Sharks', 'Giza Knights', 'North United', 'Desert Hawks', 'Alexandria Waves', 'Fayoum Oasis', 'Suez Anchors', 'Mansoura Bulls', 'Tanta Tigers', 'Minya Royals', 'Sohag Spartans', 'Qena Kings', 'Hurghada Reef', 'Damietta Dolphins', 'Ismailia Eagles', 'Zagazig Rovers', 'Beni Suef Bees', 'Matrouh Marlins', 'Dakhla Dunes', 'Siwa Scorpions', 'Helwan Hammers', 'Nasr City Comets'],
+};
+export const AI_NAMES = AI_NAMES_BY_POOL.EGY;
+export const CUP_NAMES: Record<string, string> = { ENG: 'The Crown Cup', ESP: 'Copa del Sol', ITA: 'Coppa Aurora', GER: 'Goldpokal', FRA: 'Coupe Lumière', KSA: 'The Desert Cup', USA: 'The Liberty Cup', EGY: 'The Nile Cup' };
+export const PAPER_NAMES: Record<string, string> = { ENG: 'The Morning Whistle', ESP: 'Diario del Gol', ITA: 'Il Corriere del Pallone', GER: 'Der Anstoß', FRA: "Le Coup d'Envoi", KSA: 'The Desert Herald', USA: 'The Daily Kickoff', EGY: 'The Nile Gazette' };
+
+// Staff come from the Staff pack. The best of each role counts.
+export const STAFF_ROLES: Record<string, { name: string; effect: (lvl: number) => string }> = {
+  doctor: { name: 'Club Doctor', effect: (l) => `${l * 8}% fewer injuries, ${Math.min(2, Math.floor(l / 2))} day(s) shorter` },
+  physio: { name: 'Physio', effect: (l) => `+${l * 3}% fitness recovery per day` },
+  coach: { name: 'Coach', effect: (l) => `Training ${l * 10}% faster${l >= 4 ? ', 3 players at once' : ''}` },
+};
+export const STAFF_PACK = { name: 'Staff', price: 80 };
+
+// Sponsor offers, chosen once per season in the Office.
+export const SPONSORS = {
+  safe: { name: 'Safe', perMatch: 0.6, perWin: 0, perGoal: 0, bonus: 0, text: '0.6M every match. No bonuses.' },
+  bonus: { name: 'Bonus', perMatch: 0.25, perWin: 0.5, perGoal: 0.1, bonus: 0, text: '0.25M a match + 0.5M per win + 0.1M per goal' },
+  target: { name: 'Target', perMatch: 0.4, perWin: 0, perGoal: 0, bonus: 9, text: '0.4M a match + 9M if you hit your board target' },
+} as const;
+export type SponsorKey = keyof typeof SPONSORS;
+
+export const TRAINABLE = ['Finishing', 'Passing', 'Crossing', 'Dribbling', 'Pace', 'Heading', 'Tackling', 'Marking', 'Vision', 'Composure', 'Stamina', 'LongShots', 'Reflexes', 'Handling', 'OneOnOne'];
+export const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
+
+export const LIVE_SECONDS = 110; // a watched match lasts this long in real time
 export const AI_COLORS = ['#3651C9', '#1F9D55', '#D9A520', '#2B9FC9', '#7A5BD6', '#C9702B', '#5E6B73', '#B8325A', '#2F8F83', '#8E3BB0'];
 
 export function shortName(name: string) {

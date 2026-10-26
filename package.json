@@ -7,10 +7,10 @@
     "build": "next build",
     "start": "next start",
     "seed": "node --experimental-strip-types scripts/seed.ts",
-    "test:league": "node --experimental-strip-types scripts/test-league.ts",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && wrangler deploy",
-    "run:matches": "node --experimental-strip-types scripts/run-due.ts"
+    "run:matches": "node --experimental-strip-types scripts/run-due.ts",
+    "test:season": "node --experimental-strip-types scripts/test-season.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.11",
