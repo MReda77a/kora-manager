@@ -50,6 +50,8 @@ export type Report = {
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
 // how much a well-suited plan helps: fit runs about -1.5..+1.5, so up to about ±3 on every duel
 export const FIT_WEIGHT = 2.6;
+// the most goals one team can score in a match
+export const MAX_GOALS = 6;
 
 type OnPitch = { p: EPlayer; slot: 'GK' | 'DEF' | 'MID' | 'FWD'; tired: number; yc: number; on: number; line: PlayerLine };
 
@@ -225,6 +227,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const b = (1 - a) as 0 | 1;
     let q = 0.73 * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
     q = Math.min(0.75, Math.max(0.01, q));
+    // a team well ahead takes its foot off the gas, and nobody scores more than six
+    const lead = goals[a] - goals[b];
+    if (lead >= 3) q *= lead >= 4 ? 0.55 : 0.75;
+    if (goals[a] >= MAX_GOALS) q = 0;
     shots[a]++;
     xg[a] += q;
     const onTarget = r.next() < Math.min(0.95, 0.32 + q * 1.6);
@@ -370,7 +376,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const takerId = S[a].s.pens.find((id) => S[a].pitch.some((o) => o.p.id === id));
     const taker = S[a].pitch.find((o) => o.p.id === takerId) || pickScorer(a, 'build-up');
     const skill = S[a].val(taker, 'Finishing') * 0.55 + S[a].val(taker, 'Composure') * 0.45;
-    const p = Math.min(0.92, Math.max(0.55, 0.76 + (skill - 78) * 0.006 - (A(b, 'keeper') - 78) * 0.003));
+    const p = goals[a] >= MAX_GOALS ? 0 : Math.min(0.92, Math.max(0.55, 0.76 + (skill - 78) * 0.006 - (A(b, 'keeper') - 78) * 0.003));
     shots[a]++;
     xg[a] += 0.76;
     shotsList.push({ m: minute, side: a, x: a === 0 ? 88.5 : 11.5, y: 50, xg: 0.76, goal: false, kind: 'penalty' });
