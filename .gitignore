@@ -10,3 +10,4 @@ next-env.d.ts
 .dev.vars
 secrets.json
 wrangler.test.jsonc
+__pycache__/
