@@ -182,8 +182,13 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
               <div className="small muted">{preview.pool} · {preview.clubs}/{preview.max} clubs · {preview.status === 'setup' ? 'pre-season' : 'already started'}</div>
               {preview.status === 'setup' ? (
                 <button type="button" className="cta cyan" onClick={() => router.push(`/l/${preview.id}`)}><span>Create my club here</span></button>
+              ) : preview.status === 'running' ? (
+                <>
+                  <div className="small" style={{ color: '#F2C14E', fontWeight: 700 }}>The season has started: you will take over a random AI club, with its players and its place in the table.</div>
+                  <button type="button" className="cta cyan" onClick={() => router.push(`/l/${preview.id}`)}><span>Take over a club</span></button>
+                </>
               ) : (
-                <div className="err">This league already kicked off.</div>
+                <div className="err">This season is over. Join next season.</div>
               )}
             </div>
           )}

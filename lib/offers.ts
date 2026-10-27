@@ -103,7 +103,8 @@ async function haggle(o: Row, p: Row, v: number, seller: Row, swap: Row | null) 
   if (newAsk <= x * 1.03) return complete(o, Number(o.amount)); // close enough: deal
   const c = Math.round(Math.max(0.1, newAsk - sv) * 10) / 10;
   await q(`UPDATE offers SET status='countered', counter=$2, ask=$3, rounds=$4, updated_at=now() WHERE id=$1`, [o.id, c, newAsk, rounds]);
-  const say = swap ? `would do the swap if you add ${money(c)}` : rounds === 1 ? `say: "${money(c)} and he's yours."` : rounds >= 4 ? `say: "${money(c)}. That is our last word."` : `come down to ${money(c)}.`;
+  const floor = rounds > 1 && newAsk >= ask; // they will not go lower than this
+  const say = swap ? `would do the swap if you add ${money(c)}${floor ? '. That is our last word.' : ''}` : rounds === 1 ? `say: "${money(c)} and he's yours."` : rounds >= 4 || floor ? `say: "${money(c)}. That is our last word."` : `come down to ${money(c)}.`;
   return { ok: true, status: 'countered', counter: c, rounds, text: `${seller.name} ${say}` };
 }
 

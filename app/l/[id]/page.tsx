@@ -63,7 +63,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
   if (!d) return <Spinner />;
   const { league, club } = d;
   if (!club) {
-    if (league.status !== 'setup') return <div className="pad col" style={{ gap: 10 }}><div className="lz" style={{ fontSize: 22 }}>{league.name}</div><div className="muted">This league has already kicked off. New clubs can join next season.</div><a className="ghost" href="/"><span>Back</span></a></div>;
+    if (league.status === 'finished') return <div className="pad col" style={{ gap: 10 }}><div className="lz" style={{ fontSize: 22 }}>{league.name}</div><div className="muted">This season is over. New clubs can join next season.</div><a className="ghost" href="/"><span>Back</span></a></div>;
     return <CreateClub league={league} onDone={load} />;
   }
   const lid = league.id;

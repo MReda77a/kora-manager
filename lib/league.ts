@@ -110,7 +110,8 @@ export async function updateSchedule(uid: number, leagueId: number, b: { kickoff
 // ---------------------------------------------------------------- clubs
 export async function createClub(uid: number, leagueId: number, b: Record<string, any>) {
   const l = await getLeague(leagueId);
-  if (l.status !== 'setup') fail(400, 'This league has already kicked off. New clubs can join next season.');
+  if (l.status === 'running') return takeOverClub(uid, l, b);
+  if (l.status !== 'setup') fail(400, 'This season is over. New clubs can join next season.');
   const exists = await one('SELECT id FROM clubs WHERE league_id=$1 AND user_id=$2', [leagueId, uid]);
   if (exists) fail(400, 'You already have a club in this league.');
   const [{ n }] = await q<{ n: number }>('SELECT COUNT(*)::int AS n FROM clubs WHERE league_id=$1', [leagueId]);
@@ -133,6 +134,36 @@ export async function createClub(uid: number, leagueId: number, b: Record<string
   );
   await news(leagueId, r[0].id, 'club', `${name} join the league as a ${t.name}.`);
   return r[0];
+}
+
+// Joining after kick-off: the new manager gets a random AI club, with its players, its place in the
+// table and its fixtures. They choose the name, colours and badge, not the club type, and get no
+// pack coins; the club keeps at least its type's starting money so they can still buy players.
+async function takeOverClub(uid: number, l: any, b: Record<string, any>) {
+  const exists = await one('SELECT id FROM clubs WHERE league_id=$1 AND user_id=$2', [l.id, uid]);
+  if (exists) fail(400, 'You already have a club in this league.');
+  const name = String(b.name || '').trim().slice(0, 28);
+  if (name.length < 3) fail(400, 'Club name needs at least 3 letters.');
+  const taken = await one('SELECT id FROM clubs WHERE league_id=$1 AND lower(name)=lower($2) AND user_id IS NOT NULL', [l.id, name]);
+  if (taken) fail(400, 'Another club in this league already has that name.');
+  const hex = (v: string, d: string) => (/^#[0-9a-fA-F]{6}$/.test(v) ? v : d);
+  const short = String(b.short || shortName(name)).replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || shortName(name);
+  const c = await one(
+    `UPDATE clubs c SET user_id=$2, name=$3, short=$4, color1=$5, color2=$6, shape=$7, emblem=$8, stadium=$9, away1=$10, away2=$11, pattern=$12,
+       coins=0, lineup='[]'::jsonb, sponsor=NULL,
+       money=GREATEST(c.money, (($13::jsonb)->>c.club_type)::numeric)
+     WHERE c.id = (SELECT id FROM clubs WHERE league_id=$1 AND user_id IS NULL ORDER BY random() LIMIT 1 FOR UPDATE SKIP LOCKED)
+     RETURNING c.id, c.club_type`,
+    [l.id, uid, name, short, hex(b.color1, '#E8438C'), hex(b.color2, '#7FE9F7'), Number(b.shape) % 4 || 0, Number(b.emblem) % 6 || 0,
+      String(b.stadium || `${name} Park`).trim().slice(0, 32) || `${name} Park`, hex(b.away1, '#F3EEFF'), hex(b.away2, hex(b.color1, '#E8438C')),
+      Math.abs(Number(b.pattern) || 0) % PATTERNS.length,
+      JSON.stringify(Object.fromEntries(Object.entries(CLUB_TYPES).map(([k, t]) => [k, t.money])))],
+  );
+  if (!c) fail(400, 'There is no AI club left to take over. You can join next season.');
+  // its AI listings come off the market: the new manager decides what to sell
+  await q('DELETE FROM listings WHERE seller_id=$1', [c.id]);
+  await news(l.id, c.id, 'club', `A new manager takes over and renames the club ${name} (${CLUB_TYPES[c.club_type as ClubTypeKey]?.name || 'club'}).`);
+  return { id: c.id, takeover: true };
 }
 
 export async function news(leagueId: number, clubId: number | null, kind: string, text: string) {

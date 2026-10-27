@@ -13,6 +13,8 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: any) => setF((s) => ({ ...s, [k]: v }));
   const T = CLUB_TYPES[f.type];
+  // after kick-off a new manager takes over a random AI club: no club type to choose, no packs
+  const late = league.status === 'running';
   const name = f.name.trim() || 'Your club';
   const save = async () => {
     setBusy(true);
@@ -28,13 +30,13 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
     <div style={{ minHeight: '100dvh', padding: '10px 16px 20px' }}>
       <header className="row between" style={{ height: 48 }}>
         <div className="col" style={{ gap: 0 }}>
-          <span className="lz" style={{ fontSize: 22 }}>Create your club</span>
+          <span className="lz" style={{ fontSize: 22 }}>{late ? 'Take over a club' : 'Create your club'}</span>
           <span className="tiny muted">{league.name} · {league.poolName}</span>
         </div>
-        <div className="row">
+        {!late && <div className="row">
           <button className={`chip ${step === 0 ? 'on' : ''}`} onClick={() => setStep(0)}><span>1 · Identity</span></button>
           <button className={`chip ${step === 1 ? 'on' : ''}`} onClick={() => setStep(1)}><span>2 · Club type</span></button>
-        </div>
+        </div>}
       </header>
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 230px) 1fr', gap: 12, marginTop: 6 }}>
         <div className="glass cut pad col" style={{ alignItems: 'center', gap: 8, textAlign: 'center' }}>
@@ -48,9 +50,9 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
             <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={f.color1} c2={f.color2} pattern={f.pattern} size={44} label="Home kit" /><span className="tiny muted">Home</span></div>
             <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={f.away1} c2={f.away2} size={44} label="Away kit" /><span className="tiny muted">Away</span></div>
           </div>
-          <div className="tag" style={{ background: TYPE_COLOR[f.type], color: '#1B1048' }}><span>{T.name}</span></div>
+          {late ? <div className="tag"><span>Club type: a surprise</span></div> : <div className="tag" style={{ background: TYPE_COLOR[f.type], color: '#1B1048' }}><span>{T.name}</span></div>}
         </div>
-        {step === 0 ? (
+        {step === 0 || late ? (
           <div className="glass cut pad col" style={{ gap: 10 }}>
             <div className="row wrap" style={{ gap: 10 }}>
               <label className="col grow" style={{ gap: 4, minWidth: 160 }}><span className="small muted">Club name</span><input value={f.name} onChange={(e) => set('name', e.target.value)} maxLength={28} placeholder="Red Eagles" /></label>
@@ -65,7 +67,14 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
                 {COLORS.map((c) => <button key={c} aria-label={c} onClick={() => set(k, c)} style={{ width: 28, height: 28, background: c, boxShadow: f[k] === c ? '0 0 0 2px #1E1250, 0 0 0 4px #F3EEFF' : 'inset 0 0 0 1px rgba(255,255,255,0.25)' }} />)}
               </div>
             ))}
-            <button className="cta" style={{ alignSelf: 'flex-end' }} disabled={f.name.trim().length < 3} onClick={() => setStep(1)}><span>Next: club type</span></button>
+            {late ? (
+              <>
+                <div className="small" style={{ padding: '8px 10px', background: 'rgba(242,193,78,0.14)', color: '#F2C14E', fontWeight: 700 }}>
+                  The season has already started. You get a random AI club from this league: its players, its money, its club type and its place in the table. You choose the name, the colours and the badge. No packs, but you can buy players on the market.
+                </div>
+                <button className="cta shine" style={{ alignSelf: 'flex-end' }} disabled={busy || f.name.trim().length < 3} onClick={save}><span>Take over a club as {name}</span></button>
+              </>
+            ) : <button className="cta" style={{ alignSelf: 'flex-end' }} disabled={f.name.trim().length < 3} onClick={() => setStep(1)}><span>Next: club type</span></button>}
           </div>
         ) : (
           <div className="glass cut pad col" style={{ gap: 10 }}>

@@ -110,6 +110,26 @@ check('news: first round started', ov.news.some((n) => /first round has started/
 check('humans start in the bottom division', ov.club.division === 2 && ov.league.divisions === 2, `div ${ov.club.division}`);
 check('each division has 8 clubs', (await A(`/api/leagues/${lid}/overview?div=1`)).table.length === 8 && ov.table.length === 8);
 check('board target in lower division = promotion places', ov.club.targetPos === ov.league.movers, `${ov.club.targetPos}`);
+// ---------------------------------------------------------------- joining after kick-off
+{
+  const N = client();
+  await N('/api/auth/register', { username: 'latecomer', password: 'secret1' });
+  const bots0 = Number((await sqlq(`SELECT COUNT(*) FROM clubs WHERE league_id=$1 AND user_id IS NULL`, [lid]))[0][0]);
+  const fx0 = (await sqlq(`SELECT COUNT(*)::int AS n FROM fixtures WHERE league_id=$1`, [lid]))[0];
+  const tk = await N(`/api/leagues/${lid}/club`, { name: 'Late Lions', type: 'fan', color1: '#E8438C', color2: '#7FE9F7' });
+  const ncr = (await sqlq(`SELECT user_id, club_type, coins, money FROM clubs WHERE league_id=$1 AND name='Late Lions'`, [lid]))[0];
+  const nc = ncr && { user_id: ncr[0], club_type: ncr[1], coins: ncr[2], money: ncr[3] };
+  const nsq = await N(`/api/leagues/${lid}/squad`);
+  const fx1 = (await sqlq(`SELECT COUNT(*)::int AS n FROM fixtures WHERE league_id=$1`, [lid]))[0];
+  const bots1 = { n: Number((await sqlq(`SELECT COUNT(*) FROM clubs WHERE league_id=$1 AND user_id IS NULL`, [lid]))[0][0]) };
+  check('late join takes over an AI club', !tk.error && !!nc && nc.user_id != null, tk.error || JSON.stringify(tk));
+  check('late join keeps the AI club type (not the one asked for)', nc && nc.club_type !== 'fan', nc?.club_type);
+  check('late join: no pack coins, money to buy', nc && Number(nc.coins) === 0 && Number(nc.money) > 0, `coins ${nc?.coins} money ${nc?.money}`);
+  check('late join: has the AI squad, same fixtures, one bot fewer', nsq.players?.length >= 16 && JSON.stringify(fx0) === JSON.stringify(fx1) && Number(bots1.n) === Number(bots0) - 1, `${nsq.players?.length} players · bots ${bots0}→${bots1.n}`);
+  const ovn = await N(`/api/leagues/${lid}/overview`);
+  check('late join: in the table', ovn.table?.some((r) => r.name === 'Late Lions') || (await N(`/api/leagues/${lid}/overview?div=1`)).table?.some((r) => r.name === 'Late Lions'));
+  check('late join: no second club', (await N(`/api/leagues/${lid}/club`, { name: 'Another One' })).status === 400);
+}
 const fsq = await F(`/api/leagues/${lid}/squad`);
 if (fsq.players.length >= 30) await F(`/api/leagues/${lid}/list`, { playerId: fsq.players[29].id, price: 0.5 }), await sqlq(`DELETE FROM squad WHERE league_id=$1 AND player_id=$2`, [lid, fsq.players[29].id]);
 const by = await F(`/api/leagues/${lid}/buy`, { listingId: li.listingId });
@@ -285,7 +305,7 @@ if (hagP) {
     const mid = Math.round(((Math.round(hagP.v * 0.85 * 10) / 10 + Number(o1.counter)) / 2) * 10) / 10;
     const h2 = await A(`/api/leagues/${lid}/respond`, { id: o1.id, action: 'raise', amount: mid });
     const o2 = (await A(`/api/leagues/${lid}/offers`)).outgoing.find((x) => x.id === o1.id);
-    check('haggling: they come down when you go up', h2.status === 'accepted' || (h2.status === 'countered' && Number(o2.counter) < Number(o1.counter) && o2.rounds === 2), `${hagP.v}M value · asked ${o1.counter} · offered ${mid} · now ${h2.status} ${o2?.counter ?? ''}`);
+    check('haggling: they come down when you go up', h2.status === 'accepted' || (h2.status === 'countered' && o2.rounds === 2 && (Number(o2.counter) < Number(o1.counter) || /last word/.test(h2.text))), `${hagP.v}M value · asked ${o1.counter} · offered ${mid} · now ${h2.status} ${o2?.counter ?? ''} ${h2.text || ''}`);
     if (h2.status === 'countered') await A(`/api/leagues/${lid}/respond`, { id: o1.id, action: 'withdraw' });
   } else check('haggling: first answer', ['accepted', 'rejected'].includes(h1.status), h1.text || h1.error);
 }
@@ -343,7 +363,7 @@ check('retirements', true, `${(await sqlq(`SELECT COUNT(*) FROM retired WHERE le
 check('new schedule', Number((await sqlq(`SELECT COUNT(*) FROM fixtures WHERE league_id=$1`, [lid]))[0][0]) > 50);
 check('new sponsor choice', (await A(`/api/leagues/${lid}/office`)).canChooseSponsor === true);
 const me = await A('/api/me');
-check('reputation + ranking', me.user.reputation > 0 && me.ranking.length === 2, me.ranking.map((r) => `${r.username} ${r.reputation}`).join(', '));
+check('reputation + ranking', me.user.reputation > 0 && me.ranking.length === 3, me.ranking.map((r) => `${r.username} ${r.reputation}`).join(', '));
 const minSquad = await sqlq(`SELECT MIN(n) FROM (SELECT COUNT(*) n FROM squad WHERE league_id=$1 GROUP BY club_id) x`, [lid]);
 check('every club still has a squad', Number(minSquad[0][0]) >= 18, `smallest ${minSquad[0][0]}`);
 // play a couple of season-2 days to prove the clock works after the roll-over
