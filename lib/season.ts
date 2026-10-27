@@ -396,14 +396,16 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
   const capP = xi.find((p) => p.id === captain);
   const pens = pens0.length || !capP || ((capP.attrs.Finishing ?? 0) + (capP.attrs.Composure ?? 0)) / 2 < 72 ? pens0 : [capP.id];
   let boost = 0;
-  if (!club.user_id) {
+  if (!club.user_id && opp?.user_id) {
+    // an AI club facing a stronger manager closes part of the gap (never all of it): the better
+    // team stays the favourite, the AI level only decides how close the AI clubs get
     const h = await one<{ a: number }>(
-      `SELECT AVG(o)::float AS a FROM (SELECT p.ovr AS o, ROW_NUMBER() OVER (PARTITION BY s.club_id ORDER BY p.ovr DESC) AS rn
-         FROM squad s JOIN players p ON p.id=s.player_id JOIN clubs c ON c.id=s.club_id WHERE c.league_id=$1 AND c.user_id IS NOT NULL) x WHERE rn<=11`,
-      [l.id],
+      `SELECT AVG(o)::float AS a FROM (SELECT p.ovr + s.ovr_delta AS o FROM squad s JOIN players p ON p.id=s.player_id
+         WHERE s.club_id=$1 ORDER BY p.ovr + s.ovr_delta DESC LIMIT 11) x`,
+      [opp.id],
     );
     const mine = xi.reduce((a, p) => a + p.ovr, 0) / Math.max(1, xi.length);
-    boost = Math.max(0, (h?.a ?? mine) - mine) * [0.1, 0.45, 0.75][l.ai_level];
+    boost = Math.max(0, (h?.a ?? mine) - mine) * [0, 0.15, 0.3][l.ai_level];
   }
   return {
     clubId: club.id, name: club.name, xi: xi.map(toE), bench: bench.map(toE), tactic, boost,
