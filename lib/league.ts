@@ -499,7 +499,7 @@ export async function botListings(l: Row) {
     const r = rng(hashSeed('list', l.id, club, Date.now() >> 20));
     if (sq.length <= 14 || r.next() < 0.35) continue; // outfield players only
     const p = sq[Math.floor(sq.length * (0.3 + r.next() * 0.6))];
-    add.push({ p: p.id, c: club, price: Math.max(0.5, Math.round(((Number(p.v) || 3) * (1 + r.next() * 0.3)) * 10) / 10) });
+    add.push({ p: p.id, c: club, price: Math.max(0.5, Math.round(((Number(p.v) || 3) * (1 + r.next() * 0.25)) * 10) / 10) });
   }
   if (add.length) {
     await q(

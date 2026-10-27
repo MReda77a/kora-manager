@@ -329,4 +329,20 @@ SELECT s1.club_id, s1.player_id, s2.player_id, 55 FROM squad s1 JOIN squad s2 ON
   JOIN leagues l ON l.id = c.league_id AND l.status <> 'setup'
 WHERE NOT EXISTS (SELECT 1 FROM chemistry ch WHERE ch.club_id = s1.club_id)
 ON CONFLICT DO NOTHING;
+
+-- one price scale for every player (same formula as marketValue in game.ts)
+UPDATE players SET attrs = jsonb_set(attrs, '{v}', to_jsonb(
+  CASE WHEN x.v >= 10 THEN round(x.v) ELSE round(x.v::numeric, 1) END))
+FROM (SELECT id, GREATEST(0.3, 3 * power(1.24, ovr - 76)
+        * (CASE WHEN age <= 21 THEN 1.35 WHEN age <= 24 THEN 1.2 WHEN age <= 28 THEN 1 WHEN age <= 30 THEN 0.85 WHEN age <= 32 THEN 0.65 ELSE 0.45 END)
+        * (CASE WHEN age <= 24 THEN 1 + GREATEST(0, pot - ovr) * 0.03 ELSE 1 END))::numeric AS v FROM players) x
+WHERE players.id = x.id;
+-- players from abroad and AI clubs' listings already on the market follow the new prices
+UPDATE abroad a SET price = GREATEST(0.5, (p.attrs->>'v')::numeric) FROM players p WHERE p.id = a.player_id;
+UPDATE listings li SET price = GREATEST(0.5, round((p.attrs->>'v')::numeric * 1.1, 1)) FROM players p, clubs c
+  WHERE p.id = li.player_id AND c.id = li.seller_id AND c.user_id IS NULL;
+-- price talks: rounds so far, and the AI's hidden limit and current asking price
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS rounds INT NOT NULL DEFAULT 0;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS reserve NUMERIC;
+ALTER TABLE offers ADD COLUMN IF NOT EXISTS ask NUMERIC;
 `;

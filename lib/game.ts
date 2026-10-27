@@ -346,3 +346,15 @@ export function lineChem(ids: string[], formation: string, pairs: Map<string, nu
   }
   return out as { DEF: number; MID: number; FWD: number };
 }
+
+// ---------------------------------------------------------------- what a player is worth
+/** one price scale for the whole game (in millions): about 2.4M for a 75, 7M for an 80, 25M for an 86,
+ *  40M for an 88, 60M for a 90, 90M+ for a 92; more for young players with room to grow, much less for veterans.
+ *  The same formula runs in SQL in schema.ts (players.attrs.v) - keep them together. */
+export function marketValue(ovr: number, age: number, pot: number) {
+  const base = 3 * Math.pow(1.24, ovr - 76);
+  const ageF = age <= 21 ? 1.35 : age <= 24 ? 1.2 : age <= 28 ? 1 : age <= 30 ? 0.85 : age <= 32 ? 0.65 : 0.45;
+  const growth = age <= 24 ? 1 + Math.max(0, pot - ovr) * 0.03 : 1;
+  const v = Math.max(0.3, base * ageF * growth);
+  return v >= 10 ? Math.round(v) : Math.round(v * 10) / 10;
+}

@@ -3,6 +3,7 @@
 // so every pool is filled to support a 30-club league. Academy players are rated 60-73,
 // below the real stars, and marked so the UI can tag them.
 import { rng, hashSeed } from './rng.ts';
+import { marketValue } from './game.ts';
 
 const NAMES: Record<string, [string[], string[]]> = {
   EGY: [['Omar', 'Youssef', 'Karim', 'Ahmed', 'Hassan', 'Mostafa', 'Ziad', 'Seif', 'Marwan', 'Hamza', 'Adham', 'Yassin', 'Khaled', 'Tarek', 'Amr', 'Islam', 'Ali', 'Mahmoud'],
@@ -60,13 +61,14 @@ export function academyFor(pool: string, existing: RawPlayer[]): RawPlayer[] {
         const scaled = outfieldOnly && !['Consistency', 'BigMatch', 'InjuryProne'].includes(key) ? v * scale : v;
         attrs[key] = Math.max(15, Math.min(95, Math.round(scaled + r.gauss(0, 3))));
       }
-      attrs.v = Math.round((0.3 + (ovr - 60) * 0.12) * 10) / 10;
       attrs.Academy = 1;
       out.push({
         id: `A-${pool}-${String(out.length + 1).padStart(3, '0')}`, name, pool, nat: pool === 'ENG' ? 'ENG' : pool, pos,
         foot: r.next() < 0.25 ? 'L' : 'R', age, height: line === 'GK' ? 185 + Math.floor(r.next() * 10) : 170 + Math.floor(r.next() * 18),
         ovr, pot: Math.min(88, ovr + 6 + Math.floor(r.next() * 12)), attrs,
       });
+      const made = out[out.length - 1];
+      made.attrs.v = marketValue(made.ovr, made.age, made.pot);
     }
   }
   return out;
@@ -88,11 +90,12 @@ export function youthPlayer(pool: string, id: string, seed: number, line: string
     const scaled = (gk ? line === 'GK' : line !== 'GK') && !['Consistency', 'BigMatch', 'InjuryProne'].includes(key) ? v * scale : v;
     attrs[key] = Math.max(15, Math.min(92, Math.round(scaled + r.gauss(0, 3))));
   }
-  attrs.v = Math.round((0.4 + (ovr - 54) * 0.1) * 10) / 10;
   attrs.Youth = 1;
-  return {
+  const y = {
     id, name: `${r.pick(first)} ${r.pick(last)}`, pool, nat: pool, pos, foot: r.next() < 0.25 ? 'L' : 'R', age: 16 + Math.floor(r.next() * 3),
     height: line === 'GK' ? 184 + Math.floor(r.next() * 10) : 168 + Math.floor(r.next() * 20), ovr,
     pot: Math.min(92, ovr + 14 + Math.floor(r.next() * 14) + bonus), attrs,
   };
+  attrs.v = marketValue(y.ovr, y.age, y.pot);
+  return y;
 }

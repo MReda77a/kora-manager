@@ -3,7 +3,7 @@
 import { q, one, writes, type Row } from './db.ts';
 import { notify } from './push.ts';
 import { fail } from './errors.ts';
-import { MAX_SQUAD, MIN_SQUAD } from './game.ts';
+import { MAX_SQUAD, MIN_SQUAD, marketValue } from './game.ts';
 import { getLeague, myClub, news, windowFor } from './league.ts';
 import { inbox } from './people.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -14,12 +14,13 @@ const money = (n: number) => `${Number(n).toFixed(1)}M`;
 // a player's asking value in this league: base value, adjusted for growth or decline
 async function valueOf(leagueId: number, playerId: string) {
   const p = await one(
-    `SELECT p.*, s.ovr_delta, s.club_id, s.loan_from, s.request FROM players p JOIN squad s ON s.player_id=p.id AND s.league_id=$1 WHERE p.id=$2`,
+    `SELECT p.*, s.ovr_delta, s.age_add, s.club_id, s.loan_from, s.request FROM players p JOIN squad s ON s.player_id=p.id AND s.league_id=$1 WHERE p.id=$2`,
     [leagueId, playerId],
   );
   if (!p) fail(404, 'Player not found in this league.');
-  const v = Math.max(0.3, (p.attrs?.v ?? 2) * (1 + (p.ovr_delta || 0) * 0.08));
-  return { p, v: Math.round(v * 10) / 10 };
+  // what he is worth now: his level and age in this league, not the day he was signed
+  const v = marketValue(p.ovr + (p.ovr_delta || 0), p.age + (p.age_add || 0), p.pot);
+  return { p, v };
 }
 
 async function isKeyPlayer(clubId: number, playerId: string) {
@@ -42,7 +43,7 @@ export async function makeOffer(uid: number, leagueId: number, b: Record<string,
   if (Number(me.money) < amount) fail(400, `You only have ${money(me.money)}.`);
   let swap: Row | null = null;
   if (kind === 'swap') {
-    swap = await one(`SELECT s.*, p.name, p.ovr, p.attrs FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1 AND s.player_id=$2`, [me.id, String(b.swapPlayer)]);
+    swap = await one(`SELECT s.*, p.name, p.ovr + s.ovr_delta AS ovr, p.age + s.age_add AS age, p.pot, p.attrs FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1 AND s.player_id=$2`, [me.id, String(b.swapPlayer)]);
     if (!swap) fail(400, 'Pick one of your players to swap.');
     if (swap.loan_from) fail(400, 'You can not swap a player you have on loan.');
   } else {
@@ -74,7 +75,6 @@ const describe = (kind: string, amount: number, swapName?: string) =>
 // Bot clubs answer straight away: accept, counter with their price, or refuse.
 async function botAnswer(o: Row, p: Row, v: number, seller: Row, swap: Row | null) {
   const key = await isKeyPlayer(seller.id, p.id);
-  const want = Math.round(v * (key ? 1.6 : 1.2) * 10) / 10;
   if (o.kind === 'loan') {
     if (key) return finish(o, 'rejected', `${seller.name}: "He is a key player. Not for loan."`);
     if (Number(o.amount) >= v * 0.15) return complete(o, Number(o.amount));
@@ -82,18 +82,29 @@ async function botAnswer(o: Row, p: Row, v: number, seller: Row, swap: Row | nul
     await q(`UPDATE offers SET status='countered', counter=$2, updated_at=now() WHERE id=$1`, [o.id, c]);
     return { ok: true, status: 'countered', counter: c, text: `${seller.name} want a ${money(c)} loan fee.` };
   }
-  if (o.kind === 'swap') {
-    const sv = Math.max(0.3, swap!.attrs?.v ?? 1);
-    const total = sv + Number(o.amount);
-    if (total >= want * 0.95 && swap!.ovr >= p.ovr - 6) return complete(o, Number(o.amount));
-    const c = Math.round(Math.max(0.1, want - sv) * 10) / 10;
-    await q(`UPDATE offers SET status='countered', counter=$2, updated_at=now() WHERE id=$1`, [o.id, c]);
-    return { ok: true, status: 'countered', counter: c, text: `${seller.name} would do the swap if you add ${money(c)}.` };
-  }
-  if (Number(o.amount) >= want) return complete(o, Number(o.amount));
-  if (Number(o.amount) < v * 0.5) return finish(o, 'rejected', `${seller.name} laughed at the offer. He is worth far more.`);
-  await q(`UPDATE offers SET status='countered', counter=$2, updated_at=now() WHERE id=$1`, [o.id, want]);
-  return { ok: true, status: 'countered', counter: want, text: `${seller.name} say: "${money(want)} and he's yours."` };
+  // buying or swapping: haggle. They have a hidden lowest price and start higher; every round they come
+  // down part of the way towards your offer, but they lose patience after a few rounds or a silly bid.
+  const reserve = Math.round(v * (key ? 1.3 : 1.0) * (0.95 + r01(o.id) * 0.15) * 10) / 10;
+  const ask = Math.round(v * (key ? 1.6 : 1.25) * 10) / 10;
+  await q(`UPDATE offers SET reserve=$2, ask=$3 WHERE id=$1`, [o.id, reserve, ask]);
+  return haggle({ ...o, reserve, ask }, p, v, seller, swap);
+}
+
+async function haggle(o: Row, p: Row, v: number, seller: Row, swap: Row | null) {
+  const sv = swap ? Math.max(0.3, marketValue(swap.ovr, swap.age ?? 26, swap.pot ?? swap.ovr)) : 0;
+  if (swap && swap.ovr < p.ovr - 8) return finish(o, 'rejected', `${seller.name}: "${swap.name} is not good enough for us."`);
+  const x = sv + Number(o.amount); // what the offer is worth to them
+  const rounds = (o.rounds || 0) + 1;
+  const ask = Number(o.ask), reserve = Number(o.reserve);
+  if (x >= ask * 0.99) return complete(o, Number(o.amount));
+  if (x < v * 0.5) return finish(o, 'rejected', rounds === 1 ? `${seller.name} laughed at the offer. He is worth far more.` : `${seller.name} ended the talks: "You are not serious."`);
+  if (rounds > 5) return finish(o, 'rejected', `${seller.name}: "We are going round in circles. He is not for sale to you."`);
+  const newAsk = Math.round(Math.max(reserve, ask - (ask - x) * 0.45) * 10) / 10;
+  if (newAsk <= x * 1.03) return complete(o, Number(o.amount)); // close enough: deal
+  const c = Math.round(Math.max(0.1, newAsk - sv) * 10) / 10;
+  await q(`UPDATE offers SET status='countered', counter=$2, ask=$3, rounds=$4, updated_at=now() WHERE id=$1`, [o.id, c, newAsk, rounds]);
+  const say = swap ? `would do the swap if you add ${money(c)}` : rounds === 1 ? `say: "${money(c)} and he's yours."` : rounds >= 4 ? `say: "${money(c)}. That is our last word."` : `come down to ${money(c)}.`;
+  return { ok: true, status: 'countered', counter: c, rounds, text: `${seller.name} ${say}` };
 }
 
 async function finish(o: Row, status: string, text: string) {
@@ -172,9 +183,15 @@ export async function respondOffer(uid: number, leagueId: number, offerId: numbe
       await q(`UPDATE offers SET status='countered', counter=$2, updated_at=now() WHERE id=$1`, [o.id, c]);
       const buyer = await one('SELECT * FROM clubs WHERE id=$1', [o.from_club]);
       if (!buyer!.user_id) {
-        // a bot that bid for your player decides on your price
-        if (c <= v * 1.8) return complete({ ...o, status: 'countered' }, c);
-        return finish(o, 'rejected', `${buyer!.name} walked away: "${money(c)} is too much."`);
+        // an AI club that bid for your player has a limit it keeps to itself, and meets you part of the way
+        const limit = Math.round(v * (0.95 + r01(o.id + 7) * 0.45) * 10) / 10;
+        if (c <= limit) return complete({ ...o, status: 'countered' }, c);
+        const rounds = (o.rounds || 0) + 1;
+        if (rounds > 4 || c > v * 3) return finish(o, 'rejected', `${buyer!.name} walked away: "${money(c)} is too much."`);
+        const bid = Math.round(Math.min(limit, Number(o.amount) + (c - Number(o.amount)) * 0.5) * 10) / 10;
+        await q(`UPDATE offers SET status='pending', amount=$2, counter=NULL, rounds=$3, updated_at=now() WHERE id=$1`, [o.id, bid, rounds]);
+        await inbox(leagueId, me.id, `📨 ${buyer!.name} raise their bid for ${p.name} to ${money(bid)}.`, { title: 'Better offer', url: `/l/${leagueId}?tab=market` });
+        return { ok: true, status: 'pending', text: `${buyer!.name} come back with ${money(bid)}.` };
       }
       await inbox(leagueId, o.from_club, `↩️ ${me.name} want ${money(c)} for ${p.name}. Accept or walk away in Market › Offers.`, { title: 'Counter-offer', url: `/l/${leagueId}?tab=market` });
       return { ok: true, status: 'countered', text: 'Counter-offer sent.' };
@@ -183,6 +200,23 @@ export async function respondOffer(uid: number, leagueId: number, offerId: numbe
   if (o.from_club === me.id && o.status === 'countered') {
     if (action === 'accept') return complete(o, Number(o.counter));
     if (action === 'withdraw') return finish(o, 'withdrawn', 'Withdrawn.');
+    if (action === 'raise') {
+      // a new offer of your own: haggling goes on
+      const x = Math.round(Math.max(0, Number(amount) || 0) * 10) / 10;
+      if (o.kind !== 'swap' && x < 0.1) fail(400, 'Name your offer.');
+      if (Number(me.money) < x) fail(400, `You only have ${money(me.money)}.`);
+      const seller = await one('SELECT * FROM clubs WHERE id=$1', [o.to_club]);
+      await q(`UPDATE offers SET amount=$2, updated_at=now() WHERE id=$1`, [o.id, x]);
+      if (!seller!.user_id) {
+        const swap = o.swap_player ? await one(`SELECT s.*, p.name, p.ovr + s.ovr_delta AS ovr, p.age + s.age_add AS age, p.pot FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1 AND s.player_id=$2`, [me.id, o.swap_player]) : null;
+        if (o.swap_player && !swap) fail(400, 'Your swap player has gone.');
+        return o.kind === 'loan' ? botAnswer({ ...o, amount: x }, p, v, seller!, null) : haggle({ ...o, amount: x }, p, v, seller!, swap);
+      }
+      const rounds = (o.rounds || 0) + 1;
+      await q(`UPDATE offers SET status='pending', counter=NULL, rounds=$2, updated_at=now() WHERE id=$1`, [o.id, rounds]);
+      await inbox(leagueId, seller!.id, `📨 ${me.name} come back with ${describe(o.kind, x, undefined)} for ${p.name}. Answer in Market › Offers.`, { title: 'New offer', url: `/l/${leagueId}?tab=market` });
+      return { ok: true, status: 'pending', text: `New offer sent to ${seller!.name}.` };
+    }
   }
   if (o.from_club === me.id && o.status === 'pending' && action === 'withdraw') return finish(o, 'withdrawn', 'Withdrawn.');
   fail(400, 'You can not do that with this offer.');

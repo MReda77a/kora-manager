@@ -11,7 +11,7 @@ import * as C from '../../../../../lib/club.ts';
 import * as P from '../../../../../lib/people.ts';
 import * as O from '../../../../../lib/offers.ts';
 import * as K from '../../../../../lib/career.ts';
-import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, traitOf, type ClubTypeKey } from '../../../../../lib/game.ts';
+import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, traitOf, type ClubTypeKey, marketValue } from '../../../../../lib/game.ts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -102,12 +102,12 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
   if (action === 'players') {
     // every club's players, for making offers
     const rows = await q(
-      `SELECT p.id, p.name, p.pos, p.age + s.age_add AS age, p.ovr + s.ovr_delta AS ovr, p.attrs->>'v' AS v, s.request, s.loan_from IS NOT NULL AS loan,
+      `SELECT p.id, p.name, p.pos, p.age + s.age_add AS age, p.ovr + s.ovr_delta AS ovr, p.pot, p.attrs->>'v' AS v, s.request, s.loan_from IS NOT NULL AS loan,
          c.id AS club_id, c.name AS club, c.color1, c.user_id IS NOT NULL AS human
        FROM squad s JOIN players p ON p.id=s.player_id JOIN clubs c ON c.id=s.club_id WHERE s.league_id=$1 AND c.id<>$2 ORDER BY p.ovr + s.ovr_delta DESC`,
       [lid, club?.id ?? 0],
     );
-    return rows.map((r) => ({ ...r, v: Number(r.v) || 1 }));
+    return rows.map((r) => ({ ...r, v: marketValue(r.ovr, r.age, r.pot ?? r.ovr) }));
   }
   if (action === 'fixtures') return q(`${FX_SELECT} WHERE f.league_id=$1 ORDER BY f.day, f.id`, [lid]);
   if (action === 'stats') return L.leaders(lid);

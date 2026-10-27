@@ -275,6 +275,22 @@ if (fair.status === 'countered') {
 }
 const sqA2 = await A(`/api/leagues/${lid}/squad`);
 if (sqA2.players.length >= 30) { const extra = sqA2.players.find((p) => !p.loan); await sqlq(`DELETE FROM squad WHERE league_id=$1 AND player_id=$2`, [lid, extra.id]); }
+// haggling: they come down step by step, and you can go up step by step
+const myMoney = (await A(`/api/leagues/${lid}/offers`)).money;
+const hagP = players.find((p) => !p.human && p.id !== botP.id && p.v >= 1 && p.v * 1.4 < myMoney && p.club_id !== myId);
+if (hagP) {
+  const h1 = await A(`/api/leagues/${lid}/offer`, { kind: 'buy', playerId: hagP.id, amount: Math.round(hagP.v * 0.85 * 10) / 10 });
+  if (h1.status === 'countered') {
+    const o1 = (await A(`/api/leagues/${lid}/offers`)).outgoing.find((x) => x.player_id === hagP.id && x.status === 'countered');
+    const mid = Math.round(((Math.round(hagP.v * 0.85 * 10) / 10 + Number(o1.counter)) / 2) * 10) / 10;
+    const h2 = await A(`/api/leagues/${lid}/respond`, { id: o1.id, action: 'raise', amount: mid });
+    const o2 = (await A(`/api/leagues/${lid}/offers`)).outgoing.find((x) => x.id === o1.id);
+    check('haggling: they come down when you go up', h2.status === 'accepted' || (h2.status === 'countered' && Number(o2.counter) < Number(o1.counter) && o2.rounds === 2), `${hagP.v}M value · asked ${o1.counter} · offered ${mid} · now ${h2.status} ${o2?.counter ?? ''}`);
+    if (h2.status === 'countered') await A(`/api/leagues/${lid}/respond`, { id: o1.id, action: 'withdraw' });
+  } else check('haggling: first answer', ['accepted', 'rejected'].includes(h1.status), h1.text || h1.error);
+}
+const vals = players.filter((p) => p.ovr >= 86 && p.ovr <= 88 && p.age >= 25 && p.age <= 28);
+check('one price scale: 86-88 players in their prime are worth 25-55M', vals.every((p) => p.v >= 22 && p.v <= 60), vals.slice(0, 4).map((p) => `${p.ovr}/${p.age} ${p.v}M`).join(', '));
 const loanP = players.find((p) => !p.human && p.id !== botP.id && p.v < 6 && p.ovr < 80);
 const loan = await A(`/api/leagues/${lid}/offer`, { kind: 'loan', playerId: loanP.id, amount: Math.round(loanP.v * 0.25 * 10) / 10 });
 check('loan from AI', loan.status === 'accepted' || loan.status === 'rejected', loan.text || loan.error);

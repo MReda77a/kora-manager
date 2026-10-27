@@ -210,11 +210,14 @@ function OffersInbox({ lid, toast, reload }: TabProps) {
         </div>
       )}
       {!incoming && o.status === 'countered' && (
-        <div className="row" style={{ gap: 6 }}>
-          <button className="seg on" onClick={() => act(o.id, 'accept')}><span>Pay {Number(o.counter).toFixed(1)}M</span></button>
+        <div className="row wrap" style={{ gap: 6 }}>
+          <button className="seg on" onClick={() => act(o.id, 'accept')}><span>{o.kind === 'swap' ? `Add ${Number(o.counter).toFixed(1)}M` : `Pay ${Number(o.counter).toFixed(1)}M`}</span></button>
+          <input type="number" step="0.1" min="0" placeholder={o.kind === 'swap' ? 'Extra cash' : 'New offer'} value={counter[o.id] || ''} onChange={(e) => setCounter({ ...counter, [o.id]: e.target.value })} style={{ width: 96, height: 30 }} aria-label="New offer in millions" />
+          <button className="seg" disabled={!counter[o.id]} onClick={() => act(o.id, 'raise', Number(counter[o.id]))}><span>Offer</span></button>
           <button className="seg" onClick={() => act(o.id, 'withdraw')}><span>Walk away</span></button>
         </div>
       )}
+      {(o.status === 'pending' || o.status === 'countered') && o.rounds > 0 && <span className="tiny muted">Round {o.rounds + 1} of the talks{o.rounds >= 3 && o.to_name && !incoming ? ' · they are losing patience' : ''}</span>}
       {!incoming && o.status === 'pending' && <button className="seg" style={{ alignSelf: 'flex-start' }} onClick={() => act(o.id, 'withdraw')}><span>Withdraw</span></button>}
     </div>
   );

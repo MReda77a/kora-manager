@@ -6,7 +6,7 @@
 //  - AI clubs also shop abroad to fill their weak spots.
 // Every function reads a few rows and writes once (Cloudflare counts requests per visit).
 import { q, one, writes, type Row } from './db.ts';
-import { LINE, MAX_SQUAD, MIN_SQUAD } from './game.ts';
+import { LINE, MAX_SQUAD, MIN_SQUAD, marketValue } from './game.ts';
 import { getLeague, myClub, news, windowFor } from './league.ts';
 import { fail } from './errors.ts';
 import { notifyEach } from './push.ts';
@@ -27,10 +27,7 @@ const round1 = (x: number) => Math.round(x * 10) / 10;
 /** clubs abroad ask a lot: about 7M for an 80, 25M for an 86, 40M for an 88, 60M for a 90, 90M+ for a 92,
  *  more for young players with room to grow, much less for veterans */
 export function abroadPrice(ovr: number, age: number, pot: number, rand: number) {
-  const base = 3 * Math.pow(1.24, ovr - 76);
-  const ageF = age <= 21 ? 1.35 : age <= 24 ? 1.2 : age <= 28 ? 1 : age <= 30 ? 0.85 : age <= 32 ? 0.65 : 0.45;
-  const growth = age <= 24 ? 1 + Math.max(0, pot - ovr) * 0.03 : 1;
-  const p = base * ageF * growth * (0.9 + rand * 0.2);
+  const p = marketValue(ovr, age, pot) * (0.95 + rand * 0.2); // clubs abroad ask the going rate, sometimes a bit more
   return Math.max(0.5, p >= 10 ? Math.round(p) : Math.round(p * 10) / 10);
 }
 
