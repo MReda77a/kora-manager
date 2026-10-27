@@ -25,13 +25,13 @@ export async function inboxOf(leagueId: number, clubId: number) {
 // After every match of a human club: playing time, results and promises move morale.
 export async function moraleAfterMatch(leagueId: number, day: number, clubId: number, side: ESide, rep: Report, won: boolean, lost: boolean) {
   const squad = await q(
-    `SELECT s.player_id, s.morale, s.request, s.promise_day, p.name FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1
+    `SELECT s.player_id, s.morale, s.request, s.promise_day, s.out_until, s.cap_miss, p.name FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1
      ORDER BY p.ovr + s.ovr_delta DESC`,
     [clubId],
   );
-  const club = await one('SELECT club_type FROM clubs WHERE id=$1', [clubId]);
+  const club = await one('SELECT club_type, captain FROM clubs WHERE id=$1', [clubId]);
   const lines = new Map(rep.players.map((p) => [p.id, p]));
-  const rows: { id: string; m: number; req: boolean; pd: number }[] = [];
+  const rows: { id: string; m: number; req: boolean; pd: number; cm: number }[] = [];
   for (const [rank, sp] of squad.entries()) {
     const trait = traitOf(sp.player_id);
     const ln = lines.get(sp.player_id);
@@ -48,6 +48,15 @@ export async function moraleAfterMatch(leagueId: number, day: number, clubId: nu
     if (trait === 'Temperamental') d = Math.round(d * 1.5);
     if (trait === 'Professional' && sp.morale < 60) d += 1;
     if (club?.club_type === 'historic' && d < 0) d = Math.ceil(d * 0.7); // steady dressing room
+    // the captain wants to lead the team out: being left out when fit hurts more, and he says so
+    let cm = sp.cap_miss || 0;
+    if (club?.captain === sp.player_id) {
+      if (played) { d += 1; cm = 0; }
+      else if (!(sp.out_until >= day)) {
+        d -= 3; cm++;
+        if (cm === 2) await inbox(leagueId, clubId, `Your captain ${sp.name} is not happy to be left out. Play him, or give the armband to someone else.`, { title: 'Captain unhappy' });
+      }
+    }
     let pd = sp.promise_day || 0;
     if (pd) {
       if (played) pd = 0;
@@ -69,10 +78,10 @@ export async function moraleAfterMatch(leagueId: number, day: number, clubId: nu
       req = false;
       await inbox(leagueId, clubId, `${sp.name} has withdrawn his transfer request. He is happy again.`);
     }
-    rows.push({ id: sp.player_id, m, req, pd });
+    rows.push({ id: sp.player_id, m, req, pd, cm });
   }
   await q(
-    `UPDATE squad s SET morale=x.m, request=x.req, promise_day=x.pd FROM jsonb_to_recordset($1::jsonb) AS x(id text, m int, req boolean, pd int)
+    `UPDATE squad s SET morale=x.m, request=x.req, promise_day=x.pd, cap_miss=x.cm FROM jsonb_to_recordset($1::jsonb) AS x(id text, m int, req boolean, pd int, cm int)
      WHERE s.club_id=$2 AND s.player_id=x.id`,
     [JSON.stringify(rows), clubId],
   );

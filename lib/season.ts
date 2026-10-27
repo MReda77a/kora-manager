@@ -8,7 +8,7 @@ import { batch, counter, q, one, writes, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
   AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
-  shortName, type ClubTypeKey, type SponsorKey, type Tactic,
+  shortName, type ClubTypeKey, type SponsorKey, type Tactic, bestLeader, leadership,
   windowFromDays, WINDOW_DAYS,
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
@@ -22,6 +22,7 @@ import { notify, notifyMany } from './push.ts';
 import { wakeTimer } from './wake.ts';
 import { CHEM_AI, chemAfterMatch, chemPairs, lineChem } from './chemistry.ts';
 import { abroadMarket, clearAbroad, marketDay } from './transfers.ts';
+import { applyPressers, pressAftermath } from './press.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
 const LIVE_MS = LIVE_SECONDS * 1000;
@@ -382,7 +383,18 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
     id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), a: p.attrs, num: p.shirt,
     mod: Math.round(((p.mod || 0) + toneMod + (bigGame && traitOf(p.id) === 'Big-game player' ? 2 : 0)) * 10) / 10,
   });
-  const pens = (club.pens || []).filter((id: string) => xi.some((p) => p.id === id));
+  // the captain and vice: the manager's picks when they play, otherwise the best leaders on the pitch
+  const inXI = (id: string | null | undefined) => !!id && xi.some((p) => p.id === id);
+  let captain: string | undefined = club.user_id && inXI(club.captain) ? club.captain : undefined;
+  let vice: string | undefined = club.user_id && inXI(club.vice) && club.vice !== captain ? club.vice : undefined;
+  if (!captain) { captain = vice || bestLeader(xi); if (vice === captain) vice = undefined; }
+  if (!vice) vice = bestLeader(xi, captain);
+  const leaders: Record<string, number> = {};
+  for (const id of [captain, vice]) { const p = xi.find((x) => x.id === id); if (p) leaders[p.id] = leadership(p); }
+  const pens0 = (club.pens || []).filter((id: string) => xi.some((p) => p.id === id));
+  // with no penalty takers set, a captain who can finish steps up first
+  const capP = xi.find((p) => p.id === captain);
+  const pens = pens0.length || !capP || ((capP.attrs.Finishing ?? 0) + (capP.attrs.Composure ?? 0)) / 2 < 72 ? pens0 : [capP.id];
   let boost = 0;
   if (!club.user_id) {
     const h = await one<{ a: number }>(
@@ -396,7 +408,9 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
   return {
     clubId: club.id, name: club.name, xi: xi.map(toE), bench: bench.map(toE), tactic, boost,
     assistant: club.user_id ? club.assistant : { tired: true, cards: true, winning: true, losing: true },
-    pens: pens.length ? pens : xi.filter((p) => p.pos !== 'GK').sort((a, b) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure)).slice(0, 5).map((p) => p.id),
+    pens: pens.length ? [...pens, ...xi.filter((p) => p.pos !== 'GK' && !pens.includes(p.id)).sort((a, b) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure)).map((p) => p.id)].slice(0, 5)
+      : xi.filter((p) => p.pos !== 'GK').sort((a, b) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure)).slice(0, 5).map((p) => p.id),
+    captain, vice, leaders,
     homeBoost: home ? (club.club_type === 'fan' ? 1 : 0) + Math.min(1, (club.fans || 20000) / 40000) : 0,
     injuryRisk: 1 - lv.doctor * 0.08,
     ...(club.user_id ? humanRoles(club, xi, tactic.formation) : autoRoles(xi, tactic.formation)),
@@ -448,10 +462,13 @@ async function kickOff(f: Row) {
   const derby = isDerby(home, away);
   // mind games: pre-match words count whenever two managers meet, not only in derbies
   const rivals = derby || (!!home.user_id && !!away.user_id);
-  const hs = await sideFor(home, l, f, away, true, rivals ? toneOf(home.id) : null);
-  const as = await sideFor(away, l, f, home, false, rivals ? toneOf(away.id) : null);
+  // big matches have a press conference; a manager who held one is judged on that, not on a paper comment
+  const spoke = derby || f.comp === 'cup' ? new Set((await q('SELECT club_id FROM pressers WHERE fixture_id=$1 AND done', [f.id])).map((x) => x.club_id as number)) : new Set<number>();
+  const hs = await sideFor(home, l, f, away, true, rivals && !spoke.has(home.id) ? toneOf(home.id) : null);
+  const as = await sideFor(away, l, f, home, false, rivals && !spoke.has(away.id) ? toneOf(away.id) : null);
   if (!home.user_id) hs.tactic = await planBot(l, f, hs, as, away.id);
   if (!away.user_id) as.tactic = await planBot(l, f, as, hs, home.id);
+  if (spoke.size) await applyPressers(f.id, hs, as, home.id);
   const cond = conditionsFor(f.id, l.pool, f.day);
   const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, weather: cond.weather, strict: cond.referee.strict });
   for (const c of [home, away]) {
@@ -614,9 +631,18 @@ async function finalizeFixture(f: Row) {
     if (c.club_type === 'commercial' && !lost) money += gf * 0.1;
     if (isHome) money += Math.min(c.capacity || 30000, c.fans || 20000) * 0.00002 * (derby ? 1.5 : 1);
     if (f.comp === 'cup' && won) money += f.round && rep ? 1 : 0;
-    const swing = (c.club_type === 'fan' ? 1.6 : 1) * (derby ? 2 : 1);
+    // big words before the match raise the stakes: a win means more, a defeat hurts more
+    const after = c.user_id && (derby || f.comp === 'cup') ? await pressAftermath(f.id, c.id) : null;
+    const stakeMul = 1 + (after?.stake || 0) * 0.5;
+    const swing = (c.club_type === 'fan' ? 1.6 : 1) * (derby ? 2 : 1) * Math.max(0.4, stakeMul);
     const fans = Math.round((won ? 500 : lost ? -650 : 80) * swing);
-    const board = Math.round((won ? 3 : lost ? -4 : 0) * (c.club_type === 'invest' ? 2 : 1));
+    const board = Math.round((won ? 3 : lost ? -4 : 0) * (c.club_type === 'invest' ? 2 : 1) * Math.max(0.4, stakeMul));
+    if (after && after.stake >= 0.7 && (won || lost)) {
+      const who = c.name;
+      await news(l.id, c.id, 'press', won
+        ? `🎙️ ${who}'s manager backed up his words: "${after.quote.text}" Delivered.`
+        : `🎙️ "${after.quote.text}" ${who}'s manager will be eating those words tonight.`);
+    }
     await q(
       `UPDATE clubs SET coins=coins+$1, money=money+$2, fans=GREATEST(3000, fans+$3), board=LEAST(100, GREATEST(0, board+$4)) WHERE id=$5`,
       [coins, money.toFixed(2), fans, board, c.id],
@@ -747,6 +773,22 @@ async function processDay(d: Row) {
     `INSERT INTO papers (league_id, day, kind, data) VALUES ($1,$2,'paper',$3::jsonb) ON CONFLICT (league_id, day, kind) DO UPDATE SET data=EXCLUDED.data`,
     [l.id, d.day, JSON.stringify(paper)],
   );
+  // the next match day: managers facing a derby (or the cup final) are called to the press room
+  const big = await q(
+    `SELECT f.id, h.user_id AS hu, a.user_id AS au, h.name AS home, a.name AS away, f.comp,
+       (h.club_type='fan' AND a.club_type='fan' AND h.user_id IS NOT NULL AND a.user_id IS NOT NULL) AS derby
+     FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id
+     WHERE f.league_id=$1 AND f.status='scheduled' AND f.day = (SELECT MIN(day) FROM days WHERE league_id=$1 AND processed=false)
+       AND (h.user_id IS NOT NULL OR a.user_id IS NOT NULL)`,
+    [l.id],
+  );
+  const cupInfo = big.some((x) => x.comp === 'cup') ? await one(`SELECT data FROM papers WHERE league_id=$1 AND day=0 AND kind='cup'`, [l.id]) : null;
+  for (const x of big) {
+    const final = x.comp === 'cup' && cupInfo?.data?.rounds && (await one('SELECT round FROM fixtures WHERE id=$1', [x.id]))?.round === cupInfo.data.rounds.length;
+    if (!x.derby && !final) continue;
+    const ids = [x.hu, x.au].filter(Boolean);
+    await notifyMany(ids, { title: `🎙️ Press conference: ${final ? 'cup final' : 'derby'}`, body: `${x.home} vs ${x.away}. The journalists are waiting for you. What you say will change the match.`, url: `/l/${l.id}?tab=press`, tag: `press-${x.id}` });
+  }
   // season end
   const left = await one<{ n: number }>('SELECT COUNT(*)::int AS n FROM days WHERE league_id=$1 AND processed=false', [l.id]);
   if (left?.n === 0) await endSeason(l);

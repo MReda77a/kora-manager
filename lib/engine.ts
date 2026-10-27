@@ -19,6 +19,9 @@ export type ESide = {
   setpieces?: { corner?: string; fk?: string; routine?: string };
   familiarity?: number; // 0..100 with the formation
   chem?: { DEF: number; MID: number; FWD: number }; // 0..100 per line, 50 = neutral
+  captain?: string; vice?: string; // player ids: whoever of them is on the pitch wears the armband
+  leaders?: Record<string, number>; // leadership 0..1 of the captain and vice
+  cardMul?: number; // how harshly the referee treats this side (press conference), 1 = normal
 };
 // A manager's decision during a live match. It takes effect from minute m on.
 export type Change =
@@ -36,7 +39,7 @@ export type Report = {
   players: PlayerLine[];
   motm: string | null;
   tactics: [string, string];
-  lineups: { formation: string; preset: string; xi: string[]; bench: string[] }[];
+  lineups: { formation: string; preset: string; xi: string[]; bench: string[]; captain?: string }[];
   shootout?: Shootout;
   winner?: 0 | 1;
   derby?: boolean;
@@ -58,6 +61,8 @@ class Side {
   form: number;
   tactic: Tactic;
   agg: Record<string, number> = {};
+  capBonus = 0; // the captain driving the team on (worked out every minute)
+  armband: string | null = null;
   constructor(s: ESide, r: Rng, idx: 0 | 1, lines: PlayerLine[], derbyForm = false) {
     this.s = s;
     this.tactic = { ...s.tactic };
@@ -161,7 +166,7 @@ class Side {
     for (const k of Object.keys(this.agg)) this.agg[k] += fam + this.fit * FIT_WEIGHT;
     const tired = avg(all, (o) => o.tired, 0);
     const short = (11 - all.length) * 4;
-    const pen = Math.min(9, Math.max(0, tired - 0.55) * 10) + short - this.form - homeAdv - (this.s.boost || 0);
+    const pen = Math.min(9, Math.max(0, tired - 0.55) * 10) + short - this.form - homeAdv - (this.s.boost || 0) - this.capBonus;
     for (const k of Object.keys(this.agg)) this.agg[k] -= pen;
   }
 }
@@ -291,6 +296,9 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   };
 
   const tk = (i: number) => T(i).tackle ?? 1; // 0 stay on feet, 1 normal, 2 get stuck in
+  // the captain on the pitch keeps heads cool: fewer cards. The referee may also have it in for a side.
+  const lead = (i: number) => (S[i].armband ? S[i].s.leaders?.[S[i].armband!] ?? 0.5 : 0);
+  const calm = (i: number) => (1 - lead(i) * 0.22) * (S[i].s.cardMul ?? 1);
   const offsides: [number, number] = [0, 0];
   // the defending side steps up to catch a run offside: it works if the defence is in tune
   // (positioning, decisions, chemistry, fresh legs), otherwise the runner is clean through
@@ -520,7 +528,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       // tackles can bring fouls and cards, many more when the team gets stuck in
       if (r.next() < (0.2 + (tb.press >= 2 ? 0.08 : 0)) * [0.55, 1, 1.6][tk(b)]) {
         const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1));
-        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul * [0.7, 1, 1.15][tk(b)]) card(b, f, tk(b) === 2 ? 0.05 : 0);
+        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul * calm(b) * [0.7, 1, 1.15][tk(b)]) card(b, f, tk(b) === 2 ? 0.05 : 0);
       }
       if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.25 : 0.2)) shot(b, tb.press === 3 ? 0.15 : 0.13, 'high turnover');
       else if (tb.mentality <= 1 && r.next() < 0.09 + 0.05 * (2 - tb.mentality)) counter(b);
@@ -529,7 +537,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     // fouls in shooting range give free kicks
     if (r.next() < (0.012 + (tb.press >= 2 ? 0.004 : 0)) * [0.6, 1, 1.6][tk(b)]) {
       const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => o.p.a.Aggression || 50);
-      if (f && r.next() < 0.35 * cardMul * [0.75, 1, 1.25][tk(b)]) card(b, f);
+      if (f && r.next() < 0.35 * cardMul * calm(b) * [0.75, 1, 1.25][tk(b)]) card(b, f);
       return freeKick(a);
     }
     if (ta.build === 2 && r.next() < 0.5) {
@@ -588,7 +596,17 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         }
       }
       if (minute >= 46 && k > 45 + stoppage1) assistant(i);
-      S[i].refresh(i === 0 ? homeAdv : 0);
+      // the armband: the captain, or the vice-captain when he is off the pitch
+      const sd = S[i];
+      const holder = [sd.s.captain, sd.s.vice].find((id) => id && sd.pitch.some((o) => o.p.id === id)) || null;
+      if (holder !== sd.armband) {
+        if (sd.armband && holder) log('captain', i, `${sd.pitch.find((o) => o.p.id === holder)!.p.name} takes the armband.`, holder);
+        sd.armband = holder;
+      }
+      // a leader lifts the team a little, and drives it on when it is behind
+      const behind = goals[i] < goals[1 - i];
+      sd.capBonus = holder ? (sd.s.leaders?.[holder] ?? 0.5) * (behind ? (minute >= 46 ? 1.6 : 1.0) : 0.4) : 0;
+      sd.refresh(i === 0 ? homeAdv : 0);
     }
     const phases = 1 + (r.next() < 0.18 + 0.06 * (S[0].tactic.tempo + S[1].tactic.tempo) ? 1 : 0);
     for (let p = 0; p < phases; p++) phase(r.next() < possShare() ? 0 : 1);
@@ -656,7 +674,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     players: lines,
     motm: motm ? motm.id : null,
     tactics: [home.tactic.preset, away.tactic.preset],
-    lineups: [home, away].map((sd) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id) })),
+    lineups: [home, away].map((sd) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id), captain: sd.captain })),
     shootout, winner, derby, shots: shotsList, weather,
   };
 }

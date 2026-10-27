@@ -129,6 +129,21 @@ export const STAFF_PACK = { name: 'Staff', price: 80 };
 // Or hire the exact role and level you want with club money (in millions), by stars.
 export const STAFF_PRICES: Record<number, number> = { 1: 1, 2: 2.5, 3: 5, 4: 9, 5: 15 };
 
+// Leadership, 0..1: experience, calm under pressure and good decisions, plus a little class.
+// A captain with high leadership keeps the team calm (fewer cards) and drives it on when behind.
+export function leadership(p: { age?: number; ovr?: number; attrs?: Record<string, number>; a?: Record<string, number> } | Record<string, any>) {
+  const a = p.attrs || p.a || {};
+  const exp = Math.max(0, Math.min(1, ((p.age ?? 25) - 20) / 12));
+  const head = Math.max(0, Math.min(1, (((a.Composure ?? 60) + (a.Decisions ?? 60)) / 2 - 55) / 35));
+  const cls = Math.max(0, Math.min(1, ((p.ovr ?? 70) - 70) / 20));
+  return Math.round((exp * 0.45 + head * 0.4 + cls * 0.15) * 100) / 100;
+}
+export const leaderStars = (l: number) => Math.max(1, Math.min(5, Math.round(l * 5)));
+/** the best leader among these players */
+export function bestLeader(ps: Record<string, any>[], not?: string): string | undefined {
+  return [...ps].filter((p) => p.id !== not).sort((x, y) => leadership(y) - leadership(x))[0]?.id;
+}
+
 // Sponsor offers, chosen once per season in the Office.
 // Sponsors pay on results: a win pays in full, a draw pays less, a defeat pays nothing.
 // (Home matches also bring ticket money, which follows the size of the crowd.)

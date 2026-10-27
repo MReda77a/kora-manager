@@ -1,6 +1,6 @@
 // Leagues, clubs, packs, squads, line-ups, tables and the transfer market.
 // The season clock (fixtures, live matches, cup, papers) lives in season.ts.
-import { q, one, type Row } from './db.ts';
+import { q, one, writes, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
   CLUB_TYPES, CORNER_ROUTINES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK, STAFF_PRICES, STAFF_ROLES,
@@ -394,6 +394,7 @@ export async function saveSetup(uid: number, leagueId: number, b: {
   tactic?: Tactic; lineup?: string[]; pens?: string[]; assistant?: Record<string, boolean>;
   plans?: Record<string, Tactic | null>; roles?: Record<string, string>; setpieces?: Record<string, string>;
   kit?: { away1?: string; away2?: string; pattern?: number };
+  captain?: string | null; vice?: string | null;
 }) {
   const club = await myClub(uid, leagueId);
   const ids = new Set((await q('SELECT player_id FROM squad WHERE club_id=$1', [club.id])).map((r) => r.player_id));
@@ -452,10 +453,31 @@ export async function saveSetup(uid: number, leagueId: number, b: {
     if (hex(b.kit.away2)) { params.push(hex(b.kit.away2)); sets.push(`away2=$${params.length}`); }
     if (b.kit.pattern !== undefined) { params.push(Math.abs(Math.floor(Number(b.kit.pattern) || 0)) % PATTERNS.length); sets.push(`pattern=$${params.length}`); }
   }
+  // the armband: a new captain is proud, the one who loses it is hurt
+  let capNote: string | undefined;
+  if (b.captain !== undefined || b.vice !== undefined) {
+    const cap = b.captain !== undefined ? (b.captain && ids.has(String(b.captain)) ? String(b.captain) : null) : club.captain;
+    let vice = b.vice !== undefined ? (b.vice && ids.has(String(b.vice)) ? String(b.vice) : null) : club.vice;
+    if (vice === cap) vice = null;
+    params.push(cap); sets.push(`captain=$${params.length}`);
+    params.push(vice); sets.push(`vice=$${params.length}`);
+    if (cap !== club.captain) {
+      const names = await q('SELECT id, name FROM players WHERE id = ANY($1::text[])', [[cap, club.captain].filter(Boolean)]);
+      const nm = (id: string) => names.find((x) => x.id === id)?.name || 'He';
+      const w = writes();
+      if (cap) w.add(`UPDATE squad SET morale=LEAST(100, morale+5), cap_miss=0 WHERE club_id=$1 AND player_id=$2`, [club.id, cap]);
+      if (club.captain && ids.has(club.captain)) {
+        w.add(`UPDATE squad SET morale=GREATEST(0, morale-12) WHERE club_id=$1 AND player_id=$2`, [club.id, club.captain]);
+        capNote = `${nm(club.captain)} is hurt to lose the armband (morale −12).`;
+      }
+      await w.flush();
+      if (cap) capNote = `${nm(cap)} is your new captain${capNote ? `. ${capNote}` : '.'}`;
+    }
+  }
   if (!sets.length) return { ok: true };
   params.push(club.id);
   await q(`UPDATE clubs SET ${sets.join(', ')} WHERE id=$${params.length}`, params);
-  return { ok: true };
+  return { ok: true, note: capNote };
 }
 
 export function cleanTactic(t: Partial<Tactic>): Tactic {

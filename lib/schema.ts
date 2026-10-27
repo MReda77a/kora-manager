@@ -345,4 +345,22 @@ UPDATE listings li SET price = GREATEST(0.5, round((p.attrs->>'v')::numeric * 1.
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS rounds INT NOT NULL DEFAULT 0;
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS reserve NUMERIC;
 ALTER TABLE offers ADD COLUMN IF NOT EXISTS ask NUMERIC;
+-- the captain and vice-captain (player ids), and how many matches in a row a fit captain was left out
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS captain TEXT;
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS vice TEXT;
+ALTER TABLE squad ADD COLUMN IF NOT EXISTS cap_miss INT NOT NULL DEFAULT 0;
+-- big-match press conferences: what each manager said and what it does to the match
+CREATE TABLE IF NOT EXISTS pressers (
+  id SERIAL PRIMARY KEY,
+  league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  fixture_id INT NOT NULL REFERENCES fixtures(id) ON DELETE CASCADE,
+  club_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  questions JSONB NOT NULL DEFAULT '[]'::jsonb,
+  answers JSONB NOT NULL DEFAULT '[]'::jsonb,
+  effects JSONB NOT NULL DEFAULT '{}'::jsonb,
+  done BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (fixture_id, club_id)
+);
+CREATE INDEX IF NOT EXISTS pressers_club ON pressers (club_id);
 `;

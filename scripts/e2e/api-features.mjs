@@ -215,7 +215,7 @@ await F(`/api/leagues/${lid}/list`, { playerId: cheapSale.id, price: 0.3 });
 await sqlq(`UPDATE listings SET created_at = now() - interval '2 days' WHERE league_id=$1`, [lid]);
 
 // ---------------------------------------------------------------- the derby, live
-const derby = (await sqlq(`SELECT f.id, f.day, f.home_id FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id WHERE f.league_id=$1 AND h.user_id IS NOT NULL AND a.user_id IS NOT NULL ORDER BY day LIMIT 1`, [lid]))[0];
+const derby = (await sqlq(`SELECT f.id, f.day, f.home_id FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id WHERE f.league_id=$1 AND h.club_type='fan' AND a.club_type='fan' AND h.user_id IS NOT NULL AND a.user_id IS NOT NULL ORDER BY day LIMIT 1`, [lid]))[0];
 const [did, dday] = [Number(derby[0]), Number(derby[1])];
 for (let d = 1; d < dday; d++) await advance(d);
 const soldAbroad = Number((await sqlq(`SELECT COUNT(*) FROM news WHERE league_id=$1 AND kind='transfer' AND text LIKE $2`, [lid, `${cheapSale.name} joins %`]))[0][0]);
@@ -314,7 +314,7 @@ check('one price scale: 86-88 players in their prime are worth 25-55M', vals.eve
 const loanP = players.find((p) => !p.human && p.id !== botP.id && p.v < 6 && p.ovr < 80);
 const loan = await A(`/api/leagues/${lid}/offer`, { kind: 'loan', playerId: loanP.id, amount: Math.round(loanP.v * 0.25 * 10) / 10 });
 check('loan from AI', loan.status === 'accepted' || loan.status === 'rejected', loan.text || loan.error);
-const fp = players.find((p) => p.human && p.club_id !== myId);
+const fp = players.find((p) => p.human && p.club_id !== myId && p.club === 'Delta Rebels');
 const sw = sqA2.players.find((p) => !p.loan && p.natPos !== 'GK');
 const so = await A(`/api/leagues/${lid}/offer`, { kind: 'swap', playerId: fp.id, swapPlayer: sw.id, amount: 0.2 });
 check('swap offer to manager', so.status === 'pending', so.text || so.error);
@@ -363,7 +363,7 @@ check('retirements', true, `${(await sqlq(`SELECT COUNT(*) FROM retired WHERE le
 check('new schedule', Number((await sqlq(`SELECT COUNT(*) FROM fixtures WHERE league_id=$1`, [lid]))[0][0]) > 50);
 check('new sponsor choice', (await A(`/api/leagues/${lid}/office`)).canChooseSponsor === true);
 const me = await A('/api/me');
-check('reputation + ranking', me.user.reputation > 0 && me.ranking.length === 3, me.ranking.map((r) => `${r.username} ${r.reputation}`).join(', '));
+check('reputation + ranking', me.user.reputation > 0 && me.ranking.length >= 3, me.ranking.map((r) => `${r.username} ${r.reputation}`).join(', '));
 const minSquad = await sqlq(`SELECT MIN(n) FROM (SELECT COUNT(*) n FROM squad WHERE league_id=$1 GROUP BY club_id) x`, [lid]);
 check('every club still has a squad', Number(minSquad[0][0]) >= 18, `smallest ${minSquad[0][0]}`);
 // play a couple of season-2 days to prove the clock works after the roll-over

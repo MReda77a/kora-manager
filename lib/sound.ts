@@ -4,8 +4,9 @@
 // scripts/audio), so they are free to use. Browsers only allow sound after a tap, so
 // everything asked for before that waits and starts on the first tap.
 
-export type Track = 'menu' | 'derby';
-export type Fx = 'goal' | 'concede' | 'ooh' | 'ahh' | 'boo' | 'applause' | 'tension' | 'chant' | 'chant-derby';
+export type Track = 'menu' | 'derby' | 'press';
+export type Fx = 'goal' | 'concede' | 'ooh' | 'ahh' | 'boo' | 'applause' | 'tension' | 'chant' | 'chant-derby'
+  | 'press-shutter' | 'press-flashes' | 'press-gasp' | 'press-laugh' | 'press-sting';
 type Settings = { music: boolean; sfx: boolean; volume: number };
 
 const KEY = 'kora-sound';
@@ -147,24 +148,25 @@ async function syncMusic() {
 }
 
 // ---------------------------------------------------------------- crowd during a match
-let wantBed: 'normal' | 'derby' | null = null;
+let wantBed: 'normal' | 'derby' | 'press' | null = null;
 let bedLoop: Loop | null = null;
 let bedJob = 0;
 let level = 0.55;
-/** the steady stadium sound while a match is on; null fades it out */
-export function crowdBed(kind: 'normal' | 'derby' | null) {
+/** the steady stadium sound while a match is on (or the press room's murmur); null fades it out */
+export function crowdBed(kind: 'normal' | 'derby' | 'press' | null) {
   wantBed = kind;
   syncBed();
 }
 async function syncBed() {
   if (!unlocked) return;
-  const name = wantBed ? (wantBed === 'derby' ? 'crowd-bed-derby' : 'crowd-bed') : null;
+  const name = wantBed ? (wantBed === 'derby' ? 'crowd-bed-derby' : wantBed === 'press' ? 'press-room' : 'crowd-bed') : null;
   if (bedLoop?.name === name) return;
   const job = ++bedJob;
   stopLoop(bedLoop, 2.5);
   bedLoop = null;
   if (!name) return;
-  if (name) ['goal', 'concede', 'ooh', 'ahh', 'boo', 'applause', 'tension', wantBed === 'derby' ? 'chant-derby' : 'chant'].forEach(load);
+  if (wantBed === 'press') ['press-shutter', 'press-flashes', 'press-gasp', 'press-laugh', 'press-sting'].forEach(load);
+  else ['goal', 'concede', 'ooh', 'ahh', 'boo', 'applause', 'tension', wantBed === 'derby' ? 'chant-derby' : 'chant'].forEach(load);
   const l = await startLoop(name, crowdBus, level, 2.5);
   if (job !== bedJob) { stopLoop(l, 0.3); return; }
   bedLoop = l;
@@ -184,13 +186,14 @@ function duck(amount: number, seconds: number) {
 }
 
 /** a one-off crowd reaction */
-export async function play(name: Fx, opts: { gain?: number; delay?: number } = {}) {
+export async function play(name: Fx, opts: { gain?: number; delay?: number; rate?: number } = {}) {
   if (!settings.sfx || !unlocked) return;
   const buf = await load(name);
   const c = ctx;
   if (!buf || !c) return;
   const src = c.createBufferSource();
   src.buffer = buf;
+  if (opts.rate) src.playbackRate.value = opts.rate;
   const g = c.createGain();
   g.gain.value = opts.gain ?? 1;
   src.connect(g).connect(fxBus);
@@ -198,7 +201,7 @@ export async function play(name: Fx, opts: { gain?: number; delay?: number } = {
   src.start(at);
   log(`fx:${name}`);
   // the steady crowd dips under a big reaction so the reaction stands out
-  if (['goal', 'concede', 'boo', 'tension'].includes(name)) setTimeout(() => duck(name === 'tension' ? 0.4 : 0.55, Math.min(4, buf.duration * 0.6)), (opts.delay || 0) * 1000);
+  if (['goal', 'concede', 'boo', 'tension', 'press-gasp', 'press-laugh'].includes(name)) setTimeout(() => duck(name === 'tension' ? 0.4 : 0.55, Math.min(4, buf.duration * 0.6)), (opts.delay || 0) * 1000);
 }
 
 // ---------------------------------------------------------------- small synthesised sounds

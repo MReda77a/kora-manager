@@ -52,8 +52,10 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
   const [xi, setXi] = useState<string[]>([]);
   const [sel, setSel] = useState<{ kind: 'slot' | 'bench'; v: number | string } | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [cap, setCap] = useState<{ c: string | null; v: string | null }>({ c: null, v: null });
   useEffect(() => {
     if (!d) return;
+    setCap({ c: d.club.captain, v: d.club.vice });
     const tac = d.club.tactic?.formation ? d.club.tactic : { preset: 'Wing play', formation: '4-3-3', ...stripDesc(PRESETS['Wing play']) };
     setT(tac);
     const saved: string[] = d.club.lineup || [];
@@ -97,8 +99,18 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
     setSel(null);
   });
   const save = async () => {
-    try { await api(`/api/leagues/${lid}/setup`, { tactic: t, lineup: xi }); setDirty(false); toast.ok('Lineup saved for the next match'); } catch (e: any) { toast.bad(e.message); }
+    try {
+      const r = await api(`/api/leagues/${lid}/setup`, { tactic: t, lineup: xi, captain: cap.c, vice: cap.v });
+      setDirty(false);
+      toast.ok(r?.note || 'Lineup saved for the next match');
+      d.club.captain = cap.c; d.club.vice = cap.v;
+    } catch (e: any) { toast.bad(e.message); }
   };
+  // the armband: the manager's pick, or the best leader on the pitch when none is chosen
+  const xiPlayers = xi.map((id) => byId.get(id) as any).filter(Boolean);
+  const autoCap = [...xiPlayers].sort((a, b) => b.lead - a.lead)[0]?.id;
+  const wearer = cap.c && xi.includes(cap.c) ? cap.c : cap.v && xi.includes(cap.v) ? cap.v : autoCap;
+  const stars = (l: number) => '★'.repeat(Math.max(1, Math.min(5, Math.round(l * 5))));
   const opp = d.next ? (d.next.home_id === d.club.id ? d.next.away : d.next.home) : null;
   const hint = sel ? (sel.kind === 'slot' ? 'Tap another player to swap, or a bench player to bring him on' : 'Now tap the player on the pitch to replace') : 'Tap a player to move or replace him';
   return (
@@ -132,6 +144,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
                   <em>{label}</em>
                   <b>{p ? p.ovr + (p.form || 0) - cost : '–'}</b>
                   <small>{p ? (wrong ? `${p.pos} · −${cost}` : lastName(p.name)) : label}</small>
+                  {p && p.id === wearer && <span className={`arm ${p.id !== cap.c && cap.c ? 'v' : ''}`} aria-label="Captain">C</span>}
                 </button>
               );
             })}
@@ -171,6 +184,20 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
           <Seg opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => set(() => setT({ ...t, press: v, preset: 'Custom' }))} />
           <span className="tiny muted" style={{ fontWeight: 800 }}>Passing</span>
           <Seg opts={[[0, 'Short'], [1, 'Mixed'], [2, 'Long']]} value={t.build} onPick={(v) => set(() => setT({ ...t, build: v, preset: 'Custom' }))} />
+          <span className="tiny muted" style={{ fontWeight: 800 }}>Captain ©</span>
+          <div className="row" style={{ gap: 6 }}>
+            {(['c', 'v'] as const).map((k) => (
+              <label key={k} className="col grow" style={{ gap: 2, minWidth: 0 }}>
+                <span className="tiny muted">{k === 'c' ? 'Captain' : 'Vice'}</span>
+                <select className="capsel" value={cap[k] || ''} onChange={(e) => set(() => setCap((x) => { const n = { ...x, [k]: e.target.value || null }; if (n.c && n.c === n.v) n[k === 'c' ? 'v' : 'c'] = null; return n; }))} aria-label={k === 'c' ? 'Captain' : 'Vice-captain'}>
+                  <option value="">Auto (best leader)</option>
+                  {[...d.players].sort((a: any, b: any) => b.lead - a.lead).map((p: any) => <option key={p.id} value={p.id}>{lastName(p.name)} {stars(p.lead)}</option>)}
+                </select>
+              </label>
+            ))}
+          </div>
+          {cap.c && !xi.includes(cap.c) && <span className="tiny" style={{ color: '#F2C14E', fontWeight: 800 }}>Your captain is not in the line-up. He will not like it.</span>}
+          <span className="tiny muted">★ Leadership. With the armband he keeps heads cool (fewer cards) and drives the team on when it is losing.</span>
           <span className="tiny muted" style={{ fontWeight: 800 }}>Chemistry</span>
           {([['DEF', 'Defence'], ['MID', 'Midfield'], ['FWD', 'Attack']] as const).map(([k, label]) => {
             const v = lc[k], fx = Math.round(((v - 50) / 50) * 2.5 * 10) / 10;

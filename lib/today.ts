@@ -5,6 +5,7 @@ import { FIT_WEIGHT, type ESide } from './engine.ts';
 import { CLUB_TYPES, FORMATIONS, LINE, offPositionCost, tacticFit, type ClubTypeKey } from './game.ts';
 import { getLeague, myClub, windowFor } from './league.ts';
 import { previewSides, recentPlans } from './season.ts';
+import { pressStatus } from './press.ts';
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
 
@@ -53,6 +54,12 @@ export async function todayView(uid: number, leagueId: number) {
     const tired = me.xi.filter((p) => p.fitness < 70);
     if (tired.length) items.push({ ok: false, text: `${tired.length} tired starter${tired.length > 1 ? 's' : ''} (${tired.map((p) => `${p.name.split(' ').slice(-1)[0]} ${p.fitness}%`).join(', ')}): rest ${tired.length > 1 ? 'them' : 'him'}?`, tab: 'lineup' });
     if (mine.parts.position < -0.3) items.push({ ok: false, text: 'Someone plays out of position: he loses power.', tab: 'lineup' });
+    // big matches: the press are waiting
+    if (f.comp === 'cup' || (opp.user_id && opp.club_type === 'fan' && club.club_type === 'fan')) {
+      const ps = await pressStatus(l, club.id);
+      if (ps && !ps.done) items.unshift({ ok: false, text: `🎙️ Press conference before the ${ps.final ? 'cup final' : 'derby'}: the journalists are waiting. Your words change the match.`, tab: 'press' });
+      else if (ps?.done) items.push({ ok: true, text: '🎙️ You spoke to the press.', tab: 'press' });
+    }
     // the plan
     const hist = await recentPlans(leagueId, club.id);
     const now = club.tactic?.preset;

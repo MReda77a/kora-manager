@@ -1,5 +1,6 @@
 import { q, one } from '../../../../../lib/db.ts';
 import { body, fail, handle, requireUser } from '../../../../../lib/http.ts';
+import * as PR from '../../../../../lib/press.ts';
 import * as L from '../../../../../lib/league.ts';
 import * as T from '../../../../../lib/transfers.ts';
 import * as A from '../../../../../lib/analyst.ts';
@@ -11,7 +12,7 @@ import * as C from '../../../../../lib/club.ts';
 import * as P from '../../../../../lib/people.ts';
 import * as O from '../../../../../lib/offers.ts';
 import * as K from '../../../../../lib/career.ts';
-import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, traitOf, type ClubTypeKey, marketValue } from '../../../../../lib/game.ts';
+import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, traitOf, type ClubTypeKey, marketValue, leadership } from '../../../../../lib/game.ts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -91,10 +92,11 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
       club: {
         id: c.id, name: c.name, short: c.short, color1: c.color1, color2: c.color2, tactic: c.tactic, lineup: c.lineup, pens: c.pens, assistant: c.assistant, coins: c.coins, money: Number(c.money),
         plans: c.plans || {}, roles: c.roles || {}, setpieces: c.setpieces || {}, familiarity: c.familiarity || {}, chem,
+        captain: c.captain || null, vice: c.vice || null,
       },
       nextDay: day, next,
       players: players.map((p) => ({ ...L.pub(p), fitness: Math.round(p.fitness), outUntil: p.out_until, outReason: p.out_reason, form: p.form, formNote: p.form ? p.form_note : null, stats: st.get(p.id) || null, listing: li.get(p.id) || null,
-        morale: p.morale ?? 70, trait: traitOf(p.id), request: !!p.request, loan: !!p.loan_from, promised: !!p.promise_day, ovrDelta: p.ovr_delta || 0 })),
+        morale: p.morale ?? 70, trait: traitOf(p.id), request: !!p.request, loan: !!p.loan_from, promised: !!p.promise_day, ovrDelta: p.ovr_delta || 0, lead: leadership(p) })),
     };
   }
   if (action === 'offers') return O.offersView(s.uid, lid);
@@ -127,6 +129,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
       (SELECT COUNT(*)::int FROM squad s WHERE s.club_id=c.id) AS players FROM clubs c LEFT JOIN users u ON u.id=c.user_id WHERE c.league_id=$1 ORDER BY c.id`, [lid]);
   }
   if (action === 'today') return TD.todayView(s.uid, lid);
+  if (action === 'press') return PR.pressView(s.uid, lid);
   if (action === 'friendly') return FR.friendlyView(s.uid, lid);
   if (action === 'analyst') return A.analystReport(s.uid, lid, new URL(req.url).searchParams.get('refresh') === '1');
   if (action === 'scout') {
@@ -195,6 +198,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'comment': return C.postComment(s.uid, lid, b);
     case 'nextseason': return S.nextSeason(s.uid, lid);
     case 'analyst': return A.upgradeAnalyst(s.uid, lid);
+    case 'press': return PR.pressAnswer(s.uid, lid, b);
     case 'friendly': return FR.playFriendly(s.uid, lid, Number(b.opponentId));
     case 'hire': return L.hireStaff(s.uid, lid, String(b.role), Number(b.level));
     case 'tutorial': await q('UPDATE users SET tutorial_done=true WHERE id=$1', [s.uid]); return { ok: true };

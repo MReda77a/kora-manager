@@ -31,6 +31,8 @@ export async function playFriendly(uid: number, leagueId: number, oppId: number)
   const fx = { id: hashSeed('friendly', club.id, opp.id, n), league_id: leagueId, day, comp: 'friendly' };
   const me = await sideFor(club, l, fx, opp, true, null);
   const them = await sideFor(opp, l, fx, club, false, null);
+  // a friendly is played at lower intensity: far fewer injuries than in a real match
+  me.injuryRisk = (me.injuryRisk ?? 1) * 0.3;
   if (!opp.user_id) them.tactic = aiTactic(l.ai_level, [], hashSeed('fr-plan', fx.id), them.tactic.formation);
   const cond = conditionsFor(fx.id, l.pool, day);
   const rep = simulate(me, them, hashSeed(fx.id, leagueId), { weather: cond.weather, strict: cond.referee.strict });
@@ -42,12 +44,16 @@ export async function playFriendly(uid: number, leagueId: number, oppId: number)
   const before = Math.round(me.xi.reduce((a, p) => a + p.fitness, 0) / me.xi.length);
   const rows = [...me.xi, ...me.bench].map((p) => {
     const ln = lines.get(p.id);
-    let out = 0;
+    let out = 0, knock = false;
     if (ln?.inj) {
-      out = Math.max(day + 1, day + 1 + Math.floor(rng(hashSeed(p.id, fx.id)).next() * 4) - Math.floor(doc / 2));
-      injured.push(p.name);
+      // most friendly injuries are knocks: sore legs, no match missed. A good doctor helps.
+      const r = rng(hashSeed(p.id, fx.id)).next() + doc * 0.05;
+      if (r < 0.65) knock = true;
+      else out = r < 0.95 ? day + 1 : day + 2;
+      injured.push(knock ? `${p.name} (a knock, he can play)` : `${p.name} (misses ${out - day} match${out - day > 1 ? 'es' : ''})`);
     }
-    return { id: p.id, fit: Math.round(ln && ln.mins > 0 ? ln.fitEnd : p.fitness), out };
+    const fit = Math.round(ln && ln.mins > 0 ? ln.fitEnd : p.fitness) - (knock ? 12 : 0);
+    return { id: p.id, fit: Math.max(20, fit), out };
   });
   await q(
     `UPDATE squad s SET fitness=x.fit,
