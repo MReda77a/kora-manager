@@ -8,6 +8,7 @@ import {
   windowFromDays, assignShirts,
 } from './game.ts';
 import { wakeTimer } from './wake.ts';
+import { notify } from './push.ts';
 import { rng, hashSeed } from './rng.ts';
 
 export const AI_SQUAD = 18;
@@ -431,6 +432,7 @@ export function cleanTactic(t: Partial<Tactic>): Tactic {
   return {
     preset: String(t.preset || 'Custom').slice(0, 20), formation: t.formation && FORMATIONS[t.formation] ? t.formation : '4-3-3',
     mentality: n(t.mentality, 2), press: n(t.press, 3), line: n(t.line, 2), build: n(t.build, 2), focus: n(t.focus, 3), width: n(t.width, 2), tempo: n(t.tempo, 2),
+    trap: n(t.trap, 1), tackle: t.tackle === undefined || t.tackle === null ? 1 : n(t.tackle, 2),
   };
 }
 
@@ -563,5 +565,9 @@ export async function buy(uid: number, leagueId: number, listingId: number) {
   await q(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [leagueId, li.player_id]);
   const p = await one('SELECT name FROM players WHERE id=$1', [li.player_id]);
   await news(leagueId, club.id, 'transfer', `${club.name} sign ${p?.name} for ${Number(li.price).toFixed(1)}M.`);
+  if (seller?.user_id) {
+    await news(leagueId, li.seller_id, 'inbox', `💰 ${club.name} bought ${p?.name} for ${Number(li.price).toFixed(1)}M.`);
+    await notify(seller.user_id, { title: '💰 Player sold', body: `${club.name} bought ${p?.name} for ${Number(li.price).toFixed(1)}M.`, url: `/l/${leagueId}` });
+  }
   return { ok: true };
 }

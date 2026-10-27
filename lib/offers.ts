@@ -148,7 +148,7 @@ async function complete(o: Row, price: number) {
   await news(o.league_id, buyer!.id, 'transfer', head);
   // other bids for him are dead now
   const others = await q(`UPDATE offers SET status='expired', note='He signed elsewhere.', updated_at=now() WHERE player_id=$1 AND league_id=$2 AND id<>$3 AND status IN ('pending','countered') RETURNING from_club`, [o.player_id, o.league_id, o.id]);
-  for (const x of others) await inbox(o.league_id, x.from_club, `❌ ${nm(o.player_id)} signed for ${buyer!.name}. Your offer is off.`);
+  for (const x of others) await inbox(o.league_id, x.from_club, `❌ ${nm(o.player_id)} signed for ${buyer!.name}. Your offer is off.`, { title: 'Offer off' });
   if (buyer!.user_id) await inbox(o.league_id, buyer!.id, `✅ Done deal: ${head}`, { title: 'Done deal' });
   if (seller!.user_id) await inbox(o.league_id, seller!.id, `✅ Done deal: ${head}`, { title: 'Done deal' });
   return { ok: true, status: 'accepted', text: head };
@@ -163,7 +163,7 @@ export async function respondOffer(uid: number, leagueId: number, offerId: numbe
   if (o.to_club === me.id && o.status === 'pending') {
     if (action === 'accept') return complete(o, Number(o.amount));
     if (action === 'reject') {
-      await inbox(leagueId, o.from_club, `❌ ${me.name} turned down your offer for ${p.name}.`);
+      await inbox(leagueId, o.from_club, `❌ ${me.name} turned down your offer for ${p.name}.`, { title: 'Offer turned down', url: `/l/${leagueId}?tab=market` });
       return finish(o, 'rejected', 'Rejected.');
     }
     if (action === 'counter') {

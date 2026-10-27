@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runDue } from '../../../lib/season.ts';
+import { applyTrainings } from '../../../lib/club.ts';
 import { migrate } from '../../../lib/migrate.ts';
 import { counter, one } from '../../../lib/db.ts';
 
@@ -13,13 +14,15 @@ export async function GET(req: Request) {
   const start = counter.n;
   await migrate();
   const r = await runDue();
+  await applyTrainings(); // finished training sessions, with a notification
   // when the timer next needs to come back: a kick-off, a live match ending, a day to wrap up
   const next = await one<{ t: string | null }>(
     `SELECT LEAST(
        (SELECT MIN(kickoff_at) FROM fixtures WHERE status='scheduled'),
        (SELECT MIN(live_until) FROM fixtures WHERE status='live'),
        (SELECT MIN(claimed_at) + interval '2 minutes' FROM fixtures WHERE status IN ('playing','finalizing')),
-       (SELECT MIN(kickoff_at) FROM days WHERE processed=false)) AS t`,
+       (SELECT MIN(kickoff_at) FROM days WHERE processed=false),
+       (SELECT MIN(ends_at) FROM training WHERE done=false)) AS t`,
   );
   const used = counter.n - start;
   if (used > 25) console.warn(`[queries] ${used} database requests in one cron visit (played ${r.played})`);

@@ -109,6 +109,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
           </div>
           <span className="small" style={{ fontWeight: 800 }}><b style={{ color: '#FF8A80' }}>Avoid:</b> {r.avoid}{r.myLast && r.myLast === r.avoid ? ' (you played it last time, and they are ready for it)' : ''}</span>
           {r.tip && <span className="small" style={{ fontWeight: 700, color: '#7FE9F7' }}>💡 {r.tip}</span>}
+          {(r.style || []).map((t: string, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}>{t}</span>)}
           {!numbers && <span className="tiny muted">A part-time analyst only gives a rough guess and can be wrong. A Match analyst plays the game through hundreds of times first.</span>}
           <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
             <button className="ghost small" onClick={() => go('tactics')}><span>Open tactics</span></button>

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/client.ts';
-import { CORNER_ROUTINES, FORMATIONS, LINE, PRESETS, ROLES, stripDesc, tacticFit, type Tactic } from '../../lib/game.ts';
+import { CORNER_ROUTINES, FORMATIONS, LINE, PRESETS, ROLES, TACKLE_STYLES, stripDesc, tacticFit, type Tactic } from '../../lib/game.ts';
 import { Bar, BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import { Pitch, autoXI, useSquad } from './Lineup.tsx';
 import type { TabProps } from './types.ts';
@@ -137,6 +137,19 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
               <Line label="Mentality"><Seg small opts={[[0, 'Defensive'], [1, 'Balanced'], [2, 'Attacking']]} value={t.mentality} onPick={(v) => setField('mentality', v)} /></Line>
               <Line label="Pressing"><Seg small opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => setField('press', v)} /></Line>
               <Line label="Def. line"><Seg small opts={[[0, 'Deep'], [1, 'Mid'], [2, 'High']]} value={t.line} onPick={(v) => setField('line', v)} /></Line>
+              <Line label="Tackling">
+                {/* big faces, so the choice reads without any English */}
+                <div className="segrow">
+                  {TACKLE_STYLES.map((x, i) => (
+                    <button key={x.name} className={`seg ${(t.tackle ?? 1) === i ? 'on' : ''}`} style={{ minHeight: 34, padding: '0 10px' }} onClick={() => change(() => setT({ ...t, tackle: i }))} aria-label={x.name} title={x.name}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}><span style={{ fontSize: 20, lineHeight: 1 }}>{x.face}</span>{x.short}</span>
+                    </button>
+                  ))}
+                </div>
+              </Line>
+              <span className="tiny muted"><b style={{ fontSize: 16 }}>{TACKLE_STYLES[t.tackle ?? 1].face}</b> {TACKLE_STYLES[t.tackle ?? 1].name}: {TACKLE_STYLES[t.tackle ?? 1].text}</span>
+              <Line label="Offside trap"><Seg small opts={[[0, 'Off'], [1, '🚩 On']]} value={t.line === 0 ? 0 : t.trap ?? 0} onPick={(v) => change(() => setT({ ...t, trap: v }))} /></Line>
+              <span className="tiny muted">{t.line === 0 ? 'The trap needs a mid or high line.' : 'Your defenders step up together to catch runners offside. It works if they read the game well, know each other and have fresh legs; if one is late, their striker is clean through.'}</span>
               <div className="tiny muted">A high press wins the ball near goal but drains legs. A high line squeezes the pitch but fast strikers run in behind. A deep block stops through balls but invites crosses and long shots.</div>
             </div>
           )}
@@ -264,7 +277,7 @@ function PlanTabs({ plan, plans, setPlan }: { plan: string; plans: Record<string
 }
 
 function Line({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="row" style={{ gap: 8 }}><span className="small" style={{ width: 82, flex: 'none', fontWeight: 800 }}>{label}</span><div className="grow">{children}</div></div>;
+  return <div className="row" style={{ gap: 8 }}><span className="small" style={{ width: 82, flex: 'none', fontWeight: 800 }}>{label}</span><div className="grow" style={{ minWidth: 0 }}>{children}</div></div>;
 }
 
 function scoutLine(s: any) {

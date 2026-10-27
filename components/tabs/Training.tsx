@@ -82,7 +82,7 @@ export default function TrainingTab({ lid, toast }: TabProps) {
                 {target && (
                   <div className="panel" style={{ background: 'rgba(10,4,30,0.35)', gap: 6 }}>
                     <div className="row between"><b>{mode === 'attr' ? target : `New position: ${target}`}</b>{mode === 'attr' && <span className="lz" style={{ fontSize: 22 }}>{cur} → <span style={{ color: '#7CE3A1' }}>{Math.min(99, cur + gain)}</span></span>}</div>
-                    <span className="tiny muted">{mode === 'attr' ? `About ${Math.round(24 * (1 - d.coach * 0.1))} hours. Up to +10 per skill each season.` : `About ${Math.round(72 * (1 - d.coach * 0.1))} hours. He then plays ${target} without the out-of-position penalty.`}</span>
+                    <span className="tiny muted">{mode === 'attr' ? `About ${Math.round(36 * (1 - d.coach * 0.1))} hours for +1 or +2. Up to +6 per skill each season.` : `About ${Math.round(72 * (1 - d.coach * 0.1))} hours. He then plays ${target} without the out-of-position penalty.`}</span>
                     <button className="cta small" onClick={start} disabled={d.active.length >= d.slots}><span>{d.active.length >= d.slots ? 'All slots busy' : 'Start training'}</span></button>
                   </div>
                 )}

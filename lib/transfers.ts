@@ -24,6 +24,16 @@ const lineOf = (pos: string) => LINE[pos] || 'MID';
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
 // ---------------------------------------------------------------- players from abroad
+/** clubs abroad ask a lot: about 7M for an 80, 25M for an 86, 40M for an 88, 60M for a 90, 90M+ for a 92,
+ *  more for young players with room to grow, much less for veterans */
+export function abroadPrice(ovr: number, age: number, pot: number, rand: number) {
+  const base = 3 * Math.pow(1.24, ovr - 76);
+  const ageF = age <= 21 ? 1.35 : age <= 24 ? 1.2 : age <= 28 ? 1 : age <= 30 ? 0.85 : age <= 32 ? 0.65 : 0.45;
+  const growth = age <= 24 ? 1 + Math.max(0, pot - ovr) * 0.03 : 1;
+  const p = base * ageF * growth * (0.9 + rand * 0.2);
+  return Math.max(0.5, p >= 10 ? Math.round(p) : Math.round(p * 10) / 10);
+}
+
 /** a fresh list of players from abroad for this window (the old list goes) */
 export async function abroadMarket(l: Row, round: number) {
   const seed = hashSeed('abroad', l.id, l.season, round);
@@ -43,11 +53,7 @@ export async function abroadMarket(l: Row, round: number) {
   const stars = pick(free.filter((p) => p.ovr >= avg + 6), 2 + Math.floor(r.next() * 2));
   const solid = pick(free.filter((p) => Math.abs(p.ovr - avg) < 6), 10 + Math.floor(r.next() * 5));
   const cheap = pick(free.filter((p) => p.ovr <= avg - 6).sort((a, b) => a.age - b.age).slice(0, 40), 4 + Math.floor(r.next() * 4));
-  const rows = [...stars, ...solid, ...cheap].map((p) => {
-    const star = p.ovr >= avg + 6;
-    const v = Math.max(0.3, Number(p.v) || 1);
-    return { p: p.id, price: Math.max(0.3, round1(v * (star ? 1.3 + r.next() * 0.4 : 0.95 + r.next() * 0.4))), club: FOREIGN_CLUBS[Math.floor(r.next() * FOREIGN_CLUBS.length)] };
-  });
+  const rows = [...stars, ...solid, ...cheap].map((p) => ({ p: p.id, price: abroadPrice(p.ovr, p.age, p.pot, r.next()), club: FOREIGN_CLUBS[Math.floor(r.next() * FOREIGN_CLUBS.length)] }));
   const w = writes();
   w.add('DELETE FROM abroad WHERE league_id=$1', [l.id]);
   if (rows.length) {
@@ -101,8 +107,9 @@ export function saleChance(x: { price: number; v: number; age: number; ovr: numb
   if (x.age <= 21) appeal += 0.5; else if (x.age <= 24) appeal += 0.25; else if (x.age >= 31) appeal -= 0.25;
   appeal += Math.max(0, x.pot - x.ovr) / 25;
   if (x.rating !== null) appeal += x.rating >= 7.2 ? 0.35 : x.rating < 6.3 ? -0.2 : 0;
-  const p = 0.11 * priceF * appeal * mood * (deadline ? 1.7 : 1) * (x.fresh ? 0.5 : 1);
-  return Math.max(0.01, Math.min(0.55, p));
+  // deadline day: clubs abroad rush to get their deals done
+  const p = 0.11 * priceF * appeal * mood * (deadline ? 2.6 : 1) * (x.fresh && !deadline ? 0.5 : 1);
+  return Math.max(deadline ? 0.06 : 0.01, Math.min(deadline ? 0.8 : 0.55, p));
 }
 
 export async function marketDay(l: Row, day: number, deadline: boolean) {
@@ -133,7 +140,7 @@ export async function marketDay(l: Row, day: number, deadline: boolean) {
   let sales = 0;
   // 1) players the managers listed
   for (const li of listed.sort(() => r.next() - 0.5)) {
-    if (sales >= 4) break;
+    if (sales >= (deadline ? 8 : 4)) break;
     if (li.loan_from || li.squad <= MIN_SQUAD) continue;
     const fresh = Date.now() - new Date(li.created_at).getTime() < 20 * 3_600_000;
     const p = saleChance({ price: Number(li.price), v: Number(li.v) || 1, age: li.age, ovr: li.ovr, pot: li.pot, rating: li.rating === null ? null : Number(li.rating), fresh }, mood, deadline);
@@ -141,7 +148,8 @@ export async function marketDay(l: Row, day: number, deadline: boolean) {
     const price = Number(li.price);
     // an AI club of the league that needs him and can pay, otherwise a club from abroad
     const keen = [...bots.values()].filter((b) => b.money >= price && b.sq.length < 26 && li.ovr > weakness(b, lineOf(li.pos)) + 1);
-    const bot = keen.length && r.next() < 0.55 ? keen[Math.floor(r.next() * keen.length)] : null;
+    // on deadline day most of the buyers are clubs from abroad
+    const bot = keen.length && r.next() < (deadline ? 0.2 : 0.55) ? keen[Math.floor(r.next() * keen.length)] : null;
     const buyer = bot ? bot.name : FOREIGN_CLUBS[Math.floor(r.next() * FOREIGN_CLUBS.length)];
     w.add('DELETE FROM listings WHERE id=$1', [li.id]);
     w.add('UPDATE clubs SET money=money+$1, sales=sales+$1 WHERE id=$2', [price, li.seller_id]);

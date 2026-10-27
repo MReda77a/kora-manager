@@ -150,6 +150,14 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
   }).sort((a, b) => b.score - a.score);
 
   const best = results[0], second = results[1], worst = results[results.length - 1];
+  // tackling and the offside trap
+  const styleTips: string[] = [];
+  const myTrap = lineAvg(me, 'DEF', ['Positioning', 'Decisions', 'Marking']), theirRuns = lineAvg(them, 'FWD', ['Positioning', 'Decisions', 'Pace']);
+  const runners = level >= 2 && likely[0] && ['Gegenpress', 'Low block'].includes(likely[0].plan);
+  if (cond.referee.strict === 2) styleTips.push(`🙂 Strict referee (${cond.referee.name}): tackle with care, cards will fly.`);
+  else if (level >= 2 && likely[0]?.plan === 'Tiki-taka') styleTips.push('😠 They pass short: getting stuck in can break up their play (watch the cards).');
+  if (myTrap - theirRuns >= 3) styleTips.push(`🚩 Your defenders read the game better than their forwards (${myTrap} vs ${theirRuns})${runners ? ', and they like to run in behind' : ''}: an offside trap could catch them.`);
+  else if (theirRuns - myTrap >= 3) styleTips.push(`🚩 Their forwards time their runs well (${theirRuns} vs your back line's ${myTrap}): an offside trap is risky.`);
   const gap = best.score - second.score;
   const confidence = level === 1 ? 'Low' : level === 2 ? (gap > 0.15 ? 'Medium' : 'Low') : gap > 0.12 ? 'High' : 'Medium';
   const main = likely[0]?.plan;
@@ -162,6 +170,7 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
     plans: (level === 1 ? results.slice(0, 3) : results).map((x) => ({ plan: x.plan, win: x.win, draw: x.draw, loss: x.loss })),
     best: best.plan, avoid: worst.plan, confidence,
     tip: chase ? `If you need a goal late on, switch to ${chase}: it is the best answer to ${main}.` : null,
+    style: styleTips,
     myLast: myHistory[0] || null,
     made: new Date().toISOString(),
   };

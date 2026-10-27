@@ -68,7 +68,14 @@ export const offPositionCost = (natural: string, slot: string) => (natural === s
 export type Tactic = {
   preset: string; formation: string;
   mentality: number; press: number; line: number; build: number; focus: number; width: number; tempo: number;
+  trap?: number; // offside trap: 0 off, 1 on (needs a mid or high line)
+  tackle?: number; // 0 stay on feet, 1 normal (default), 2 get stuck in
 };
+export const TACKLE_STYLES = [
+  { face: '🙂', short: 'Soft', name: 'Stay on feet', text: 'Few fouls and cards, but they get past you more easily.' },
+  { face: '😐', short: 'Normal', name: 'Normal', text: 'Win the ball fairly.' },
+  { face: '😠', short: 'Hard', name: 'Get stuck in', text: 'Win the ball back more often, but more fouls, free kicks, cards and penalties. Strict referees and derbies make it worse.' },
+];
 
 export const PRESETS: Record<string, Omit<Tactic, 'preset' | 'formation'> & { desc: string }> = {
   'Tiki-taka': { mentality: 1, press: 2, line: 2, build: 0, focus: 2, width: 1, tempo: 0, desc: 'Keep the ball, short passes, high line.' },

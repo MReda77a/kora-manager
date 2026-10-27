@@ -32,7 +32,7 @@ export type PlayerLine = { id: string; name: string; side: 0 | 1; pos: string; r
 export type Report = {
   score: [number, number];
   events: MatchEvent[];
-  stats: { poss: [number, number]; shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; yellows: [number, number]; reds: [number, number] };
+  stats: { poss: [number, number]; shots: [number, number]; onTarget: [number, number]; xg: [number, number]; corners: [number, number]; yellows: [number, number]; reds: [number, number]; offsides?: [number, number] };
   players: PlayerLine[];
   motm: string | null;
   tactics: [string, string];
@@ -98,6 +98,9 @@ class Side {
       pace_def: avg(D.length ? D : M, (o) => this.val(o, 'Pace'), base),
       aerial_def: avg(D.length ? D : M, (o) => (this.val(o, 'Heading') + this.val(o, 'Jumping') + this.val(o, 'Strength')) / 3, base),
       keeper: G.length ? (this.val(G[0], 'Reflexes') + this.val(G[0], 'Handling') + this.val(G[0], 'OneOnOne')) / 3 : 40,
+      // stepping up together for an offside trap, and timing a run against one
+      trap: avg(D.length ? D : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Marking')) / 3, base) - avg(D, (o) => o.tired, 0) * 8,
+      runs: avg(F.length ? F : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Pace')) / 3, base),
     };
     // roles: each player in a role that fits his slot adds a small, attribute-scaled edge
     this.flags = { through: 0, crossB: 0, longshot: 0, holdup: 0, sweeper: 0, anchor: 0 };
@@ -137,7 +140,8 @@ class Side {
       A.passing += (nM - 3) * 0.5;
       if (wide >= 2) this.flags.crossB += 0.004 * (wide - 1); else this.flags.through += 0.004;
     }
-    // chemistry: team-mates who know each other play better together (-2.5 .. +2.5 per line)
+    if (this.tactic.trap && this.tactic.line >= 1) this.agg.aerial_def -= 0.8;
+        // chemistry: team-mates who know each other play better together (-2.5 .. +2.5 per line)
     if (this.s.chem) {
       const c = (v: number) => ((v ?? 50) - 50) / 50 * 2.5;
       const A = this.agg, ch = this.s.chem;
@@ -286,8 +290,29 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     shot(a, Math.max(0.02, 0.045 + (skill - 70) * 0.002), 'free kick');
   };
 
+  const tk = (i: number) => T(i).tackle ?? 1; // 0 stay on feet, 1 normal, 2 get stuck in
+  const offsides: [number, number] = [0, 0];
+  // the defending side steps up to catch a run offside: it works if the defence is in tune
+  // (positioning, decisions, chemistry, fresh legs), otherwise the runner is clean through
+  const trap = (a: 0 | 1): 'off' | 'beaten' | null => {
+    const b = (1 - a) as 0 | 1;
+    if (!T(b).trap || T(b).line < 1 || r.next() > 0.6) return null;
+    const chem = ((S[b].s.chem?.DEF ?? 50) - 50) / 50 * 4;
+    const edge = A(b, 'trap') - A(a, 'runs') + chem;
+    if (r.next() < sig(0.15 + edge * 0.13)) {
+      offsides[a]++;
+      log('offside', a, `Offside! ${S[b].s.name}'s trap catches the run.`);
+      return 'off';
+    }
+    log('trap', a, `The trap is beaten! ${S[a].s.name} are clean through...`);
+    return 'beaten';
+  };
+
   const counter = (a: 0 | 1) => {
     const b = 1 - a;
+    const tr = trap(a);
+    if (tr === 'off') return;
+    if (tr === 'beaten') return shot(a, 0.3 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.004, 'counter');
     const exposed = (T(b).line === 2 ? 0.03 : T(b).line === 1 ? 0.01 : -0.03) + (T(b).mentality === 2 ? 0.02 : 0)
       - (T(b).line === 2 ? S[b].flags.sweeper * 0.02 : 0) - S[b].flags.anchor * 0.012;
     const gap = (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005;
@@ -314,8 +339,13 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       two = 0.55;
     }
     q = Math.max(0.02, q + bonus);
-    // a small share of attacks in the box end with a foul and a penalty
-    if (f !== 3 && r.next() < 0.017 * penMul) return penalty(a);
+    if (f === 1) {
+      const tr = trap(a);
+      if (tr === 'off') return;
+      if (tr === 'beaten') q += 0.22;
+    }
+    // a small share of attacks in the box end with a foul and a penalty (more against wild tackling)
+    if (f !== 3 && r.next() < 0.017 * penMul * [0.75, 1, 1.45][tk(b)]) return penalty(a);
     const n = r.next() < two ? 2 : 1;
     for (let i = 0; i < n; i++) shot(a, q, ['cross', 'through ball', 'build-up', 'long shot'][f]);
   };
@@ -360,6 +390,11 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     yel[side]++;
     if (o.yc >= 2) return sendOff(side, o, false);
     log('yellow', side, `Yellow card: ${o.p.name}`, o.p.id);
+    // the assistant calms things down when a defender is one tackle away from a red
+    if (tk(side) === 2 && o.slot === 'DEF' && S[side].s.assistant?.cards) {
+      S[side].tactic = { ...S[side].tactic, tackle: 1 };
+      log('tactic', side, `${S[side].s.name} ease off the tackles: ${o.p.name} is on a yellow.`);
+    }
   };
   const sendOff = (side: 0 | 1, o: OnPitch, straight: boolean) => {
     red[side]++;
@@ -480,21 +515,21 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const ta = T(a), tb = T(b);
     possN[a]++;
     const risk = ta.build === 0 ? (weather === 'rain' ? 1.55 : 1.35) : ta.build === 2 ? 0.5 : 1.0;
-    const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004;
+    const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0); // hard tackling hurts short-passing sides most
     if (r.next() < Math.max(0.03, pLose)) {
-      // tackles can bring fouls and cards
-      if (r.next() < 0.2 + (tb.press >= 2 ? 0.08 : 0)) {
+      // tackles can bring fouls and cards, many more when the team gets stuck in
+      if (r.next() < (0.2 + (tb.press >= 2 ? 0.08 : 0)) * [0.55, 1, 1.6][tk(b)]) {
         const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1));
-        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul) card(b, f);
+        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul * [0.7, 1, 1.15][tk(b)]) card(b, f, tk(b) === 2 ? 0.05 : 0);
       }
       if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.25 : 0.2)) shot(b, tb.press === 3 ? 0.15 : 0.13, 'high turnover');
       else if (tb.mentality <= 1 && r.next() < 0.09 + 0.05 * (2 - tb.mentality)) counter(b);
       return;
     }
     // fouls in shooting range give free kicks
-    if (r.next() < 0.012 + (tb.press >= 2 ? 0.004 : 0)) {
+    if (r.next() < (0.012 + (tb.press >= 2 ? 0.004 : 0)) * [0.6, 1, 1.6][tk(b)]) {
       const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => o.p.a.Aggression || 50);
-      if (f && r.next() < 0.35 * cardMul) card(b, f);
+      if (f && r.next() < 0.35 * cardMul * [0.75, 1, 1.25][tk(b)]) card(b, f);
       return freeKick(a);
     }
     if (ta.build === 2 && r.next() < 0.5) {
@@ -510,6 +545,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const behind = goals[b] - goals[a];
     if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 : ta.mentality === 0 ? -0.1 : 0);
     prog += ta.tempo === 2 ? 0.1 : ta.tempo === 0 ? -0.08 : 0;
+    prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
     if (r.next() < sig(prog - 1.55)) create(a);
     else if (tb.mentality <= 1 && r.next() < (ta.mentality === 2 ? 0.07 : 0.035)) counter(b);
   };
@@ -616,7 +652,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   return {
     score: goals,
     events: ev,
-    stats: { poss: [p0, 100 - p0], shots, onTarget: onT, xg: [Math.round(xg[0] * 100) / 100, Math.round(xg[1] * 100) / 100], corners, yellows: yel, reds: red },
+    stats: { poss: [p0, 100 - p0], shots, onTarget: onT, xg: [Math.round(xg[0] * 100) / 100, Math.round(xg[1] * 100) / 100], corners, yellows: yel, reds: red, offsides },
     players: lines,
     motm: motm ? motm.id : null,
     tactics: [home.tactic.preset, away.tactic.preset],
@@ -689,6 +725,10 @@ export function aiPlan(o: { level: number; oppHistory: string[]; own: PlanPlayer
     ].filter((e) => e.v > 0).sort((a, b) => b.v - a.v);
     if (edges[0]) { edges[0].set(); t.preset = 'Custom'; }
     if (theirRunners > 4 && t.line === 2) { t.line = 1; t.preset = 'Custom'; } // never a high line against fast strikers
+    // a sharp back line plays an offside trap; some managers like their teams to get stuck in
+    const sharp = lineAvg(o.own, 'DEF', ['Positioning', 'Decisions', 'Marking']) - lineAvg(o.opp, 'FWD', ['Positioning', 'Decisions', 'Pace']);
+    if (sharp >= 3 && t.line >= 1) t.trap = 1;
+    if (r.next() < 0.2) t.tackle = 2;
   }
   return t;
 }

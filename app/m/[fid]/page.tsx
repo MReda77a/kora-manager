@@ -1,7 +1,7 @@
 'use client';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { api, clock, shirt } from '../../../lib/client.ts';
-import { CLUB_TYPES, FORMATIONS, PRESETS, type ClubTypeKey } from '../../../lib/game.ts';
+import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, type ClubTypeKey } from '../../../lib/game.ts';
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
@@ -213,7 +213,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     if (revealed > shown.current) {
       const fresh = events.slice(shown.current, revealed);
       shown.current = revealed;
-      const pri = ['goal', 'var', 'red', 'penalty', 'pens', 'penmiss', 'injury', 'yellow', 'freekick', 'sub', 'save', 'miss', 'tactic', 'ht', 'ft'];
+      const pri = ['goal', 'var', 'red', 'penalty', 'pens', 'penmiss', 'injury', 'yellow', 'trap', 'freekick', 'offside', 'sub', 'save', 'miss', 'tactic', 'ht', 'ft'];
       const big = [...fresh].sort((a, b) => pri.indexOf(a.type) - pri.indexOf(b.type))[0];
       if (big && pri.includes(big.type)) {
         setFx(big);
@@ -240,6 +240,8 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           case 'freekick': whistle(1); play('ahh', { gain: 0.8, delay: 0.1 }); break;
           case 'injury': play('ahh', { gain: 0.6 }); break;
           case 'var': play('tension', { gain: 0.7 }); break;
+          case 'offside': whistle(1); play(forMe ? 'ooh' : 'applause', { gain: 0.5 }); break;
+          case 'trap': play(forMe ? 'tension' : 'ooh', { gain: 0.7 }); break;
           case 'sub': play('applause', { gain: 0.4 }); break;
           case 'ht': whistle(2); play('applause', { delay: 0.8 }); break;
           case 'ft': whistle(3); break;
@@ -401,6 +403,11 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       {panel === 'tactic' && (
         <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, background: 'rgba(20,10,52,0.97)', boxShadow: '0 -8px 30px rgba(0,0,0,0.55)', maxHeight: 'calc(100% - 120px)', overflowY: 'auto', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {Object.keys(PRESETS).map((p) => <button key={p} className="seg" style={{ minHeight: 36 }} onClick={() => change({ preset: p }, `Switched to ${p}`)}><span>{p}</span></button>)}
+          <span className="tiny muted" style={{ width: '100%', fontWeight: 900, marginTop: 4 }}>TACKLING</span>
+          {TACKLE_STYLES.map((x, i) => <button key={x.name} className="seg" style={{ minHeight: 36 }} onClick={() => change({ tackle: i }, `${x.face} ${x.name}`)}><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 20 }}>{x.face}</span>{x.short}</span></button>)}
+          <span className="tiny muted" style={{ width: '100%', fontWeight: 900, marginTop: 4 }}>OFFSIDE TRAP</span>
+          <button className="seg" style={{ minHeight: 36 }} onClick={() => change({ trap: 1 }, '🚩 Offside trap on')}><span>🚩 Trap on</span></button>
+          <button className="seg" style={{ minHeight: 36 }} onClick={() => change({ trap: 0 }, 'Offside trap off')}><span>Trap off</span></button>
         </div>
       )}
       {panel === 'sub' && (
@@ -589,6 +596,12 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
   }
   if (e.type === 'tactic') {
     return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="kicker" style={{ color: '#F3EEFF' }}>Change of plan</span><span className="lz" style={{ fontSize: 24, color: 'var(--cyan)', animation: 'fadeUp .5s both', maxWidth: '80%' }}>{e.text}</span></div>;
+  }
+  if (e.type === 'offside') {
+    return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="big" style={{ fontSize: 46, color: '#F2C14E', animation: 'stamp .5s both' }}>🚩 OFFSIDE!</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
+  }
+  if (e.type === 'trap') {
+    return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="big" style={{ fontSize: 40, animation: 'zoomIn .6s both' }}>TRAP BEATEN!</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
   }
   if (e.type === 'ht' || e.type === 'ft' || e.type === 'pens') {
     return <div className="ov" style={{ background: 'rgba(10,4,20,0.55)' }}><span className="big" style={{ fontSize: 52, animation: 'zoomIn .8s both' }}>{e.type === 'ht' ? 'HALF-TIME' : e.type === 'pens' ? 'PENALTIES' : 'FULL TIME'}</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;

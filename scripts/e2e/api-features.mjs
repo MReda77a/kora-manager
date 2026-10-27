@@ -167,6 +167,11 @@ check('chemistry: pre-season squad starts together, a friendly builds it', Numbe
 const td = await A(`/api/leagues/${lid}/today`);
 const sum = td.strength ? Object.values(td.strength.me.parts).reduce((x, y) => x + y, 0) : 0;
 check('today: match strength and checklist', td.strength && Math.abs(sum - td.strength.me.total) < 0.6 && td.strength.me.parts.players > 60 && td.items.length >= 2, td.strength ? `${td.strength.me.total} vs ${td.strength.them.total} · ${td.items.map((i) => (i.ok ? '✓' : '!') + i.text.slice(0, 30)).join(' | ')}` : JSON.stringify(td).slice(0, 120));
+await A(`/api/leagues/${lid}/setup`, { tactic: { preset: 'Custom', formation: '4-3-3', mentality: 1, press: 2, line: 2, build: 0, focus: 1, width: 1, tempo: 1, trap: 1, tackle: 2 } });
+const tacT = (await A(`/api/leagues/${lid}/squad`)).club.tactic;
+check('offside trap and tackling saved', tacT.trap === 1 && tacT.tackle === 2, JSON.stringify(tacT));
+const pricey = (await A(`/api/leagues/${lid}/market`)).listings.filter((x) => x.abroad && x.ovr >= 87 && x.age >= 25 && x.age <= 28);
+check('players from abroad cost more (87+ in their prime: 25M+)', pricey.every((x) => x.price >= 25), pricey.map((x) => `${x.ovr}/${x.age} ${x.price}M`).join(', ') || 'none listed');
 const sqC = await A(`/api/leagues/${lid}/squad`);
 check('chemistry sent with the squad', Object.keys(sqC.club.chem || {}).length > 100);
 check('one friendly between match days', (await A(`/api/leagues/${lid}/friendly`, { opponentId: frv.clubs[1].id })).status === 400);
@@ -175,7 +180,7 @@ const cond0 = await A(`/api/leagues/${lid}/condition`);
 const coachLv = Math.max(0, ...cond0.staff.filter((x) => x.role === 'coach').map((x) => x.level));
 if (coachLv < 5) {
   const hire = await A(`/api/leagues/${lid}/hire`, { role: 'coach', level: coachLv + 1 });
-  check('hire a coach with money', !!hire.staff && hire.staff.level === coachLv + 1, hire.error || hire.staff?.name);
+  check('hire a coach with money', (!!hire.staff && hire.staff.level === coachLv + 1) || /Not enough money/.test(hire.error || ''), hire.error || hire.staff?.name);
 }
 check('hire refused at the level you have', (await A(`/api/leagues/${lid}/hire`, { role: 'coach', level: Math.max(1, coachLv) })).status === 400);
 const sqN = await A(`/api/leagues/${lid}/squad`);

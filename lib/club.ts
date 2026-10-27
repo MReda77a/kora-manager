@@ -1,6 +1,7 @@
 // Club life between matches: staff, training, condition, office (board, sponsor, fans, stadium)
 // and the managers' comments for the matchday paper.
-import { q, one, type Row } from './db.ts';
+import { notifyEach } from './push.ts';
+import { q, one, type Row, writes } from './db.ts';
 import { fail } from './errors.ts';
 import { CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey } from './game.ts';
 import { getLeague, myClub, news, squadOf, standings } from './league.ts';
@@ -31,18 +32,37 @@ export async function nextDay(leagueId: number, clubId?: number) {
 }
 
 // ---------------------------------------------------------------- training
-export async function applyTrainings(leagueId: number) {
-  const due = await q(`UPDATE training SET done=true WHERE league_id=$1 AND done=false AND ends_at <= now() RETURNING *`, [leagueId]);
+export async function applyTrainings(leagueId?: number) {
+  const due = await q(
+    `UPDATE training SET done=true WHERE ${leagueId ? 'league_id=$1 AND ' : ''}done=false AND ends_at <= now() RETURNING *`,
+    leagueId ? [leagueId] : [],
+  );
+  if (!due.length) return 0;
+  const w = writes();
   for (const t of due) {
-    if (t.kind === 'pos') {
-      await q('UPDATE squad SET pos_override=$3 WHERE league_id=$1 AND player_id=$2', [leagueId, t.player_id, t.target]);
-    } else {
-      await q(
-        `UPDATE squad SET boost = jsonb_set(boost, ARRAY[$3::text], to_jsonb(COALESCE((boost->>$3)::int, 0) + $4)) WHERE league_id=$1 AND player_id=$2`,
-        [leagueId, t.player_id, t.target, t.amount],
-      );
-    }
+    if (t.kind === 'pos') w.add('UPDATE squad SET pos_override=$3 WHERE league_id=$1 AND player_id=$2', [t.league_id, t.player_id, t.target]);
+    else w.add(
+      `UPDATE squad SET boost = jsonb_set(boost, ARRAY[$3::text], to_jsonb(COALESCE((boost->>$3)::int, 0) + $4)) WHERE league_id=$1 AND player_id=$2`,
+      [t.league_id, t.player_id, t.target, t.amount],
+    );
   }
+  // tell the managers: in their inbox and on their phone
+  const info = await q(
+    `SELECT t.id, p.name, c.id AS club_id, c.user_id, c.league_id FROM training t JOIN players p ON p.id=t.player_id JOIN clubs c ON c.id=t.club_id
+     WHERE t.id IN (SELECT jsonb_array_elements_text($1::jsonb)::int)`,
+    [JSON.stringify(due.map((t) => t.id))],
+  );
+  const by = new Map(info.map((x) => [x.id, x]));
+  const alerts: { uid: number; msg: { title: string; body: string; url: string } }[] = [];
+  for (const t of due) {
+    const x = by.get(t.id);
+    if (!x?.user_id) continue;
+    const text = t.kind === 'pos' ? `${x.name} can now play ${t.target}.` : `${x.name} improved ${t.target} by ${t.amount}.`;
+    w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'inbox',$3)`, [x.league_id, x.club_id, `🏋️ Training done: ${text}`]);
+    alerts.push({ uid: x.user_id, msg: { title: '🏋️ Training done', body: text, url: `/l/${x.league_id}?tab=training` } });
+  }
+  await w.flush();
+  await notifyEach(alerts);
   return due.length;
 }
 
@@ -79,10 +99,11 @@ export async function startTraining(uid: number, leagueId: number, b: { playerId
   } else {
     if (!TRAINABLE.includes(b.target)) fail(400, 'Pick a skill.');
     const cur = (p.attrs[b.target] ?? 50) + ((p.boost || {})[b.target] ?? 0);
-    if (((p.boost || {})[b.target] ?? 0) >= 10) fail(400, 'He has reached his limit in this skill this season.');
+    if (((p.boost || {})[b.target] ?? 0) >= 6) fail(400, 'He has reached his limit in this skill this season.');
     if (cur >= 95) fail(400, 'Already world class at this.');
-    amount = cur < 70 ? 3 : 2;
-    hours = 24 * speed;
+    // improvement is slow and steady: +2 a session for weak skills, +1 for good ones
+    amount = cur < 70 ? 2 : 1;
+    hours = 36 * speed;
   }
   const [t] = await q(
     `INSERT INTO training (league_id, club_id, player_id, kind, target, amount, ends_at) VALUES ($1,$2,$3,$4,$5,$6, now() + make_interval(mins => $7)) RETURNING *`,

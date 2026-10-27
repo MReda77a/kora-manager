@@ -518,7 +518,7 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   } else {
     const t: Record<string, unknown> = {};
     if (b.preset && PRESETS[b.preset]) t.preset = b.preset;
-    for (const k of ['mentality', 'press', 'line', 'tempo']) if (b[k] !== undefined) t[k] = Math.max(0, Math.min(k === 'press' ? 3 : 2, Math.floor(Number(b[k]))));
+    for (const k of ['mentality', 'press', 'line', 'tempo', 'trap', 'tackle']) if (b[k] !== undefined) t[k] = Math.max(0, Math.min(k === 'press' ? 3 : k === 'trap' ? 1 : 2, Math.floor(Number(b[k]))));
     if (!Object.keys(t).length) fail(400, 'Nothing to change.');
     ch = { m: minute, side: side as 0 | 1, kind: 'tactic', tactic: t };
   }
