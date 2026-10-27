@@ -154,7 +154,7 @@ export function BackHead({ title, sub, onBack, href, right, tag }: { title: stri
         {href ? <a className="back" href={href} aria-label="Back">{arrow}</a> : onBack ? <button className="back" onClick={onBack} aria-label="Back">{arrow}</button> : null}
         <span className="lz" style={{ fontSize: 24, whiteSpace: 'nowrap', flex: 'none' }}>{title}</span>
         {tag}
-        {sub && <span className="small muted ellipsis" style={{ fontWeight: 700 }}>{sub}</span>}
+        {sub && <span className="small muted" style={{ fontWeight: 700, minWidth: 0 }}>{sub}</span>}
       </div>
       {right && <div className="row" style={{ gap: 8, flex: '0 1 auto', flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto', rowGap: 6 }}>{right}</div>}
     </header>

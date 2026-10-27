@@ -25,6 +25,9 @@ export async function playFriendly(uid: number, leagueId: number, oppId: number)
   // "today" sits just before your next match day: a friendly the day before a match leaves the legs heavy
   const day = Math.max(1, (await nextDay(leagueId, club.id)) - 1);
   const n = Number((await one<{ n: number }>('SELECT COUNT(*)::int AS n FROM friendlies WHERE club_id=$1', [club.id]))?.n || 0);
+  // one friendly between two match days: enough to test something, not a way to farm chemistry
+  const already = await one('SELECT 1 FROM friendlies WHERE club_id=$1 AND day=$2', [club.id, day]);
+  if (already) fail(400, 'You already played a friendly before this match day. Try again after your next match.');
   const fx = { id: hashSeed('friendly', club.id, opp.id, n), league_id: leagueId, day, comp: 'friendly' };
   const me = await sideFor(club, l, fx, opp, true, null);
   const them = await sideFor(opp, l, fx, club, false, null);

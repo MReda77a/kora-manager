@@ -37,7 +37,7 @@ export default function FriendlyTab({ lid, d, reload, toast }: TabProps) {
               </button>
             ))}
           </div>
-          <span className="tiny" style={{ color: '#F2C14E', fontWeight: 800 }}>⚠ Your players lose stamina and can get injured, just like in a real match. Their club is not affected.</span>
+          <span className="tiny" style={{ color: '#F2C14E', fontWeight: 800 }}>⚠ One friendly between match days. Your players lose stamina and can get injured, like in a real match, and build chemistry. Their club is not affected.</span>
           <button className="cta shine" disabled={!pick || busy} onClick={play}><span>{busy ? 'Playing…' : 'Play the friendly'}</span></button>
         </section>
         <section className="panel cut col" style={{ gap: 8 }}>

@@ -75,12 +75,13 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
         </section>
       </div>
       {d.window?.open && league.status === 'running' && (
-        <button className="row small" onClick={() => go('market')} style={{ gap: 10, padding: '8px 12px', background: 'linear-gradient(90deg, rgba(242,193,78,0.3), rgba(242,193,78,0.05))', color: '#F3EEFF', fontWeight: 800, textAlign: 'left' }}>
+        <button className="row small" onClick={() => go('market')} style={{ gap: 10, flexWrap: 'wrap', rowGap: 2, padding: '8px 12px', background: 'linear-gradient(90deg, rgba(242,193,78,0.3), rgba(242,193,78,0.05))', color: '#F3EEFF', fontWeight: 800, textAlign: 'left' }}>
           <span className="lz" style={{ fontSize: 18, color: '#F2C14E' }}>🔓 TRANSFER WINDOW OPEN</span>
-          <span className="grow">{d.window.round === 2 ? 'Second round' : 'First round'} · shuts in <b style={{ color: '#F2C14E' }}>{timeLeft(d.window.closesAt)}</b>. Buy, sell, loan and swap in the Market.</span>
+          <span className="grow" style={{ minWidth: 200 }}>{d.window.round === 2 ? 'Second round' : 'First round'} · shuts in <b style={{ color: '#F2C14E' }}>{timeLeft(d.window.closesAt)}</b>. Buy, sell, loan and swap in the Market.</span>
           {club.offers > 0 && <span className="tag" style={{ background: '#E8438C' }}><span>{club.offers} offer{club.offers > 1 ? 's' : ''} for your players</span></span>}
         </button>
       )}
+      {league.status === 'running' && <Today lid={lid} go={go} stamp={d} />}
       <Inbox club={club} go={go} />
       <MoreHome d={d} go={go} />
       {league.isOwner && <OwnerSchedule lid={lid} league={league} toast={toast} reload={reload} />}
@@ -128,6 +129,56 @@ function MoreHome({ d, go }: { d: any; go: TabProps['go'] }) {
         ))}
       </section>
     </div>
+  );
+}
+
+const PART_NAMES: [string, string][] = [['players', 'Players'], ['position', 'Positions'], ['form', 'Form & morale'], ['fit', 'Plan fits squad'], ['familiarity', 'Knows the shape'], ['chemistry', 'Chemistry'], ['fitness', 'Fitness'], ['venue', 'Home crowd'], ['boost', 'AI level']];
+
+// Before the next match: how strong you will be (the engine's own numbers) and what to look at.
+function Today({ lid, go, stamp }: { lid: number; go: TabProps['go']; stamp: unknown }) {
+  const [t, setT] = useState<any>(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => { api(`/api/leagues/${lid}/today`).then(setT).catch(() => {}); }, [lid, stamp]);
+  if (!t) return null;
+  const s = t.strength;
+  const diff = s ? Math.round((s.me.total - s.them.total) * 10) / 10 : 0;
+  return (
+    <section className="panel cut" style={{ padding: '8px 12px', gap: 6 }}>
+      <div className="row between wrap" style={{ gap: 8 }}>
+        <span className="tag cyan"><span>Today</span></span>
+        {s && (
+          <button className="row small" style={{ gap: 8, fontWeight: 800 }} onClick={() => setOpen(!open)} aria-expanded={open}>
+            <span className="muted">Match strength</span>
+            <b className="lz" style={{ fontSize: 20, color: '#7FE9F7' }}>{s.me.total}</b>
+            <span className="muted">vs</span>
+            <b className="lz" style={{ fontSize: 20 }}>{s.them.total}</b>
+            <span className="tiny" style={{ color: diff > 0.5 ? '#7CE3A1' : diff < -0.5 ? '#FF8A80' : '#C9C0EC' }}>{diff > 0 ? `+${diff}` : diff} {open ? '▲' : '▼'}</span>
+          </button>
+        )}
+      </div>
+      {s && open && (
+        <div className="row wrap" style={{ gap: 6 }}>
+          {PART_NAMES.filter(([k]) => k === 'players' || Math.abs(s.me.parts[k]) >= 0.1).map(([k, label]) => {
+            const v = s.me.parts[k];
+            return (
+              <span key={k} className="tiny" style={{ padding: '3px 8px', background: 'rgba(255,255,255,0.07)', fontWeight: 800 }}>
+                {label} <b style={{ color: k === 'players' ? '#F3EEFF' : v > 0 ? '#7CE3A1' : '#FF8A80' }}>{k === 'players' ? v : v > 0 ? `+${v}` : v}</b>
+              </span>
+            );
+          })}
+          <span className="tiny muted" style={{ width: '100%' }}>{s.opp.name}{s.opp.type ? ` (${s.opp.type})` : ''}: {s.them.total}. A few points either way still leaves room for surprises.</span>
+        </div>
+      )}
+      <div className="col" style={{ gap: 2 }}>
+        {t.items.map((it: any, i: number) => (
+          <button key={i} className="row small" style={{ gap: 8, textAlign: 'left', fontWeight: 700, padding: '3px 0' }} onClick={() => go(it.tab)}>
+            <b style={{ width: 16, color: it.ok ? '#7CE3A1' : '#F2C14E' }}>{it.ok ? '✓' : '!'}</b>
+            <span className="grow">{it.text}</span>
+            <span className="tiny muted">›</span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 

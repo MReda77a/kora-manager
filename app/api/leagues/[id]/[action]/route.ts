@@ -5,6 +5,7 @@ import * as T from '../../../../../lib/transfers.ts';
 import * as A from '../../../../../lib/analyst.ts';
 import * as FR from '../../../../../lib/friendly.ts';
 import * as CH from '../../../../../lib/chemistry.ts';
+import * as TD from '../../../../../lib/today.ts';
 import * as S from '../../../../../lib/season.ts';
 import * as C from '../../../../../lib/club.ts';
 import * as P from '../../../../../lib/people.ts';
@@ -125,6 +126,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
     return q(`SELECT c.id, c.name, c.short, c.color1, c.color2, c.shape, c.emblem, c.club_type, c.user_id IS NOT NULL AS human, u.username,
       (SELECT COUNT(*)::int FROM squad s WHERE s.club_id=c.id) AS players FROM clubs c LEFT JOIN users u ON u.id=c.user_id WHERE c.league_id=$1 ORDER BY c.id`, [lid]);
   }
+  if (action === 'today') return TD.todayView(s.uid, lid);
   if (action === 'friendly') return FR.friendlyView(s.uid, lid);
   if (action === 'analyst') return A.analystReport(s.uid, lid, new URL(req.url).searchParams.get('refresh') === '1');
   if (action === 'scout') {

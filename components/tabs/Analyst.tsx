@@ -84,9 +84,9 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
         <section className="panel cut col" style={{ gap: 10 }}>
           <div className="row between"><span className="tag gold"><span>The plan</span></span><span className="tiny" style={{ fontWeight: 900, color: r.confidence === 'High' ? '#7CE3A1' : r.confidence === 'Medium' ? '#F2C14E' : '#FF8A80' }}>CONFIDENCE: {r.confidence.toUpperCase()}</span></div>
           <div className="row wrap" style={{ gap: 10, alignItems: 'center' }}>
-            <div className="col grow" style={{ gap: 2 }}>
+            <div className="col grow" style={{ gap: 2, minWidth: 150 }}>
               <span className="tiny muted" style={{ fontWeight: 900 }}>BEST FOR YOU</span>
-              <span className="lz" style={{ fontSize: 28, color: '#F2C14E' }}>{r.best}</span>
+              <span className="lz" style={{ fontSize: 26, color: '#F2C14E', overflowWrap: 'anywhere' }}>{r.best}</span>
               <span className="tiny muted">{(PRESETS as any)[r.best]?.desc}</span>
             </div>
             {d.club.tactic?.preset === r.best ? <span className="tag cyan"><span>Already your plan</span></span> : <button className="cta" onClick={() => use(r.best)}><span>Use this plan</span></button>}

@@ -164,8 +164,12 @@ check('friendly played at once', Array.isArray(fr.score) && fr.stats?.shots && f
 check('friendly listed as recent', (await A(`/api/leagues/${lid}/friendly`)).recent.length === 1);
 const chemRows = await sqlq(`SELECT COUNT(*), MIN(v), MAX(v) FROM chemistry WHERE club_id=$1`, [ov.club.id]);
 check('chemistry: pre-season squad starts together, a friendly builds it', Number(chemRows[0][0]) > 100 && Number(chemRows[0][2]) > 50, chemRows[0].join(' / '));
+const td = await A(`/api/leagues/${lid}/today`);
+const sum = td.strength ? Object.values(td.strength.me.parts).reduce((x, y) => x + y, 0) : 0;
+check('today: match strength and checklist', td.strength && Math.abs(sum - td.strength.me.total) < 0.6 && td.strength.me.parts.players > 60 && td.items.length >= 2, td.strength ? `${td.strength.me.total} vs ${td.strength.them.total} · ${td.items.map((i) => (i.ok ? '✓' : '!') + i.text.slice(0, 30)).join(' | ')}` : JSON.stringify(td).slice(0, 120));
 const sqC = await A(`/api/leagues/${lid}/squad`);
 check('chemistry sent with the squad', Object.keys(sqC.club.chem || {}).length > 100);
+check('one friendly between match days', (await A(`/api/leagues/${lid}/friendly`, { opponentId: frv.clubs[1].id })).status === 400);
 check('friendly needs another club', (await A(`/api/leagues/${lid}/friendly`, { opponentId: ov.club.id })).status === 400);
 const cond0 = await A(`/api/leagues/${lid}/condition`);
 const coachLv = Math.max(0, ...cond0.staff.filter((x) => x.role === 'coach').map((x) => x.level));

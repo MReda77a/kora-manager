@@ -16,13 +16,14 @@ export async function chemPairs(clubId: number) {
 /** what one match does to the chemistry of the players who took part */
 export function chemAfterMatch(clubId: number, players: { id: string; pos: string; mins: number }[], result: 'W' | 'D' | 'L') {
   const played = players.filter((p) => p.mins > 0);
-  const bonus = result === 'W' ? 1.5 : result === 'D' ? 0.5 : -1.5;
+  // a full season together takes a pair from 50 to about 90: chemistry is earned, not handed out
+  const bonus = result === 'W' ? 1 : result === 'D' ? 0.3 : -1;
   const rows: { a: string; b: string; g: number }[] = [];
   for (let i = 0; i < played.length; i++) for (let j = i + 1; j < played.length; j++) {
     const x = played[i], y = played[j];
     if (group(x.pos) !== group(y.pos)) continue;
     const [a, b] = x.id < y.id ? [x.id, y.id] : [y.id, x.id];
-    rows.push({ a, b, g: Math.round((4 * Math.min(x.mins, y.mins, 90) / 90 + bonus) * 10) / 10 });
+    rows.push({ a, b, g: Math.round((2.5 * Math.min(x.mins, y.mins, 90) / 90 + bonus) * 10) / 10 });
   }
   if (!rows.length) return null;
   return {
