@@ -241,12 +241,16 @@ export async function offersView(uid: number, leagueId: number) {
 }
 
 // On deadline day, bots bid for some of the humans' players: unsettled ones first.
-export async function botBids(l: Row, day: number) {
+export async function botBids(l: Row, day: number, chance = 1) {
   const humans = await q('SELECT * FROM clubs WHERE league_id=$1 AND user_id IS NOT NULL', [l.id]);
   const bots = await q('SELECT * FROM clubs WHERE league_id=$1 AND user_id IS NULL ORDER BY money DESC', [l.id]);
   if (!bots.length) return;
   for (const h of humans) {
     const r = rng(hashSeed('botbid', l.id, day, h.id));
+    // on an ordinary window day only some managers get a bid; nobody gets two open bids at once
+    if (r.next() > chance) continue;
+    const open = await one('SELECT 1 FROM offers WHERE to_club=$1 AND status IN (\'pending\',\'countered\') AND from_club IN (SELECT id FROM clubs WHERE league_id=$2 AND user_id IS NULL)', [h.id, l.id]);
+    if (open && chance < 1) continue;
     const cands = await q(
       `SELECT s.player_id, s.request, p.name, p.attrs, p.ovr + s.ovr_delta AS ovr FROM squad s JOIN players p ON p.id=s.player_id
        WHERE s.club_id=$1 AND s.loan_from IS NULL ORDER BY s.request DESC, p.ovr DESC LIMIT 15`,

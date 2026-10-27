@@ -105,7 +105,7 @@ export function saleChance(x: { price: number; v: number; age: number; ovr: numb
   appeal += Math.max(0, x.pot - x.ovr) / 25;
   if (x.rating !== null) appeal += x.rating >= 7.2 ? 0.35 : x.rating < 6.3 ? -0.2 : 0;
   // deadline day: clubs abroad rush to get their deals done
-  const p = 0.11 * priceF * appeal * mood * (deadline ? 2.6 : 1) * (x.fresh && !deadline ? 0.5 : 1);
+  const p = 0.22 * priceF * appeal * mood * (deadline ? 2.2 : 1) * (x.fresh && !deadline ? 0.75 : 1);
   return Math.max(deadline ? 0.06 : 0.01, Math.min(deadline ? 0.8 : 0.55, p));
 }
 

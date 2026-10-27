@@ -756,6 +756,8 @@ async function processDay(d: Row) {
     if (after.open && after.round === before.round && before.open) {
       // another day of the window: listed players may be bought, AI clubs shop abroad
       await marketDay(l, d.day, !!after.closesAt && new Date(after.closesAt).getTime() - at <= 86_400_000 + 60_000);
+      // AI clubs make offers for managers' players on window days too, not only when a round starts
+      await botBids(l, d.day, 0.4);
     }
     if (after.open && after.round === 2 && before.round !== 2) await abroadMarket(l, 2);
     if (before.open && !after.open) await clearAbroad(l.id);
