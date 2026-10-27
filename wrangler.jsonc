@@ -7,7 +7,7 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "kora-manager" }],
   // Free plan: ~10 ms CPU per request, so each request plays at most 1 match.
-  "vars": { "MATCHES_PER_REQUEST": "1" },
+  "vars": { "MATCHES_PER_REQUEST": "50" },
   // Every minute: play matches whose kick-off time has passed.
   "triggers": { "crons": ["* * * * *"] },
   // The timer keeps the next kick-off time here so the database can sleep between matches.
