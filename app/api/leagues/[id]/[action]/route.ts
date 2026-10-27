@@ -4,6 +4,7 @@ import * as L from '../../../../../lib/league.ts';
 import * as T from '../../../../../lib/transfers.ts';
 import * as A from '../../../../../lib/analyst.ts';
 import * as FR from '../../../../../lib/friendly.ts';
+import * as CH from '../../../../../lib/chemistry.ts';
 import * as S from '../../../../../lib/season.ts';
 import * as C from '../../../../../lib/club.ts';
 import * as P from '../../../../../lib/people.ts';
@@ -83,11 +84,12 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
     const listed = await q('SELECT player_id, id, price FROM listings WHERE seller_id=$1', [c.id]);
     const st = new Map(stats.map((x) => [x.player_id, x]));
     const li = new Map(listed.map((x) => [x.player_id, x]));
+    const chem = Object.fromEntries(await CH.chemPairs(c.id));
     const next = await one(`${FX_SELECT} WHERE f.league_id=$1 AND f.status='scheduled' AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.day LIMIT 1`, [lid, c.id]);
     return {
       club: {
         id: c.id, name: c.name, short: c.short, color1: c.color1, color2: c.color2, tactic: c.tactic, lineup: c.lineup, pens: c.pens, assistant: c.assistant, coins: c.coins, money: Number(c.money),
-        plans: c.plans || {}, roles: c.roles || {}, setpieces: c.setpieces || {}, familiarity: c.familiarity || {},
+        plans: c.plans || {}, roles: c.roles || {}, setpieces: c.setpieces || {}, familiarity: c.familiarity || {}, chem,
       },
       nextDay: day, next,
       players: players.map((p) => ({ ...L.pub(p), fitness: Math.round(p.fitness), outUntil: p.out_until, outReason: p.out_reason, form: p.form, formNote: p.form ? p.form_note : null, stats: st.get(p.id) || null, listing: li.get(p.id) || null,

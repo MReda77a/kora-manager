@@ -1,7 +1,7 @@
 // Friendlies: pick any club in the league and play at once. No live match and no replay:
 // just the result and the stats. Your players get tired and can get injured, so it is a real
 // test with a real cost. The other club's players are not affected.
-import { q, one, type Row } from './db.ts';
+import { batch, q, one, type Row } from './db.ts';
 import { aiTactic, simulate } from './engine.ts';
 import { conditionsFor, LINE } from './game.ts';
 import { getLeague, myClub } from './league.ts';
@@ -9,6 +9,7 @@ import { nextDay, staffLevels } from './club.ts';
 import { fail } from './errors.ts';
 import { hashSeed, rng } from './rng.ts';
 import { sideFor } from './season.ts';
+import { chemAfterMatch } from './chemistry.ts';
 
 export async function playFriendly(uid: number, leagueId: number, oppId: number) {
   const l = await getLeague(leagueId);
@@ -52,6 +53,9 @@ export async function playFriendly(uid: number, leagueId: number, oppId: number)
      FROM jsonb_to_recordset($1::jsonb) AS x(id text, fit int, out int) WHERE s.club_id=$2 AND s.player_id=x.id`,
     [JSON.stringify(rows), club.id],
   );
+  const chem = chemAfterMatch(club.id, rep.players.filter((p) => p.side === 0).map((p) => ({ id: p.id, pos: p.pos, mins: p.mins })), rep.score[0] > rep.score[1] ? 'W' : rep.score[0] < rep.score[1] ? 'L' : 'D');
+  if (chem) await batch([chem]);
+  const chemBefore = me.chem;
   const after = Math.round(me.xi.reduce((a, p) => a + (lines.get(p.id)?.fitEnd ?? p.fitness), 0) / me.xi.length);
   const name = new Map([...me.xi, ...me.bench, ...them.xi, ...them.bench].map((p) => [p.id, p.name]));
   const data = {
@@ -60,7 +64,7 @@ export async function playFriendly(uid: number, leagueId: number, oppId: number)
     goals: rep.events.filter((e) => e.type === 'goal').map((e) => ({ m: e.m, side: e.side, name: e.pid ? name.get(e.pid) : '' })),
     cards: rep.events.filter((e) => e.type === 'yellow' || e.type === 'red').map((e) => ({ m: e.m, side: e.side, type: e.type, name: e.pid ? name.get(e.pid) : '' })),
     motm: rep.motm ? name.get(rep.motm) : null,
-    fitness: { before, after }, injured,
+    fitness: { before, after }, injured, chem: chemBefore,
     ratings: rep.players.filter((p) => p.side === 0 && p.mins > 0).map((p) => ({ name: p.name, pos: p.pos, r: Math.round(p.r * 10) / 10, g: p.g })).sort((a, b) => b.r - a.r),
   };
   await q('INSERT INTO friendlies (league_id, club_id, opp_id, day, data) VALUES ($1,$2,$3,$4,$5::jsonb)', [leagueId, club.id, opp.id, day, JSON.stringify(data)]);

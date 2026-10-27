@@ -20,6 +20,7 @@ import { endSeason, startNextSeason } from './career.ts';
 import { botBids } from './offers.ts';
 import { notify, notifyMany } from './push.ts';
 import { wakeTimer } from './wake.ts';
+import { CHEM_AI, chemAfterMatch, chemPairs, lineChem } from './chemistry.ts';
 import { abroadMarket, clearAbroad, marketDay } from './transfers.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
@@ -49,6 +50,13 @@ export async function startSeason(uid: number, leagueId: number) {
   }
   await q(`UPDATE leagues SET status='running' WHERE id=$1`, [leagueId]);
   await wakeTimer();
+  // the squads trained together in pre-season: everyone starts on 50 chemistry (later signings start lower)
+  await q(
+    `INSERT INTO chemistry (club_id, a, b, v)
+     SELECT s1.club_id, s1.player_id, s2.player_id, 50 FROM squad s1 JOIN squad s2 ON s2.club_id = s1.club_id AND s1.player_id < s2.player_id
+       JOIN clubs c ON c.id = s1.club_id AND c.user_id IS NOT NULL WHERE s1.league_id=$1 ON CONFLICT DO NOTHING`,
+    [leagueId],
+  );
   await news(leagueId, null, 'season', `The season kicks off! ${l.max_clubs} clubs, home and away, plus ${CUP_NAMES[l.pool]}.`);
   await batch([
     { text: `INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,NULL,'round',$2)`, params: [leagueId, '🏁 The first round has started! Every team plays every other team once.'] },
@@ -392,6 +400,7 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
     homeBoost: home ? (club.club_type === 'fan' ? 1 : 0) + Math.min(1, (club.fans || 20000) / 40000) : 0,
     injuryRisk: 1 - lv.doctor * 0.08,
     ...(club.user_id ? humanRoles(club, xi, tactic.formation) : autoRoles(xi, tactic.formation)),
+    chem: club.user_id ? lineChem(xi.map((p) => p.id), tactic.formation, await chemPairs(club.id)) : { DEF: CHEM_AI, MID: CHEM_AI, FWD: CHEM_AI },
   };
 }
 
@@ -621,7 +630,9 @@ async function finalizeFixture(f: Row) {
       const fam: Record<string, number> = { ...(c.familiarity || {}) };
       for (const k of Object.keys(fam)) if (k !== used) fam[k] = Math.max(40, fam[k] - 2);
       fam[used] = Math.min(100, (fam[used] ?? 50) + (c.club_type === 'historic' ? 12 : 8));
-      await q('UPDATE clubs SET familiarity=$2::jsonb WHERE id=$1', [c.id, JSON.stringify(fam)]);
+      // the ones who played together know each other a bit better
+      const chem = chemAfterMatch(c.id, rep.players.filter((p) => p.side === si).map((p) => ({ id: p.id, pos: p.pos, mins: p.mins })), won ? 'W' : lost ? 'L' : 'D');
+      await batch([{ text: 'UPDATE clubs SET familiarity=$2::jsonb WHERE id=$1', params: [c.id, JSON.stringify(fam)] }, ...(chem ? [chem] : [])]);
     }
   }
   if (derby) {

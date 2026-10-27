@@ -313,4 +313,20 @@ CREATE TABLE IF NOT EXISTS friendlies (
   data JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- chemistry between two team-mates (player ids in order a < b)
+CREATE TABLE IF NOT EXISTS chemistry (
+  club_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  a TEXT NOT NULL,
+  b TEXT NOT NULL,
+  v REAL NOT NULL,
+  PRIMARY KEY (club_id, a, b)
+);
+-- squads that existed before chemistry: their players already know each other (once per club)
+INSERT INTO chemistry (club_id, a, b, v)
+SELECT s1.club_id, s1.player_id, s2.player_id, 55 FROM squad s1 JOIN squad s2 ON s2.club_id = s1.club_id AND s1.player_id < s2.player_id
+  JOIN clubs c ON c.id = s1.club_id AND c.user_id IS NOT NULL
+  JOIN leagues l ON l.id = c.league_id AND l.status <> 'setup'
+WHERE NOT EXISTS (SELECT 1 FROM chemistry ch WHERE ch.club_id = s1.club_id)
+ON CONFLICT DO NOTHING;
 `;

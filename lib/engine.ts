@@ -18,6 +18,7 @@ export type ESide = {
   roles?: Record<string, string>; // player id -> role
   setpieces?: { corner?: string; fk?: string; routine?: string };
   familiarity?: number; // 0..100 with the formation
+  chem?: { DEF: number; MID: number; FWD: number }; // 0..100 per line, 50 = neutral
 };
 // A manager's decision during a live match. It takes effect from minute m on.
 export type Change =
@@ -135,6 +136,14 @@ class Side {
       A.finishing += attack; A.pace_att += attack * 0.5; A.aerial_att += attack * 0.4;
       A.passing += (nM - 3) * 0.5;
       if (wide >= 2) this.flags.crossB += 0.004 * (wide - 1); else this.flags.through += 0.004;
+    }
+    // chemistry: team-mates who know each other play better together (-2.5 .. +2.5 per line)
+    if (this.s.chem) {
+      const c = (v: number) => ((v ?? 50) - 50) / 50 * 2.5;
+      const A = this.agg, ch = this.s.chem;
+      A.tackling += c(ch.DEF) * 0.7 + c(ch.MID) * 0.3; A.aerial_def += c(ch.DEF); A.pace_def += c(ch.DEF) * 0.5; A.keeper += c(ch.DEF) * 0.4;
+      A.passing += c(ch.MID);
+      A.finishing += c(ch.FWD); A.pace_att += c(ch.FWD) * 0.5; A.aerial_att += c(ch.FWD) * 0.5;
     }
     if (this.weather === 'rain') this.agg.passing -= 1.5;
     if (this.weather === 'snow') { this.agg.pace_att -= 4; this.agg.pace_def -= 4; }

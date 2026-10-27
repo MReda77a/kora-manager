@@ -162,6 +162,10 @@ check('friendly: opponents listed', frv.clubs.length === 15, `${frv.clubs.length
 const fr = await A(`/api/leagues/${lid}/friendly`, { opponentId: frv.clubs[0].id });
 check('friendly played at once', Array.isArray(fr.score) && fr.stats?.shots && fr.fitness.after < fr.fitness.before, `${fr.score?.join('-')} vs ${fr.opp?.name} · stamina ${fr.fitness?.before}→${fr.fitness?.after}`);
 check('friendly listed as recent', (await A(`/api/leagues/${lid}/friendly`)).recent.length === 1);
+const chemRows = await sqlq(`SELECT COUNT(*), MIN(v), MAX(v) FROM chemistry WHERE club_id=$1`, [ov.club.id]);
+check('chemistry: pre-season squad starts together, a friendly builds it', Number(chemRows[0][0]) > 100 && Number(chemRows[0][2]) > 50, chemRows[0].join(' / '));
+const sqC = await A(`/api/leagues/${lid}/squad`);
+check('chemistry sent with the squad', Object.keys(sqC.club.chem || {}).length > 100);
 check('friendly needs another club', (await A(`/api/leagues/${lid}/friendly`, { opponentId: ov.club.id })).status === 400);
 const cond0 = await A(`/api/leagues/${lid}/condition`);
 const coachLv = Math.max(0, ...cond0.staff.filter((x) => x.role === 'coach').map((x) => x.level));

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api, shirt } from '../../lib/client.ts';
-import { FORMATIONS, LINE, PRESETS, offPositionCost, slotLabel, stripDesc, type Tactic } from '../../lib/game.ts';
+import { FORMATIONS, LINE, PRESETS, chemGroup, lineChem, offPositionCost, pairKey, slotLabel, stripDesc, type Tactic, CHEM_START } from '../../lib/game.ts';
 import { BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
@@ -23,6 +23,9 @@ export function autoXI(players: any[], formation: string, nextDay: number, keep:
   return xi;
 }
 
+// formations sit in the left three quarters of the pitch: use its whole length on screen
+export const spreadX = (x: number) => 5 + (x - 6) * (88 / 72);
+
 export function useSquad(lid: number) {
   const [d, setD] = useState<any>(null);
   const load = () => api(`/api/leagues/${lid}/squad`).then(setD);
@@ -30,9 +33,9 @@ export function useSquad(lid: number) {
   return { d, load };
 }
 
-export function Pitch({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+export function Pitch({ children, style, sized }: { children: React.ReactNode; style?: React.CSSProperties; sized?: boolean }) {
   return (
-    <div className="field" style={{ flex: 1, minHeight: 230, ...style }}>
+    <div className={`field ${sized ? 'sized' : ''}`} style={{ flex: 1, minHeight: 230, ...style }}>
       <div className="ln" style={{ inset: 8 }} />
       <div className="ln" style={{ top: 8, bottom: 8, left: '50%', width: 0, borderWidth: '0 0 0 1.5px' }} />
       <div className="ln" style={{ left: '50%', top: '50%', width: 64, height: 64, margin: '-32px 0 0 -32px', borderRadius: '50%' }} />
@@ -67,6 +70,8 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
   const bench = d.players.filter((p: any) => !xi.includes(p.id)).sort((a: any, b: any) => Number(out(a)) - Number(out(b)) || b.ovr - a.ovr);
   const strength = Math.round(xi.map((id) => byId.get(id) as any).filter(Boolean).reduce((a: number, p: any) => a + p.ovr + (p.form || 0) - offPositionCost(LINE[p.pos] || 'MID', F.slots[xi.indexOf(p.id)]), 0) / 11);
   const set = (fn: () => void) => { fn(); setDirty(true); };
+  const chem: Record<string, number> = d.club.chem || {};
+  const lc = lineChem(xi, t.formation, chem);
 
   const tapSlot = (i: number) => {
     if (!sel) return setSel({ kind: 'slot', v: i });
@@ -102,7 +107,18 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
         right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: '#7FE9F7' }}>{strength}</span></>} />
       <div className="split" style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="col" style={{ gap: 8, minWidth: 0 }}>
-          <Pitch>
+          <Pitch sized>
+            {/* chemistry links between team-mates in the same line: green = they know each other, red = strangers */}
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} aria-hidden="true">
+              {(['DEF', 'MID', 'FWD'] as const).flatMap((g) => {
+                const mem = F.slots.map((sl, i) => ({ i, sl })).filter((m) => xi[m.i] && chemGroup(m.sl) === g).sort((a, b) => F.xy[a.i][1] - F.xy[b.i][1]);
+                return mem.slice(1).map((m, k) => {
+                  const a = mem[k], v = chem[pairKey(xi[a.i], xi[m.i])] ?? CHEM_START;
+                  const col = v >= 70 ? '#7CE3A1' : v >= 45 ? '#F2C14E' : '#FF6B7A';
+                  return <line key={`${g}${k}`} x1={spreadX(F.xy[a.i][0])} y1={F.xy[a.i][1]} x2={spreadX(F.xy[m.i][0])} y2={F.xy[m.i][1]} stroke={col} strokeWidth={3} strokeOpacity={0.85} strokeDasharray={v < 45 ? '4 4' : undefined} vectorEffect="non-scaling-stroke" />;
+                });
+              })}
+            </svg>
             {F.xy.map(([x, y], i) => {
               const p: any = byId.get(xi[i]);
               const label = slotLabel(F.slots[i], x, y);
@@ -110,7 +126,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
               const wrong = cost > 0;
               const on = sel?.kind === 'slot' && sel.v === i;
               return (
-                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(30px, ${x}%, calc(100% - 30px))`, top: `${y}%` }} onClick={() => tapSlot(i)}
+                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(24px, ${spreadX(x)}%, calc(100% - 24px))`, top: `clamp(20px, ${y}%, calc(100% - 20px))` }} onClick={() => tapSlot(i)}
                   aria-label={p ? `${p.name}, ${label}${wrong ? `, out of position (${p.pos}), minus ${cost}` : ''}` : `Empty ${label}`}>
                   <i>{p ? p.num ?? shirt(p.id, p.natPos || p.pos) : ''}</i>
                   <em>{label}</em>
@@ -145,7 +161,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
             <span className="tag"><span>Formation</span></span>
             <div className="row" style={{ gap: 8 }}>
               <button onClick={() => setF(-1)} aria-label="Previous formation" style={{ width: 30, height: 30, border: '1px solid rgba(255,255,255,0.25)', fontSize: 16 }}>‹</button>
-              <span className="lz" style={{ fontSize: 22, minWidth: 60, textAlign: 'center' }}>{t.formation}</span>
+              <span className="lz" style={{ fontSize: t.formation.length > 5 ? 18 : 22, minWidth: 60, textAlign: 'center', whiteSpace: 'nowrap' }}>{t.formation}</span>
               <button onClick={() => setF(1)} aria-label="Next formation" style={{ width: 30, height: 30, border: '1px solid rgba(255,255,255,0.25)', fontSize: 16 }}>›</button>
             </div>
           </div>
@@ -155,6 +171,21 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
           <Seg opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => set(() => setT({ ...t, press: v, preset: 'Custom' }))} />
           <span className="tiny muted" style={{ fontWeight: 800 }}>Passing</span>
           <Seg opts={[[0, 'Short'], [1, 'Mixed'], [2, 'Long']]} value={t.build} onPick={(v) => set(() => setT({ ...t, build: v, preset: 'Custom' }))} />
+          <span className="tiny muted" style={{ fontWeight: 800 }}>Chemistry</span>
+          {([['DEF', 'Defence'], ['MID', 'Midfield'], ['FWD', 'Attack']] as const).map(([k, label]) => {
+            const v = lc[k], fx = Math.round(((v - 50) / 50) * 2.5 * 10) / 10;
+            const col = v >= 70 ? '#7CE3A1' : v >= 45 ? '#F2C14E' : '#FF6B7A';
+            return (
+              <div key={k} className="row tiny" style={{ gap: 6, fontWeight: 800 }}>
+                <span style={{ width: 62 }}>{label}</span>
+                <div className="grow" style={{ height: 6, background: 'rgba(255,255,255,0.1)' }}><i style={{ display: 'block', height: '100%', width: `${v}%`, background: col }} /></div>
+                <b style={{ width: 22, textAlign: 'right', color: col }}>{v}</b>
+                <span className="muted" style={{ width: 30, textAlign: 'right' }}>{fx > 0 ? '+' : ''}{fx}</span>
+              </div>
+            );
+          })}
+          <span className="tiny muted">Players who play together (league, cup or friendly) understand each other better. New signings start as strangers.</span
+          >
           <button className="ghost" style={{ marginTop: 'auto', borderColor: '#7FE9F7', color: '#7FE9F7' }} onClick={() => go('tactics')}><span>Advanced tactics</span></button>
           <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty}><span>{dirty ? 'Save lineup' : 'Saved'}</span></button>
         </section>

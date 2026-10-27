@@ -321,3 +321,21 @@ export function assignShirts(players: { id: string; pos: string; shirt: number |
   }
   return changes;
 }
+
+// ---------------------------------------------------------------- chemistry (see lib/chemistry.ts)
+export const CHEM_START = 35;
+export const chemGroup = (lineOrPos: string) => (lineOrPos === 'GK' || lineOrPos === 'DEF' || LINE[lineOrPos] === 'DEF' ? 'DEF' : lineOrPos === 'MID' || LINE[lineOrPos] === 'MID' ? 'MID' : 'FWD');
+export const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+/** chemistry of each line for players lined up in a formation (in slot order) */
+export function lineChem(ids: string[], formation: string, pairs: Map<string, number> | Record<string, number>) {
+  const get = (k: string) => (pairs instanceof Map ? pairs.get(k) : pairs[k]);
+  const slots = (FORMATIONS[formation] || FORMATIONS['4-3-3']).slots;
+  const out: Record<string, number> = {};
+  for (const g of ['DEF', 'MID', 'FWD']) {
+    const mem = ids.filter((id, i) => id && chemGroup(slots[i]) === g);
+    let sum = 0, n = 0;
+    for (let i = 0; i < mem.length; i++) for (let j = i + 1; j < mem.length; j++) { sum += get(pairKey(mem[i], mem[j])) ?? CHEM_START; n++; }
+    out[g] = n ? Math.round(sum / n) : 50;
+  }
+  return out as { DEF: number; MID: number; FWD: number };
+}
