@@ -363,4 +363,21 @@ CREATE TABLE IF NOT EXISTS pressers (
   UNIQUE (fixture_id, club_id)
 );
 CREATE INDEX IF NOT EXISTS pressers_club ON pressers (club_id);
+-- every transfer in a league, for the transfer history
+CREATE TABLE IF NOT EXISTS transfers (
+  id SERIAL PRIMARY KEY,
+  league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  season INT NOT NULL DEFAULT 1,
+  day INT NOT NULL DEFAULT 0,
+  player_id TEXT NOT NULL,
+  player_name TEXT NOT NULL,
+  from_club INT,
+  from_name TEXT NOT NULL,
+  to_club INT,
+  to_name TEXT NOT NULL,
+  fee NUMERIC NOT NULL DEFAULT 0,
+  kind TEXT NOT NULL DEFAULT 'buy',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS transfers_league ON transfers (league_id, id DESC);
 `;

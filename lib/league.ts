@@ -8,6 +8,7 @@ import {
   windowFromDays, assignShirts,
 } from './game.ts';
 import { wakeTimer } from './wake.ts';
+import { transferStmt } from './history.ts';
 import { notify } from './push.ts';
 import { rng, hashSeed } from './rng.ts';
 
@@ -601,7 +602,7 @@ export async function buy(uid: number, leagueId: number, listingId: number) {
   if (li.seller_id === club.id) fail(400, 'That is your own player.');
   const [{ n }] = await q<{ n: number }>('SELECT COUNT(*)::int AS n FROM squad WHERE club_id=$1', [club.id]);
   if (n >= MAX_SQUAD) fail(400, `Your squad is full (${MAX_SQUAD}).`);
-  const seller = await one('SELECT id, user_id FROM clubs WHERE id=$1', [li.seller_id]);
+  const seller = await one('SELECT id, user_id, name FROM clubs WHERE id=$1', [li.seller_id]);
   if (seller && seller.user_id) {
     const [{ m }] = await q<{ m: number }>('SELECT COUNT(*)::int AS m FROM squad WHERE club_id=$1', [li.seller_id]);
     if (m <= MIN_SQUAD) fail(400, 'The seller would drop below the minimum squad, so this sale is blocked.');
@@ -618,6 +619,7 @@ export async function buy(uid: number, leagueId: number, listingId: number) {
   await q(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [leagueId, li.player_id]);
   const p = await one('SELECT name FROM players WHERE id=$1', [li.player_id]);
   await news(leagueId, club.id, 'transfer', `${club.name} sign ${p?.name} for ${Number(li.price).toFixed(1)}M.`);
+  { const t = transferStmt({ league: leagueId, player: li.player_id, name: p?.name || '?', from: li.seller_id, fromName: seller?.name || '?', to: club.id, toName: club.name, fee: Number(li.price), kind: 'buy' }); await q(t.text, t.params); }
   if (seller?.user_id) {
     await news(leagueId, li.seller_id, 'inbox', `💰 ${club.name} bought ${p?.name} for ${Number(li.price).toFixed(1)}M.`);
     await notify(seller.user_id, { title: '💰 Player sold', body: `${club.name} bought ${p?.name} for ${Number(li.price).toFixed(1)}M.`, url: `/l/${leagueId}` });

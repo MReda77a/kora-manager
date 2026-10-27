@@ -1,6 +1,7 @@
 // Manager-to-manager transfers: offers to buy, loan or swap players, counter-offers, bidding wars,
 // rumours and bot clubs that bid for your players. Only while a transfer window is open.
-import { q, one, writes, type Row } from './db.ts';
+import { batch, q, one, writes, type Row } from './db.ts';
+import { transferStmt } from './history.ts';
 import { notify } from './push.ts';
 import { fail } from './errors.ts';
 import { MAX_SQUAD, MIN_SQUAD, marketValue } from './game.ts';
@@ -158,6 +159,12 @@ async function complete(o: Row, price: number) {
     : o.kind === 'swap' ? `SWAP DEAL: ${nm(o.player_id)} joins ${buyer!.name}, ${nm(o.swap_player)} goes to ${seller!.name}${price ? ` (+${money(price)})` : ''}.`
     : `${buyer!.name} sign ${nm(o.player_id)} from ${seller!.name} for ${money(price)}.`;
   await news(o.league_id, buyer!.id, 'transfer', head);
+  {
+    const kind = o.kind === 'loan' ? 'loan' : o.kind === 'swap' ? 'swap' : 'buy';
+    const rows = [transferStmt({ league: o.league_id, player: o.player_id, name: nm(o.player_id), from: seller!.id, fromName: seller!.name, to: buyer!.id, toName: buyer!.name, fee: price, kind })];
+    if (o.kind === 'swap') rows.push(transferStmt({ league: o.league_id, player: o.swap_player, name: nm(o.swap_player), from: buyer!.id, fromName: buyer!.name, to: seller!.id, toName: seller!.name, fee: 0, kind: 'swap' }));
+    await batch(rows);
+  }
   // other bids for him are dead now
   const others = await q(`UPDATE offers SET status='expired', note='He signed elsewhere.', updated_at=now() WHERE player_id=$1 AND league_id=$2 AND id<>$3 AND status IN ('pending','countered') RETURNING from_club`, [o.player_id, o.league_id, o.id]);
   for (const x of others) await inbox(o.league_id, x.from_club, `❌ ${nm(o.player_id)} signed for ${buyer!.name}. Your offer is off.`, { title: 'Offer off' });
@@ -307,6 +314,7 @@ export async function botShopping(l: Row, day: number) {
     w.add(`UPDATE squad SET club_id=$1, fitness=100, loan_from=NULL WHERE league_id=$2 AND player_id=$3`, [b.id, l.id, pick.player_id]);
     w.add(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [l.id, pick.player_id]);
     w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'transfer',$3)`, [l.id, b.id, `${b.name} sign ${pick.name} from ${pick.seller} for ${Number(pick.price).toFixed(1)}M.`]);
+    { const t = transferStmt({ league: l.id, player: pick.player_id, name: pick.name, from: pick.seller_id, fromName: pick.seller, to: b.id, toName: b.name, fee: Number(pick.price), kind: 'buy' }); w.add(t.text, t.params); }
     if (pick.seller_user) w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'inbox',$3)`, [l.id, pick.seller_id, `💰 ${b.name} bought ${pick.name} for ${Number(pick.price).toFixed(1)}M.`]);
     await w.flush();
     if (pick.seller_user) await notify(pick.seller_user, { title: 'Player sold', body: `${b.name} bought ${pick.name} for ${Number(pick.price).toFixed(1)}M.`, url: `/l/${l.id}` });

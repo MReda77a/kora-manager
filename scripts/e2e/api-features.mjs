@@ -369,6 +369,19 @@ check('every club still has a squad', Number(minSquad[0][0]) >= 18, `smallest ${
 // play a couple of season-2 days to prove the clock works after the roll-over
 for (const d of [1, 2]) await advance(d);
 check('season 2 matches play', Number((await sqlq(`SELECT COUNT(*) FROM fixtures WHERE league_id=$1 AND status='done'`, [lid]))[0][0]) >= 8);
+// ---------------------------------------------------------------- transfer history and club squads
+{
+  const th = await A(`/api/leagues/${lid}/transfers`);
+  const loggedNews = Number((await sqlq(`SELECT COUNT(*) FROM news WHERE league_id=$1 AND kind='transfer'`, [lid]))[0][0]);
+  check('transfer history lists the deals', Array.isArray(th.rows) && th.rows.length > 0 && th.rows.every((r) => r.player.name && r.from.name && r.to.name && typeof r.fee === 'number'), `${th.rows?.length} rows · ${loggedNews} transfer news · kinds ${[...new Set(th.rows?.map((r) => r.kind))].join(',')}`);
+  check('every transfer in the news is in the history', th.rows.length + th.older.length >= loggedNews, `${th.rows.length}+${th.older.length} vs ${loggedNews}`);
+  const ov3 = await A(`/api/leagues/${lid}/overview`);
+  const other = ov3.table.find((t) => t.id !== ov3.club.id);
+  const cv = await A(`/api/leagues/${lid}/clubview?club=${other.id}`);
+  check('club view: any club\'s squad by line', cv.club?.name === other.name && cv.players.length >= 11 && ['GK', 'DEF', 'MID', 'FWD'].every((ln) => cv.players.some((p) => p.line === ln)) && cv.strength > 50, `${cv.club?.name} · ${cv.players.length} players · XI ${cv.strength} · value ${cv.value}M`);
+  check('club view: outsiders refused', (await client()(`/api/leagues/${lid}/clubview?club=${other.id}`)).status === 401);
+  check('club view: unknown club refused', (await A(`/api/leagues/${lid}/clubview?club=999999`)).status === 404);
+}
 const fails = results.filter((r) => r[0] === 'FAIL');
 console.log(`\n${results.length - fails.length}/${results.length} passed`);
 if (fails.length) console.log('FAILED:\n' + fails.map((f) => ` - ${f[1]} ${f[2]}`).join('\n'));

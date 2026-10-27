@@ -388,3 +388,22 @@ table.t td.num, table.t th.num { text-align: right; }
   .press-face { font-size: 22px; }
   .press-ans { padding: 6px 10px; }
 }
+
+/* ---------------------------------------------------------------- club sheet and transfer history */
+.sheet-back { position: fixed; inset: 0; z-index: 70; background: rgba(8,4,24,0.7); display: grid; place-items: center; padding: 12px; animation: fadeUp .2s both; }
+.sheet { width: min(760px, 100%); min-width: 0; overflow-x: hidden; max-height: calc(100dvh - 24px); overflow-y: auto; gap: 10px; background: #1D1250; }
+.sheet-lines { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; }
+.sheet-row { min-width: 0; gap: 6px; padding: 4px 6px; background: rgba(255,255,255,0.04); align-items: center; }
+@media (max-width: 1100px) { .sheet-lines { grid-template-columns: minmax(0, 1fr); } }
+tr.clickrow { cursor: pointer; }
+tr.clickrow:hover td { background: rgba(127,233,247,0.08); }
+.deal-row { display: grid; grid-template-columns: 48px minmax(0, 1.1fr) minmax(0, 1.6fr) 84px 52px; gap: 8px; align-items: center; padding: 6px 8px; background: rgba(255,255,255,0.035); }
+.deal-club { padding: 0; background: none; min-height: 0; text-align: left; font-size: 13px; }
+.deal-club:disabled { opacity: 1; filter: none; cursor: default; }
+.deal-fee { font-size: 17px; text-align: right; }
+.deal-kind { justify-content: center; }
+@media (max-width: 640px) {
+  .deal-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "player fee" "move kind"; row-gap: 2px; }
+  .deal-day { display: none; }
+  .deal-player { grid-area: player; } .deal-move { grid-area: move; } .deal-kind { grid-area: kind; } .deal-fee { grid-area: fee; }
+}

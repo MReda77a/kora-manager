@@ -5,10 +5,11 @@ import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, type ClubTypeKey } from
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
+import { LivePitch, tm } from '../../../components/LivePitch.tsx';
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
-const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45.01 : e.m > 90 ? 89 + (e.m - 90) * 0.15 : e.m);
+const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45.01 : tm(e.m));
 
 export default function MatchPage({ params }: { params: Promise<{ fid: string }> }) {
   const { fid } = use(params);
@@ -378,8 +379,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           <div className="ln" style={{ left: '50%', top: '50%', width: 56, height: 56, margin: '-28px 0 0 -28px', borderRadius: '50%' }} />
           <div className="ln" style={{ left: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderLeft: 'none' }} />
           <div className="ln" style={{ right: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderRight: 'none' }} />
-          <Dots d={d} gm={gm} events={events} revealed={revealed} />
-          {lastEv && <span className="tiny ellipsis" style={{ position: 'absolute', left: 14, top: 30, background: 'rgba(14,8,40,0.85)', padding: '3px 10px', fontWeight: 900, color: lastEv.side === 0 ? '#7FE9F7' : '#B5F3FB', zIndex: 3, maxWidth: '70%' }}>{team(lastEv.side).name} · {lastEv.text}</span>}
+          {rep.flow ? <LivePitch d={d} gm={gm} rate={live ? 90 / LIVE : (90 / LIVE) * speed} events={events} revealed={revealed} contrastInk={contrastInk} />
+            : <Dots d={d} gm={gm} events={events} revealed={revealed} />}
+          {lastEv && gm - evAt(lastEv) < 6 && lastEv.type !== 'kickoff' && <span className="tiny ellipsis" style={{ position: 'absolute', left: 14, top: 30, background: 'rgba(14,8,40,0.85)', padding: '3px 10px', fontWeight: 900, color: lastEv.side === 0 ? '#7FE9F7' : '#B5F3FB', zIndex: 3, maxWidth: '70%' }}>{team(lastEv.side).name} · {lastEv.text}</span>}
           {fx && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
         </section>
       </div>

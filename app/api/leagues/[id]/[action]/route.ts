@@ -1,6 +1,7 @@
 import { q, one } from '../../../../../lib/db.ts';
 import { body, fail, handle, requireUser } from '../../../../../lib/http.ts';
 import * as PR from '../../../../../lib/press.ts';
+import * as V from '../../../../../lib/views.ts';
 import * as L from '../../../../../lib/league.ts';
 import * as T from '../../../../../lib/transfers.ts';
 import * as A from '../../../../../lib/analyst.ts';
@@ -130,6 +131,8 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
   }
   if (action === 'today') return TD.todayView(s.uid, lid);
   if (action === 'press') return PR.pressView(s.uid, lid);
+  if (action === 'transfers') { mustClub(); return V.transfersView(lid); }
+  if (action === 'clubview') { mustClub(); return V.clubView(lid, Number(new URL(req.url).searchParams.get('club'))); }
   if (action === 'friendly') return FR.friendlyView(s.uid, lid);
   if (action === 'analyst') return A.analystReport(s.uid, lid, new URL(req.url).searchParams.get('refresh') === '1');
   if (action === 'scout') {

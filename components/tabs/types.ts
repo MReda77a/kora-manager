@@ -3,7 +3,7 @@ import type { useToast } from '../ui.tsx';
 export const TABS = [
   ['home', 'Home', 'home'], ['lineup', 'Lineup', 'lineup'], ['tactics', 'Tactics', 'tactics'], ['players', 'Squad', 'players'],
   ['training', 'Training', 'training'], ['condition', 'Condition', 'condition'], ['office', 'Office', 'office'], ['store', 'Packs', 'store'],
-  ['market', 'Market', 'market'], ['table', 'Table', 'table'], ['fixtures', 'Fixtures', 'fixtures'], ['cup', 'Cup', 'cup'],
+  ['market', 'Market', 'market'], ['deals', 'Deals', 'market'], ['table', 'Table', 'table'], ['fixtures', 'Fixtures', 'fixtures'], ['cup', 'Cup', 'cup'],
   ['analyst', 'Analyst', 'stats'], ['press', 'Press', 'paper'], ['friendly', 'Friendly', 'fixtures'], ['paper', 'Paper', 'paper'], ['awards', 'Awards', 'awards'], ['leaders', 'Leaders', 'stats'], ['history', 'History', 'history'],
 ] as const;
 export type Tab = (typeof TABS)[number][0];
@@ -12,7 +12,7 @@ export const SECTIONS: { key: string; label: string; icon: string; tabs: Tab[] }
   { key: 'home', label: 'Home', icon: 'home', tabs: ['home'] },
   { key: 'team', label: 'Team', icon: 'players', tabs: ['lineup', 'tactics', 'players', 'training', 'condition'] },
   { key: 'matches', label: 'Matches', icon: 'fixtures', tabs: ['fixtures', 'analyst', 'press', 'friendly', 'table', 'cup', 'leaders'] },
-  { key: 'transfers', label: 'Transfers', icon: 'market', tabs: ['market', 'store'] },
+  { key: 'transfers', label: 'Transfers', icon: 'market', tabs: ['market', 'deals', 'store'] },
   { key: 'club', label: 'Club', icon: 'office', tabs: ['office', 'paper', 'awards', 'history'] },
 ];
 export const sectionOf = (t: Tab) => SECTIONS.find((s) => s.tabs.includes(t)) || SECTIONS[0];

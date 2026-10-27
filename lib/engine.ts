@@ -45,6 +45,9 @@ export type Report = {
   derby?: boolean;
   shots?: Shot[];
   weather?: string;
+  // the flow of play for the match screen: [minute, side, how far the move got (0 own half, 1 midfield,
+  // 2 final third, 3 shot), index into shots or -1]. Logged only: it never changes the result.
+  flow?: [number, 0 | 1, number, number][];
 };
 
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
@@ -190,6 +193,12 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const cardMul = [0.75, 1, 1.35][opts.strict ?? 1];
   const penMul = [0.8, 1, 1.25][opts.strict ?? 1];
   const shotsList: Shot[] = [];
+  const flow: [number, 0 | 1, number, number][] = [];
+  const reach = (side: 0 | 1, r: number) => {
+    const f = flow[flow.length - 1];
+    if (!f || f[1] !== side || f[0] !== minute || f[3] >= 0) flow.push([minute, side, r, -1]);
+    else if (r > f[2]) f[2] = r;
+  };
   const spot = (a: 0 | 1, kind: string) => {
     let x: number, y: number;
     if (kind === 'long shot' || kind === 'free kick') { x = 72 + r.next() * 9; y = 22 + r.next() * 56; }
@@ -225,6 +234,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 
   const shot = (a: 0 | 1, baseXg: number, kind: string) => {
     const b = (1 - a) as 0 | 1;
+    reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     let q = 0.73 * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
@@ -366,6 +376,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 
   const penalty = (a: 0 | 1) => {
     const b = (1 - a) as 0 | 1;
+    reach(a, 2);
     if (r.next() < 0.1) {
       log('var', a, `Penalty to ${S[a].s.name}... VAR overturns it! No penalty.`);
       return;
@@ -379,6 +390,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const p = goals[a] >= MAX_GOALS ? 0 : Math.min(0.92, Math.max(0.55, 0.76 + (skill - 78) * 0.006 - (A(b, 'keeper') - 78) * 0.003));
     shots[a]++;
     xg[a] += 0.76;
+    reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     shotsList.push({ m: minute, side: a, x: a === 0 ? 88.5 : 11.5, y: 50, xg: 0.76, goal: false, kind: 'penalty' });
     if (r.next() < p) {
       shotsList[shotsList.length - 1].goal = true;
@@ -528,6 +540,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const b = (1 - a) as 0 | 1;
     const ta = T(a), tb = T(b);
     possN[a]++;
+    flow.push([minute, a, 0, -1]);
     const risk = ta.build === 0 ? (weather === 'rain' ? 1.55 : 1.35) : ta.build === 2 ? 0.5 : 1.0;
     const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0); // hard tackling hurts short-passing sides most
     if (r.next() < Math.max(0.03, pLose)) {
@@ -540,6 +553,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       else if (tb.mentality <= 1 && r.next() < 0.09 + 0.05 * (2 - tb.mentality)) counter(b);
       return;
     }
+    reach(a, 1);
     // fouls in shooting range give free kicks
     if (r.next() < (0.012 + (tb.press >= 2 ? 0.004 : 0)) * [0.6, 1, 1.6][tk(b)]) {
       const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => o.p.a.Aggression || 50);
@@ -549,7 +563,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (ta.build === 2 && r.next() < 0.5) {
       const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) - (tb.press === 1 ? 0.35 : 0)
         + S[a].flags.holdup - (weather === 'wind' || weather === 'rain' ? 0.3 : 0);
-      if (r.next() < sig(duel - 1.45)) create(a, tb.line === 2 ? 0.02 : 0);
+      if (r.next() < sig(duel - 1.45)) { reach(a, 2); create(a, tb.line === 2 ? 0.02 : 0); }
       else if (tb.mentality === 0 && r.next() < 0.06) counter(b);
       return;
     }
@@ -560,7 +574,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 : ta.mentality === 0 ? -0.1 : 0);
     prog += ta.tempo === 2 ? 0.1 : ta.tempo === 0 ? -0.08 : 0;
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
-    if (r.next() < sig(prog - 1.55)) create(a);
+    if (r.next() < sig(prog - 1.55)) { reach(a, 2); create(a); }
     else if (tb.mentality <= 1 && r.next() < (ta.mentality === 2 ? 0.07 : 0.035)) counter(b);
   };
 
@@ -681,7 +695,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     motm: motm ? motm.id : null,
     tactics: [home.tactic.preset, away.tactic.preset],
     lineups: [home, away].map((sd) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id), captain: sd.captain })),
-    shootout, winner, derby, shots: shotsList, weather,
+    shootout, winner, derby, shots: shotsList, weather, flow,
   };
 }
 

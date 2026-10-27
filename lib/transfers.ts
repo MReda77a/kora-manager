@@ -6,6 +6,7 @@
 //  - AI clubs also shop abroad to fill their weak spots.
 // Every function reads a few rows and writes once (Cloudflare counts requests per visit).
 import { q, one, writes, type Row } from './db.ts';
+import { transferStmt } from './history.ts';
 import { LINE, MAX_SQUAD, MIN_SQUAD, marketValue } from './game.ts';
 import { getLeague, myClub, news, windowFor } from './league.ts';
 import { fail } from './errors.ts';
@@ -92,6 +93,7 @@ export async function buyAbroad(uid: number, leagueId: number, abroadId: number)
   }
   const p = await one('SELECT name FROM players WHERE id=$1', [a.player_id]);
   await news(leagueId, club.id, 'transfer', `${club.name} sign ${p?.name} from ${a.club} for ${Number(a.price).toFixed(1)}M.`);
+  { const t = transferStmt({ league: leagueId, player: a.player_id, name: p?.name || '?', from: null, fromName: a.club, to: club.id, toName: club.name, fee: Number(a.price), kind: 'abroad' }); await q(t.text, t.params); }
   return { ok: true };
 }
 
@@ -159,6 +161,7 @@ export async function marketDay(l: Row, day: number, deadline: boolean) {
       w.add('DELETE FROM squad WHERE league_id=$1 AND player_id=$2', [l.id, li.pid]); // he leaves the league
     }
     w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'transfer',$3)`, [l.id, bot?.id ?? null, `${li.name} joins ${buyer} from ${li.seller} for ${price.toFixed(1)}M.`]);
+    { const t = transferStmt({ league: l.id, player: li.pid, name: li.name, from: li.seller_id, fromName: li.seller, to: bot?.id ?? null, toName: buyer, fee: price, kind: bot ? 'buy' : 'sold abroad' }); w.add(t.text, t.params); }
     w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'inbox',$3)`, [l.id, li.seller_id, `💰 ${buyer} bought ${li.name} for ${price.toFixed(1)}M.`]);
     alerts.push({ uid: li.seller_user, msg: { title: '💰 Player sold', body: `${buyer} bought ${li.name} for ${price.toFixed(1)}M.`, url: `/l/${l.id}` } });
     sales++;
@@ -179,6 +182,7 @@ export async function marketDay(l: Row, day: number, deadline: boolean) {
     w.add('UPDATE clubs SET money=money-$1 WHERE id=$2', [Number(a.price), b.id]);
     w.add('INSERT INTO squad (league_id, player_id, club_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [l.id, a.id, b.id]);
     w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'transfer',$3)`, [l.id, b.id, `${b.name} sign ${a.name} from ${a.seller} for ${Number(a.price).toFixed(1)}M.`]);
+    { const t = transferStmt({ league: l.id, player: a.id, name: a.name, from: null, fromName: a.seller, to: b.id, toName: b.name, fee: Number(a.price), kind: 'abroad' }); w.add(t.text, t.params); }
   }
   await w.flush();
   await notifyEach(alerts);

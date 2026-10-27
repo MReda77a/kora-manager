@@ -3,6 +3,7 @@ import { CLUB_TYPES, type ClubTypeKey } from '../../lib/game.ts';
 import { useEffect, useState } from 'react';
 import { api, clock } from '../../lib/client.ts';
 import { BackHead, Crest, Spinner } from '../ui.tsx';
+import { ClubSheet } from '../ClubSheet.tsx';
 import type { TabProps } from './types.ts';
 
 export function TableTab({ d: ov, lid }: TabProps) {
@@ -10,6 +11,7 @@ export function TableTab({ d: ov, lid }: TabProps) {
   const D = league.divisions || 1;
   const [div, setDiv] = useState<number>(ov.division || club.division || 1);
   const [table, setTable] = useState<any[]>(ov.table);
+  const [open, setOpen] = useState<number | null>(null);
   useEffect(() => {
     if (div === ov.division) { setTable(ov.table); return; }
     api(`/api/leagues/${lid}/overview?div=${div}`).then((r) => setTable(r.table));
@@ -27,7 +29,7 @@ export function TableTab({ d: ov, lid }: TabProps) {
             {table.map((t: any, i: number) => {
               const z = zone(i);
               return (
-              <tr key={t.id} className={t.id === club.id ? 'me' : ''} style={{ boxShadow: z === 'up' ? 'inset 3px 0 0 #7CE3A1' : z === 'down' ? 'inset 3px 0 0 #FF6B7A' : i + 1 === club.targetPos && div === club.division ? 'inset 0 -2px 0 rgba(242,193,78,0.6)' : undefined }}>
+              <tr key={t.id} className={`clickrow ${t.id === club.id ? 'me' : ''}`} onClick={() => setOpen(t.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(t.id); }} title={`See ${t.name}'s squad`} style={{ boxShadow: z === 'up' ? 'inset 3px 0 0 #7CE3A1' : z === 'down' ? 'inset 3px 0 0 #FF6B7A' : i + 1 === club.targetPos && div === club.division ? 'inset 0 -2px 0 rgba(242,193,78,0.6)' : undefined }}>
                 <td><b>{i + 1}</b></td>
                 <td><span className="row" style={{ gap: 6 }}><Crest c1={t.color1} c2={t.color2} shape={t.shape} emblem={t.user_id ? t.emblem : -1} short={t.short} size={20} /><span className="ellipsis" style={{ maxWidth: 190 }}>{t.name}</span>{t.user_id ? <span className="tag cyan" style={{ height: 16, fontSize: 9 }}><span>MGR</span></span> : <span className="tiny dim hide-sm">{CLUB_TYPES[t.club_type as ClubTypeKey]?.name}</span>}</span></td>
                 <td className="num">{t.p}</td><td className="num">{t.w}</td><td className="num">{t.d}</td><td className="num">{t.l}</td>
@@ -38,11 +40,13 @@ export function TableTab({ d: ov, lid }: TabProps) {
             })}
           </tbody>
         </table>
+        <div className="tiny muted" style={{ padding: '6px 6px 0' }}>Tap a club to see its squad.</div>
         {D > 1 && <div className="row tiny muted" style={{ gap: 14, padding: '8px 6px 2px' }}>
           {div > 1 && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: '#7CE3A1', marginRight: 5 }} />Top {P} promoted</span>}
           {div < D && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--red)', marginRight: 5 }} />Bottom {P} relegated</span>}
         </div>}
       </div>
+      {open !== null && <ClubSheet lid={lid} clubId={open} myId={club.id} onClose={() => setOpen(null)} />}
     </div>
   );
 }
