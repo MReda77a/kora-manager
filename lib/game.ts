@@ -157,7 +157,16 @@ export type SponsorKey = keyof typeof SPONSORS;
 export const TRAINABLE = ['Finishing', 'Passing', 'Crossing', 'Dribbling', 'Pace', 'Heading', 'Tackling', 'Marking', 'Vision', 'Composure', 'Stamina', 'LongShots', 'Reflexes', 'Handling', 'OneOnOne'];
 export const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
 
-export const LIVE_SECONDS = 110; // a watched match lasts this long in real time
+export const LIVE_SECONDS = 300; // the 90 minutes of a live match last this long in real time
+export const HT_SECONDS = 30; // and the clock stops this long at half-time, so managers can make their changes
+export const LIVE_TOTAL = LIVE_SECONDS + HT_SECONDS;
+/** match minute (0..90) after `sec` real seconds of a live match: the clock stops at 45 for the half-time break */
+export function minuteAt(sec: number, ht = HT_SECONDS, play = LIVE_SECONDS) {
+  const half = play / 2;
+  if (sec <= half) return Math.max(0, (sec / half) * 45);
+  if (sec <= half + ht) return 45;
+  return Math.min(90, 45 + ((sec - half - ht) / half) * 45);
+}
 export const AI_COLORS = ['#3651C9', '#1F9D55', '#D9A520', '#2B9FC9', '#7A5BD6', '#C9702B', '#5E6B73', '#B8325A', '#2F8F83', '#8E3BB0'];
 
 export function shortName(name: string) {

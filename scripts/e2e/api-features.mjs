@@ -230,7 +230,7 @@ check('derby kicks off when opened', live.fixture.status === 'live', live.fixtur
 check('derby detected', live.derby === true);
 check('kit clash solved (red vs red)', live.kits[0].c1 !== live.kits[1].c1 && live.kits[1].label !== 'Home kit', `${live.kits[0].c1} vs ${live.kits[1].c1} ${live.kits[1].label}`);
 check('plans offered live', JSON.stringify(live.plans) === '["A","B"]', JSON.stringify(live.plans));
-await sqlq(`UPDATE fixtures SET live_from=now()-interval '40 seconds' WHERE id=$1`, [did]);
+await sqlq(`UPDATE fixtures SET live_from=now()-interval '110 seconds' WHERE id=$1`, [did]);
 const before = (await A(`/api/fixtures/${did}`)).report.events.filter((e) => e.m < 30).map((e) => e.text).join('|');
 const c1 = await A(`/api/fixtures/${did}/change`, { plan: 'B' });
 check('switch to plan B live', c1.report?.events.some((e) => e.text.includes('Plan B')), c1.error || `minute ${c1.minute}`);

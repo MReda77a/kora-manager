@@ -15,7 +15,7 @@ type Flow = [number, 0 | 1, number, number];
 
 // match minute -> time on the clock of the watched match (stoppage time is squeezed in)
 export const tm = (m: number) => (m <= 90 ? m : 90 + (m - 90) * 0.08);
-export const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45.01 : tm(e.m));
+export const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45 : tm(e.m));
 
 const L = 105, W = 68; // pitch size in metres: the SVG works in these units
 const hash = (n: number) => { let x = (n * 2654435761) >>> 0; x ^= x >>> 13; x = Math.imul(x, 1274126177) >>> 0; return (x ^ (x >>> 16)) >>> 0; };

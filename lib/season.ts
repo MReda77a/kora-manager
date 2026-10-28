@@ -7,7 +7,7 @@
 import { batch, counter, q, one, writes, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, PAPER_NAMES, PRESETS, SPONSORS,
+  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, LIVE_TOTAL, minuteAt, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic, bestLeader, leadership,
   windowFromDays, WINDOW_DAYS,
 } from './game.ts';
@@ -25,7 +25,7 @@ import { abroadMarket, clearAbroad, marketDay } from './transfers.ts';
 import { applyPressers, pressAftermath } from './press.ts';
 
 export const PER_REQUEST = Number(process.env.MATCHES_PER_REQUEST || 0) || 1000;
-const LIVE_MS = LIVE_SECONDS * 1000;
+const LIVE_MS = LIVE_TOTAL * 1000; // the whole live match, half-time break included
 const LIVE_GRACE_MS = 15_000;
 
 // ---------------------------------------------------------------- season start
@@ -511,7 +511,7 @@ async function planBot(l: Row, f: Row, me: ESide, opp: ESide, oppClubId: number)
 // Minute of a live match right now (0..90), from when it went live.
 export function liveMinute(f: Row, now = Date.now()) {
   if (!f.live_from) return 0;
-  return Math.max(0, Math.min(90, ((now - new Date(f.live_from).getTime()) / LIVE_MS) * 90));
+  return minuteAt((now - new Date(f.live_from).getTime()) / 1000);
 }
 
 export async function changeLive(uid: number, fixtureId: number, b: Record<string, any>) {

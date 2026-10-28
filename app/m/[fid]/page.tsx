@@ -1,7 +1,7 @@
 'use client';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { api, clock, shirt } from '../../../lib/client.ts';
-import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, type ClubTypeKey } from '../../../lib/game.ts';
+import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, minuteAt, type ClubTypeKey } from '../../../lib/game.ts';
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
@@ -10,7 +10,7 @@ import { Commentary, Formation, KeyEvents, LiveStats, Lineups, useSmoothClock } 
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
-const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45.01 : tm(e.m));
+const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45 : tm(e.m));
 
 export default function MatchPage({ params }: { params: Promise<{ fid: string }> }) {
   const { fid } = use(params);
@@ -167,13 +167,19 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const rep = d.report;
   const events: Ev[] = rep.events;
   const LIVE = d.liveSeconds;
+  const HT = d.htSeconds ?? 0; // the clock stops at half-time for this long in a live match
+  const TOTAL = LIVE + HT;
   const liveFrom = d.fixture.liveFrom ? new Date(d.fixture.liveFrom).getTime() : 0;
   const clockSkew = useRef(new Date(d.now).getTime() - Date.now()).current;
   const elapsed = () => (Date.now() + clockSkew - liveFrom) / 1000;
-  const isLiveNow = d.fixture.status !== 'done' && elapsed() < LIVE;
+  const isLiveNow = d.fixture.status !== 'done' && elapsed() < TOTAL;
   const [phase, setPhase] = useState<'intro' | 'play' | 'ft'>(skip ? 'ft' : isLiveNow ? 'play' : 'intro');
   const [live] = useState(isLiveNow);
-  const [gm, setGm] = useState(isLiveNow ? Math.max(0, (elapsed() / LIVE) * 90) : 0);
+  const liveGm = () => { const e = elapsed(); return e >= TOTAL ? 90.6 : minuteAt(e, HT, LIVE); };
+  const [gm, setGm] = useState(isLiveNow ? liveGm() : 0);
+  const [nowMs, setNowMs] = useState(Date.now());
+  const htHold = useRef(0);
+  const [react, setReact] = useState<null | { type: string; mine: boolean; until: number }>(null);
   const [speed, setSpeed] = useState(1);
   const [fx, setFx] = useState<Ev | null>(null);
   const [panel, setPanel] = useState<null | 'tactic' | 'sub'>(null);
@@ -200,8 +206,13 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     if (phase !== 'play') return;
     const step = 0.2;
     const i = setInterval(() => {
-      if (live) setGm(Math.min(90.6, (elapsed() / LIVE) * 90));
-      else setGm((g) => Math.min(90.6, g + (90 / LIVE) * step * speed));
+      if (live) { setGm(liveGm()); setNowMs(Date.now()); }
+      else setGm((g) => {
+        // a replay stops for a moment at half-time too
+        if (g >= 45 && g < 45.001 && htHold.current < 3 / step) { htHold.current++; return g; }
+        const n = g + (90 / LIVE) * step * speed;
+        return g < 45 && n >= 45 ? 45 : Math.min(90.6, n);
+      });
     }, step * 1000);
     return () => clearInterval(i);
   }, [phase, speed, live]);
@@ -227,6 +238,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         // phones buzz on the big moments (Android; iPhones ignore it), unless the sound is muted
         const buzz = (p: number | number[]) => { try { if (!isMuted()) navigator.vibrate?.(p); } catch {} };
         if (big.type === 'goal') buzz(forMe ? [90, 50, 220] : 70);
+        // the big moments are when a manager wants to react: offer the quick changes right away
+        if (live && mineSide >= 0 && evAt(big) < 86 && (big.type === 'goal' || big.type === 'red' || (big.type === 'injury' && big.side === mineSide)))
+          setReact({ type: big.type, mine: big.side === mineSide, until: Date.now() + 10_000 });
         else if (big.type === 'red') buzz([150, 60, 150]);
         else if (big.type === 'penalty') buzz(100);
         const chant = d.derby ? 'chant-derby' : 'chant';
@@ -304,6 +318,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   };
   const subsUsed = (side: number) => events.slice(0, revealed).filter((e) => e.side === side && e.type === 'sub').length;
   const change = async (body: Record<string, unknown>, msg: string) => {
+    setReact(null);
     try {
       const r = await api(`/api/fixtures/${d.fixture.id}/change`, body);
       setD({ ...raw, report: r.report });
@@ -325,7 +340,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           <TeamBlock c={d.home} size={76} /><span className="lz" style={{ fontSize: 44 }}>VS</span><TeamBlock c={d.away} size={76} />
         </div>
         <div className="row center" style={{ gap: 12 }}>
-          <button className="cta shine" style={{ minHeight: 56, minWidth: 200 }} onClick={() => setPhase('play')}><span>Watch (2 min)</span></button>
+          <button className="cta shine" style={{ minHeight: 56, minWidth: 200 }} onClick={() => setPhase('play')}><span>Watch ({Math.round(LIVE / 60)} min)</span></button>
           <button className="ghost" style={{ minHeight: 56 }} onClick={() => setPhase('ft')}><span>Skip to result</span></button>
         </div>
         <span className="tiny muted" style={{ textAlign: 'center' }}>No spoilers: the score stays hidden until you watch or skip.</span>
@@ -346,6 +361,11 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     { k: 'press', ico: '🔥', t: 'High press', s: 'Win the ball back high', go: () => change({ press: 3 }, 'High press on') },
     ...((d.plans || []).length > 1 ? d.plans.map((k: string) => ({ k: `plan${k}`, ico: '📋', t: `Plan ${k}`, s: 'Switch to your saved plan', go: () => change({ plan: k }, `Plan ${k}!`) })) : []),
   ] : [];
+  // half-time break of a live match: seconds until the second half
+  const htLeft = live && HT > 0 ? (() => { const e = (nowMs + clockSkew - liveFrom) / 1000; return e > LIVE / 2 && e < LIVE / 2 + HT ? Math.ceil(LIVE / 2 + HT - e) : 0; })() : 0;
+  const reactOn = canChange && !htLeft && react && react.until > nowMs ? react : null;
+  const reactTitle = !reactOn ? '' : reactOn.type === 'goal' ? (reactOn.mine ? '⚽ You scored! Protect the lead or go for more?' : '😤 Conceded! Change something?')
+    : reactOn.type === 'red' ? (reactOn.mine ? '🟥 Down to 10 men! Reorganise?' : '🟥 They are down to 10! Go for it?') : '🚑 Injury! Make a sub?';
   const tabsList: [string, string][] = [['live', 'Live'], ['stats', 'Stats'], ['events', 'Events'], ['lineups', 'Line-ups'], ['shape', 'Formation']];
   const infoTab = () => (
     <>
@@ -392,15 +412,40 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           <div className="mc-tabbody">{infoTab()}</div>
         </aside>
         <main className="field mc-pitch" style={{ animation: fx && (fx.type === 'red' || (fx.type === 'goal' && fx.side !== mineSide && mineSide >= 0)) ? 'shake .5s ease' : fx?.type === 'goal' ? 'beat .6s ease' : undefined }}>
-          {hasFlow ? <SmoothPitch d={d} gm={gm} rate={live ? 90 / LIVE : (90 / LIVE) * speed} plan={plan} mineSide={mineSide} /> : (
+          {hasFlow ? <SmoothPitch d={d} gm={gm} rate={htLeft ? 0 : live ? 90 / LIVE : (90 / LIVE) * speed} plan={plan} mineSide={mineSide} /> : (
             <>
               <div className="ln" style={{ inset: '26px 10px' }} />
               <div className="ln" style={{ top: 26, bottom: 26, left: '50%', width: 0, borderWidth: '0 0 0 1.5px' }} />
               <Dots d={d} gm={gm} events={events} revealed={revealed} />
             </>
           )}
-          {lastEv && gm - evAt(lastEv) < 3.5 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny ellipsis mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
-          {fx && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
+          {!htLeft && lastEv && gm - evAt(lastEv) < 3.5 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny ellipsis mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
+          {fx && !htLeft && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
+          {htLeft > 0 && (
+            <div className="mc-ht">
+              <span className="lz" style={{ fontSize: 40, lineHeight: 1 }}>HALF-TIME</span>
+              <span className="lz" style={{ fontSize: 28 }}>{score[0]} – {score[1]}</span>
+              <span className="small" style={{ fontWeight: 800 }}>Second half in <b style={{ color: 'var(--mint)' }}>0:{String(htLeft).padStart(2, '0')}</b></span>
+              {canChange && <>
+                <span className="tiny muted">The clock is stopped: make your changes now.</span>
+                <div className="row wrap center" style={{ gap: 6 }}>
+                  <button className="cta small" onClick={() => setPanel('sub')} disabled={subsUsed(mineSide) >= 5}><span>🔁 Substitution</span></button>
+                  <button className="ghost" onClick={() => setPanel('tactic')}><span>🎛 Style</span></button>
+                  {tactics.filter((x) => x.k.startsWith('plan')).map((x) => <button key={x.k} className="ghost" onClick={x.go}><span>{x.t}</span></button>)}
+                </div>
+              </>}
+            </div>
+          )}
+          {reactOn && (
+            <div className="mc-react">
+              <b className="small">{reactTitle}</b>
+              <div className="row wrap center" style={{ gap: 6 }}>
+                {tactics.map((x) => <button key={x.k} className="seg rq" style={{ minHeight: 34 }} onClick={x.go}><span>{x.ico} {x.t}</span></button>)}
+                <button className="seg" style={{ minHeight: 34 }} disabled={subsUsed(mineSide) >= 5} onClick={() => { setPanel('sub'); setReact(null); }}><span>🔁 Sub</span></button>
+                <button className="seg" style={{ minHeight: 34 }} onClick={() => setReact(null)}><span>✕</span></button>
+              </div>
+            </div>
+          )}
         </main>
         <aside className="panel mc-right mc-wide">
           {canChange ? (

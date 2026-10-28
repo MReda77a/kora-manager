@@ -39,7 +39,7 @@ export default function LiveAlert({ live, club }: { live: any[]; club: any }) {
           <Crest c1={f.ac} c2={f.ac2} shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={52} />
         </div>
         <b className="lz" style={{ fontSize: 22 }}>{f.home} vs {f.away}</b>
-        <span className="small muted">Your match has started. Watch it live (2 minutes) and make changes, or let your assistant handle it and see the result.</span>
+        <span className="small muted">Your match has started. Watch it live (5 minutes, with a half-time break) and make changes, or let your assistant handle it and see the result.</span>
         <div className="row" style={{ gap: 10 }}>
           <a className="cta shine" href={`/m/${f.id}`} onClick={dismiss}><span>Watch live</span></a>
           <a className="ghost" href={`/m/${f.id}?skip=1`} onClick={dismiss}><span>Skip to result</span></a>

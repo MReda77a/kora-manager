@@ -600,3 +600,13 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 .theme-derby table.t tr.me td { background: rgba(244, 194, 78, 0.1); }
 .theme-cup .panel::before { background: linear-gradient(90deg, transparent, rgba(47, 230, 176, 0.8), transparent); }
 @media (prefers-reduced-motion: reduce) { .top::after, .mc-top::after { animation: none; } }
+
+/* live match: the half-time break and the quick 'react' bar after a big moment */
+.mc-ht { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 10px;
+  background: radial-gradient(70% 70% at 50% 50%, rgba(6, 14, 26, 0.92), rgba(6, 14, 26, 0.75)); animation: pop .4s both; }
+.mc-react { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 10px; text-align: center;
+  border-radius: 12px; background: rgba(6, 14, 26, 0.9); border: 1px solid color-mix(in srgb, var(--mint) 55%, transparent); box-shadow: 0 0 24px color-mix(in srgb, var(--mint) 25%, transparent); animation: slidein .35s both; }
+/* phones: the quick buttons are already in the bar under the pitch, so the react card stays small and lights that bar up */
+.mc-react .rq { display: none; }
+.mc-root:has(.mc-react) .mc-actions, .mc-root:has(.mc-react) .mc-right { box-shadow: 0 0 0 1px color-mix(in srgb, var(--mint) 60%, transparent), 0 0 22px color-mix(in srgb, var(--mint) 30%, transparent); border-radius: 12px; }
+.mc-react { flex-direction: row; justify-content: center; flex-wrap: wrap; padding: 6px 10px; }

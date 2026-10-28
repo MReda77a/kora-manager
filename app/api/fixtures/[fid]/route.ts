@@ -1,7 +1,7 @@
 import { one, q } from '../../../../lib/db.ts';
 import { fail, handle, requireUser } from '../../../../lib/http.ts';
 import { runDue, cupState } from '../../../../lib/season.ts';
-import { LIVE_SECONDS, WEATHER, conditionsFor, matchKits } from '../../../../lib/game.ts';
+import { LIVE_SECONDS, HT_SECONDS, WEATHER, conditionsFor, matchKits } from '../../../../lib/game.ts';
 import { PRESS } from '../../../../lib/people.ts';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +57,6 @@ export const GET = handle(async (_req: Request, ctx: { params: Promise<{ fid: st
     derby: home.club_type === 'fan' && away.club_type === 'fan' && !!home.user_id && !!away.user_id,
     kits, conditions: { ...cond, weatherInfo: WEATHER[cond.weather] }, plans: myPlans,
     press: { done: mineSide != null && String(mineSide) in (f!.press || {}), choice: mineSide != null ? (f!.press || {})[String(mineSide)] ?? null : null, options: Object.entries(PRESS).map(([k, v]) => ({ key: k, label: v.label })) },
-    report: rep, names, comments, liveSeconds: LIVE_SECONDS, now: new Date().toISOString(),
+    report: rep, names, comments, liveSeconds: LIVE_SECONDS, htSeconds: HT_SECONDS, now: new Date().toISOString(),
   };
 });
