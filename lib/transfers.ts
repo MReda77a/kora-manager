@@ -101,7 +101,7 @@ export async function buyAbroad(uid: number, leagueId: number, abroadId: number)
 /** chance (0..1) that a listed player is bought today */
 export function saleChance(x: { price: number; v: number; age: number; ovr: number; pot: number; rating: number | null; fresh: boolean }, mood: number, deadline: boolean) {
   const ratio = x.price / Math.max(0.3, x.v);
-  const priceF = ratio <= 0.8 ? 2.2 : ratio <= 1 ? 1.6 : ratio <= 1.25 ? 1.15 : ratio <= 1.5 ? 0.75 : ratio <= 2 ? 0.35 : 0.1;
+  const priceF = ratio <= 0.8 ? 2.2 : ratio <= 1 ? 1.6 : ratio <= 1.25 ? 1.15 : ratio <= 1.5 ? 0.75 : ratio <= 1.75 ? 0.4 : ratio <= 3 ? 0.31 : 0.1;
   let appeal = 1;
   if (x.age <= 21) appeal += 0.5; else if (x.age <= 24) appeal += 0.25; else if (x.age >= 31) appeal -= 0.25;
   appeal += Math.max(0, x.pot - x.ovr) / 25;
