@@ -4,7 +4,7 @@
 // ball wears a ring and his name, both teams slide as a block with the play, a lost ball goes to the
 // opponent nearest to it, a shot flies at goal from where the engine took it and the real scorer
 // scores. Each move starts exactly where the previous one ended, so nothing jumps.
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { FORMATIONS, PRESETS } from '../../lib/game.ts';
 import { shirt } from '../../lib/client.ts';
 import { lastName } from '../ui.tsx';
@@ -15,7 +15,9 @@ type Flow = [number, 0 | 1, number, number];
 
 // match minute -> time on the clock of the watched match (stoppage time is squeezed in)
 export const tm = (m: number) => (m <= 90 ? m : 90 + (m - 90) * 0.08);
-export const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45 : tm(e.m));
+// when an event shows: on the pitch's own clock. A penalty or a dangerous free kick is given at the foul,
+// a little before the kick that ends the move on the event's minute
+export const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45 : e.type === 'penalty' ? Math.max(0, tm(e.m) - 1.3) : e.type === 'freekick' ? Math.max(0, tm(e.m) - 0.75) : tm(e.m));
 
 const L = 105, W = 68; // pitch size in metres: the SVG works in these units
 const hash = (n: number) => { let x = (n * 2654435761) >>> 0; x ^= x >>> 13; x = Math.imul(x, 1274126177) >>> 0; return (x ^ (x >>> 16)) >>> 0; };
@@ -35,14 +37,32 @@ type Plan = {
   out: Outcome; win: number | null; // the defender who wins a lost ball
   restart: 'kickoff' | 'keeper' | 'corner' | 'clear' | null;
   label?: string; // what the team is doing, from its tactic (patient build-up, direct ball, counter)
-  parry?: boolean; // a save pushed out for the corner that follows
+  parry?: boolean;
+  pre?: number; // the first part of the move that finishes the last one: celebration, keeper's ball, ball out for the corner
+  kind: string; // the shot's kind ('' when there is no shot) // a save pushed out for the corner that follows
   spot?: [number, number]; // where the shot is taken from (% of the pitch, absolute)
 };
 
 type Occ = { at: number; side: 0 | 1; out: string | null; inn: string | null }[];
 
-export function usePlan(rep: any, events: Ev[]) {
-  return useMemo(() => buildPlan(rep, events), [rep, events]);
+export function usePlan(rep: any, events: Ev[], now?: number) {
+  // during a live match the report is worked out again after every change; the moves already under way
+  // stay as they were and the new match carries on from the end of the current move, so nothing teleports
+  const last = useRef<{ rep: any; plan: ReturnType<typeof buildPlan> } | null>(null);
+  return useMemo(() => {
+    const fresh = buildPlan(rep, events);
+    let out = fresh;
+    const old = last.current;
+    if (old && old.rep !== rep && now != null && now > 0.5) {
+      const cur = old.plan.plans.find((q) => q.t0 <= now && q.t1 > now);
+      const cut = cur ? cur.t1 : now;
+      const keep = old.plan.plans.filter((q) => q.t1 <= cut + 1e-6);
+      const next = fresh.plans.filter((q) => q.t1 > cut + 1e-6).map((q) => (q.t0 < cut ? { ...q, t0: cut } : q));
+      out = { ...fresh, plans: [...keep, ...next].map((q, i) => (q.i === i ? q : { ...q, i })) };
+    }
+    last.current = { rep, plan: out };
+    return out;
+  }, [rep, events]);
 }
 
 export function buildPlan(rep: any, events: Ev[]) {
@@ -99,6 +119,31 @@ export function buildPlan(rep: any, events: Ev[]) {
       const pr = PRESETS[rep.lineups?.[side]?.preset];
       return pr ? { ...pr, preset: rep.lineups[side].preset } : { mentality: 1, press: 1, line: 1, build: 1, width: 1, tempo: 1 };
     };
+    // stoppage time is squeezed into the last moments of the clock: its quiet moves fold into the one before
+    for (let i = raw.length - 1; i > 0; i--) if (raw[i].t0 >= 90 - 1e-6 && raw[i].sh < 0) { raw[i - 1].t1 = raw[i].t1; raw.splice(i, 1); }
+    // every move gets the time it needs to be followed: an attack that ends in a shot, a penalty, the keeper's
+    // ball or the celebration that comes before the next move. A busy spell (chances at both ends) pushes the
+    // clock of the pitch a little behind the match minute; the quiet moves after it catch up. Each half keeps
+    // its own time, so the half-time whistle and the final whistle stay where they are.
+    const needOf = (i: number) => {
+      const m = raw[i], pv = raw[i - 1];
+      const kind = m.sh >= 0 ? shots[m.sh]?.kind : '';
+      let n = m.sh < 0 ? 0.8 : kind === 'penalty' ? 1.9 : kind === 'free kick' ? 1.5 : 1.2;
+      if (pv && pv.sh >= 0) n += shots[pv.sh]?.goal ? 1.0 : pv.s === m.s ? 0.9 : 0.5;
+      return n;
+    };
+    for (const [a, b] of [[0.2, 45], [45, 90.45]] as [number, number][]) {
+      const idx = raw.map((_, i) => i).filter((i) => raw[i].t0 >= (a < 1 ? -1 : a - 1e-6) && raw[i].t0 < b - 1e-6);
+      if (!idx.length) continue;
+      let end = a;
+      for (const i of idx) { const m = raw[i]; m.t0 = end; m.t1 = Math.max(m.t1, m.t0 + needOf(i)); end = m.t1; }
+      let lim = b;
+      for (const i of [...idx].reverse()) { const m = raw[i]; m.t1 = Math.min(m.t1, lim); if (m.t1 - m.t0 < needOf(i)) m.t0 = Math.max(a, m.t1 - needOf(i)); lim = m.t0; }
+      end = a;
+      for (const i of idx) { const m = raw[i]; m.t0 = Math.max(m.t0, end); if (m.t1 < m.t0 + 0.2) m.t1 = Math.min(b, m.t0 + 0.2); end = m.t1; }
+      for (let j = 0; j < idx.length - 1; j++) raw[idx[j]].t1 = raw[idx[j + 1]].t0;
+      raw[idx[idx.length - 1]].t1 = Math.max(raw[idx[idx.length - 1]].t1, b); // the half's last move runs to its whistle
+    }
     const occAt = (side: 0 | 1, t: number) => {
       const ids = [...xi[side]];
       for (const c of changes) if (c.side === side && c.at <= t) { const k = ids.indexOf(c.out); if (k >= 0) ids[k] = c.inn; }
@@ -157,7 +202,11 @@ export function buildPlan(rep: any, events: Ev[]) {
       // the tactic sets the rhythm: short build-up (tiki-taka) passes often, direct play goes long and forward
       const sty = styleAt(s, p.t0);
       const every = 0.4 * ([0.68, 1, 1.6][sty.build] ?? 1) * ([1.15, 1, 0.85][sty.tempo] ?? 1);
-      const N = Math.max(2, Math.min(12, Math.floor(((p.t1 - p.t0) * (shot ? 0.74 : out === 'lost' ? 0.72 : 1)) / every) + 1)) - (shot ? 1 : 0);
+      // the time left for passing once the last move is finished off (keeper's ball, celebration, corner)
+      const preMin = !prev ? 0 : restart === 'kickoff' && prev.out === 'goal' ? 0.95 : restart === 'clear' ? 0.9 : restart === 'corner' ? 0.6 : restart === 'keeper' ? (prev.out === 'wide' ? 0.5 : 0.4) : 0;
+      const effDur = (p.t1 - p.t0) - Math.min(0.6 * (p.t1 - p.t0), preMin);
+      const runFrac = shot ? (shot.kind === 'penalty' ? 0.3 : shot.kind === 'free kick' ? 0.45 : 0.84) : out === 'lost' ? 0.72 : 1;
+      const N = Math.max(2, Math.min(12, Math.floor((effDur * runFrac) / every) + 1)) - (shot ? 1 : 0);
       const counter = !restart && prev && prev.s !== s && prev.out === 'lost' && (sty.mentality === 0 || sty.build === 2) && p.r >= 2;
       const chain = [first];
       const d0 = restart === 'corner' ? 70 : depth(startX), dWant = depth(targetX) - 4;
@@ -195,16 +244,44 @@ export function buildPlan(rep: any, events: Ev[]) {
           })[0] ?? null;
       }
       const label = counter ? 'Counter attack' : sty.build === 0 && sty.tempo === 0 ? 'Tiki-taka' : sty.build === 0 ? 'Patient build-up' : sty.build === 2 ? 'Direct ball' : undefined;
-      plans.push({ ...p, i, startX, targetX, chain, out, win, restart, label, spot: shot ? [shot.x, shot.y] : undefined });
+      plans.push({ ...p, i, startX, targetX, chain, out, win, restart, label, spot: shot ? [shot.x, shot.y] : undefined, kind: shot?.kind || '' });
       endX = out === 'lost' || out === 'kept' ? targetX : out === 'goal' ? 50 : s === 0 ? 96 : 4;
       endHolder = out === 'lost' && win !== null ? { side: o, k: win } : out === 'kept' ? { side: s, k: chain[chain.length - 1] } : null;
     });
-    return { plans, F, occAt, shots, styleAt };
+    // the start of each move first finishes what the last one began, so a shot's outcome lands on the
+    // event's minute (in sync with the big animations) and nothing restarts out of nowhere
+    plans.forEach((q, i) => {
+      const prev = plans[i - 1];
+      if (!prev) return;
+      const P = q.restart === 'kickoff' && prev.out === 'goal' ? 0.95 : q.restart === 'clear' ? 0.9 : q.restart === 'corner' ? 0.6 : q.restart === 'keeper' ? (prev.out === 'wide' ? 0.5 : 0.4) : 0;
+      if (P) q.pre = Math.min(0.6, P / Math.max(0.01, q.t1 - q.t0));
+    });
+    // when each shot lands on the pitch (and when its foul was given), so events and animations show then
+    const shotAt = new Map<number, { land: number; foul: number }>();
+    for (const q of plans) if (q.sh >= 0) {
+      const dur = q.t1 - q.t0, pre = q.pre || 0, sp = q.kind === 'penalty' ? 0.3 : q.kind === 'free kick' ? 0.45 : 0;
+      shotAt.set(q.sh, { land: q.t1, foul: q.t0 + (pre + (1 - pre) * sp) * dur });
+    }
+    const linked: Record<string, (x: Shot, e: Ev) => boolean> = {
+      goal: (x, e) => x.goal && x.side === e.side, var: (x, e) => x.side === e.side, miss: (x, e) => !x.goal && x.side === e.side,
+      penmiss: (x, e) => !x.goal && x.side === e.side && x.kind === 'penalty', save: (x, e) => !x.goal && x.side !== e.side,
+      penalty: (x, e) => x.kind === 'penalty' && x.side === e.side, freekick: (x, e) => x.kind === 'free kick' && x.side === e.side,
+    };
+    /** when an event shows on the pitch's clock */
+    const timeOf = (e: Ev) => {
+      const f = linked[e.type];
+      if (f) {
+        const k = shots.findIndex((x, j) => x.m === e.m && f(x, e) && shotAt.has(j));
+        if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' ? s2.foul : s2.land; }
+      }
+      return evAt(e);
+    };
+    return { plans, F, occAt, shots, styleAt, timeOf };
   }
 }
 
-export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: ReturnType<typeof usePlan>; mineSide: number }) {
-  const { plans, F, occAt, shots, styleAt } = plan;
+export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t: number; plan: ReturnType<typeof usePlan>; mineSide: number; seen?: Ev[]; fitOf?: (id: string) => number | null }) {
+  const { plans, F, occAt, shots, styleAt, timeOf } = plan;
   const sty = [styleAt(0, t), styleAt(1, t)];
   // the move now
   let k = -1;
@@ -213,8 +290,11 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
   const u = p ? c01((t - p.t0) / (p.t1 - p.t0)) : 0;
   const wy = wave(t);
   const team = (s: number) => (s === 0 ? d.home : d.away);
-  const chainEndOf = (q: typeof p) => (q ? (q.sh >= 0 ? 0.74 : q.out === 'lost' ? 0.72 : q.out === 'kept' ? 1 : 0.8) : 1);
-  const phaseOf = (q: NonNullable<typeof p>, v: number) => lerp(q.startX, q.targetX, ease(c01(v / chainEndOf(q))));
+  // a move's own time (after the part that finishes the last move) and where its passing ends
+  const inner = (q: NonNullable<typeof p>, v: number) => (q.pre ? c01((v - q.pre) / (1 - q.pre)) : v);
+  const setPiece = (q: typeof p) => (q && (q.kind === 'penalty' || q.kind === 'free kick') ? (q.kind === 'penalty' ? 0.3 : 0.45) : 0);
+  const chainEndOf = (q: typeof p) => (q ? (setPiece(q) || (q.sh >= 0 ? 0.84 : q.out === 'lost' ? 0.72 : q.out === 'kept' ? 1 : 0.8)) : 1);
+  const phaseOf = (q: NonNullable<typeof p>, v: number) => lerp(q.startX, q.targetX, ease(c01(inner(q, v) / chainEndOf(q))));
 
   // where each player stands, given where the play is
   const posP = (phaseX: number, att: 0 | 1 | null) => (side: 0 | 1, k: number): [number, number] => {
@@ -245,33 +325,127 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
   // where the players are during move q: the formation shape, plus the shooter's run into the spot he
   // shoots from and the corner taker at the flag
   const toPitch = (xy: [number, number]): [number, number] => [xy[0] / 100 * L, (6 + xy[1] * 0.88) / 100 * W];
-  const posQ = (q: NonNullable<typeof p>, v: number) => {
-    const base = posP(phaseOf(q, v), q.s);
-    const ce = chainEndOf(q), n = q.chain.length;
+  const posQ = (q: NonNullable<typeof p>, vRaw: number, blend = true): ((side: 0 | 1, k: number) => [number, number]) => {
+    const v = inner(q, vRaw);
+    const base = posP(phaseOf(q, vRaw), q.s);
+    const ce = chainEndOf(q), n = q.chain.length, sp0 = setPiece(q);
     const fin = q.sh >= 0 ? q.chain[n - 1] : -1, taker = q.restart === 'corner' ? q.chain[0] : -1;
     const flag: [number, number] = [q.s === 0 ? L - 0.6 : 0.6, (q.spot ? q.spot[1] : 50) > 50 ? W - 0.6 : 0.6];
     const firstPass = ce / (n - 0.4); // the taker's slot in the chain
-    return (side: 0 | 1, k: number): [number, number] => {
+    // off the ball: the next man to get it moves into space, the strikers make runs in a real attack,
+    // the full-backs overlap in a team that plays wide (all smooth in v, so nobody jumps)
+    const xNow = c01(v / ce) * (n - 0.4), dir = q.s === 0 ? 1 : -1, stA = sty[q.s];
+    const bump = (u: number) => Math.sin(Math.PI * c01(u));
+    const goalX = q.s === 0 ? L : 0;
+    const spot: [number, number] | null = q.spot ? (q.kind === 'penalty' ? [q.s === 0 ? L - 11 : 11, W / 2] : toPitch(q.spot)) : null;
+    // set piece: everyone else clears the box for a penalty; for a free kick three men form the wall
+    const setW = sp0 ? ease(c01((v - sp0) / 0.12)) : 0;
+    const wallK = q.kind === 'free kick' && spot ? F[1 - q.s].slots.map((sl, k) => k).filter((k) => F[1 - q.s].slots[k] !== 'GK')
+      .sort((a, b) => Math.hypot(...(base((1 - q.s) as 0 | 1, a).map((x, j) => x - spot[j]) as [number, number])) - Math.hypot(...(base((1 - q.s) as 0 | 1, b).map((x, j) => x - spot[j]) as [number, number]))).slice(0, 3) : [];
+    const own = (side: 0 | 1, k: number): [number, number] => {
       const b = base(side, k);
-      if (side !== q.s) return b;
-      if (k === fin && q.spot && fin !== taker) {
-        const w = ease(c01((v - ce * 0.45) / (ce * 0.5)));
-        const sp = toPitch(q.spot);
-        return [lerp(b[0], sp[0], w), lerp(b[1], sp[1], w)];
+      // the keeper on his line for a penalty
+      if (setW && side !== q.s && F[side].slots[k] === 'GK' && q.kind === 'penalty') return [lerp(b[0], goalX + (q.s === 0 ? -0.8 : 0.8), setW), lerp(b[1], W / 2, setW)];
+      if (setW && side !== q.s && wallK.includes(k) && spot) {
+        const gx = goalX - spot[0], gy = W / 2 - spot[1], gl = Math.hypot(gx, gy) || 1, j = wallK.indexOf(k) - 1;
+        const wx = spot[0] + (gx / gl) * 9.15 - (gy / gl) * j * 1.1, wy = spot[1] + (gy / gl) * 9.15 + (gx / gl) * j * 1.1;
+        return [lerp(b[0], wx, setW), lerp(b[1], wy, setW)];
       }
-      if (k === taker) { const w = 1 - ease(c01((v - firstPass) / 0.2)); return [lerp(b[0], flag[0], w), lerp(b[1], flag[1], w)]; }
-      return b;
+      if (side !== q.s) {
+        if (setW && q.kind === 'penalty' && F[side].slots[k] !== 'GK') { const edge = q.s === 0 ? L - 17.5 : 17.5; return [lerp(b[0], q.s === 0 ? Math.min(b[0], edge) : Math.max(b[0], edge), setW), b[1]]; }
+        return b;
+      }
+      let fwd = 0;
+      for (let c = 1; c < n; c++) if (q.chain[c] === k) fwd = Math.max(fwd, 3.2 * c01(1 - Math.abs(xNow - (c - 0.35)) / 1.1));
+      const slot = F[side].slots[k], fy = F[side].xy[k][1];
+      if (slot === 'FWD' && q.r >= 2) fwd += 4.5 * bump(v / ce);
+      if (slot === 'DEF' && Math.abs(fy - 50) > 28 && stA.width >= 1 && q.r >= 1) fwd += (stA.width === 2 ? 15 : 9) * bump((v - 0.12) / 0.7);
+      const bb: [number, number] = [b[0] + dir * fwd, b[1]];
+      if (k === fin && spot && fin !== taker) {
+        if (sp0) {
+          // the taker: to the ball after the foul, a few steps back, then the run-up
+          const behind: [number, number] = [spot[0] - dir * 2.4, spot[1] + 1];
+          const runUp = ease(c01((v - 0.8) / 0.04));
+          const at: [number, number] = [lerp(behind[0], spot[0] - dir * 0.8, runUp), lerp(behind[1], spot[1], runUp)];
+          return [lerp(bb[0], at[0], setW), lerp(bb[1], at[1], setW)];
+        }
+        const w = ease(c01((v - ce * 0.45) / (ce * 0.5)));
+        return [lerp(bb[0], spot[0], w), lerp(bb[1], spot[1], w)];
+      }
+      if (setW && q.kind === 'penalty' && F[side].slots[k] !== 'GK') { const edge = q.s === 0 ? L - 17.5 : 17.5; return [lerp(bb[0], q.s === 0 ? Math.min(bb[0], edge) : Math.max(bb[0], edge), setW), bb[1]]; }
+      if (k === taker) { const w = 1 - ease(c01((v - firstPass) / 0.2)); return [lerp(bb[0], flag[0], w), lerp(bb[1], flag[1], w)]; }
+      // the kick-off: the first man stands over the ball on the centre spot
+      if (q.restart === 'kickoff' && k === q.chain[0]) { const w = 1 - ease(c01((v - firstPass * 0.4) / 0.25)); return [lerp(bb[0], L / 2 - dir * 0.9, w), lerp(bb[1], W / 2 - 0.5, w)]; }
+      return bb;
     };
+    // the players walk on from where the last move left them (about 1 s live), nobody snaps into place
+    const prevQ = blend && q.i > 0 ? plans[q.i - 1] : null;
+    if (!prevQ) return own;
+    const dur = Math.max(0.01, q.t1 - q.t0);
+    const bw = ease(c01(vRaw / Math.min(0.7, Math.max((q.pre || 0) * dur, 0.4) / dur)));
+    if (bw >= 1) return own;
+    const was = posQ(prevQ, 1, false);
+    return (side, k) => { const a = was(side, k), b = own(side, k); return [lerp(a[0], b[0], bw), lerp(a[1], b[1], bw)]; };
+  };
+  // the defending side closes the ball down: the nearer a man is to the ball, the harder he presses
+  // (a pressing tactic pushes more of them onto it); it only follows the ball, so it is smooth too
+  const pressed = (pos: (side: 0 | 1, k: number) => [number, number], att: 0 | 1, ball: [number, number], skip: { side: 0 | 1; k: number } | null, fade: number) => (side: 0 | 1, k: number): [number, number] => {
+    const b = pos(side, k);
+    if (side === att || F[side].slots[k] === 'GK' || (skip && skip.side === side && skip.k === k)) return b;
+    const dx = ball[0] - b[0], dy = ball[1] - b[1], dd = Math.hypot(dx, dy);
+    const reach = 10 + sty[side].press * 4;
+    const w = c01(1 - dd / reach) * (0.45 + sty[side].press * 0.12) * fade;
+    const go = Math.max(0, dd - 2.4) * w;
+    return dd > 0 ? [b[0] + (dx / dd) * go, b[1] + (dy / dd) * go] : b;
   };
   // everything on the pitch for move q at progress v (0..1)
-  const stateAt = (q: NonNullable<typeof p>, v: number): St => {
-    const pos = posQ(q, v);
-    const s = q.s, n = q.chain.length, ce = chainEndOf(q);
+  const stateAt = (q: NonNullable<typeof p>, vRaw: number): St => {
+    const pos = posQ(q, vRaw);
+    const s = q.s, o = (1 - s) as 0 | 1, n = q.chain.length, ce = chainEndOf(q);
     const slotAt = (x: number) => q.chain[Math.min(n - 1, Math.max(0, x))];
     const goalX = s === 0 ? L : 0;
     const st: St = { ball: [L / 2, W / 2], holder: null, pass: null, lastPass: null, shotLine: null, banner: '', bannerSide: s, chance: null };
-    const kind = q.sh >= 0 ? shots[q.sh].kind : '';
-    if (q.sh >= 0 && v > ce * 0.55) st.chance = { side: s, xg: shots[q.sh].xg, label: kind === 'penalty' ? 'Penalty' : shots[q.sh].xg >= 0.25 ? 'Big chance' : 'Goal chance' };
+    const prev = q.i > 0 ? plans[q.i - 1] : null;
+    const from = (): [number, number] => (prev ? stateAt(prev, 1).ball : [L / 2, W / 2]);
+    // 1) finishing the last move: the celebration, the keeper's ball, the ball going out for a corner
+    if (q.pre && vRaw < q.pre && prev) {
+      const w = vRaw / q.pre, f = from();
+      st.bannerSide = prev.s;
+      if (q.restart === 'kickoff') {
+        st.ball = w < 0.35 ? f : w < 0.85 ? [lerp(f[0], L / 2, ease((w - 0.35) / 0.5)), lerp(f[1], W / 2, ease((w - 0.35) / 0.5))] : [L / 2, W / 2];
+        st.banner = w < 0.6 ? 'GOAL!' : 'Back to the centre';
+        return st;
+      }
+      const ko = (1 - s) as 0 | 1, gkO = F[ko].slots.indexOf('GK');
+      const keeperO = gkO >= 0 ? pos(ko, gkO) : [s === 0 ? L - 2 : 2, W / 2] as [number, number];
+      if (q.restart === 'keeper') {
+        // the keeper (of the team that now has it) gathers it
+        const gk = F[s].slots.indexOf('GK'), kp = gk >= 0 ? pos(s, gk) : f;
+        st.ball = [lerp(f[0], kp[0], ease(w)), lerp(f[1], kp[1], ease(w))];
+        if (w > 0.8 && gk >= 0) st.holder = { side: s, k: gk };
+        st.banner = prev.out === 'saved' ? 'Saved!' : w < 0.4 ? 'Off target' : 'Goal kick';
+        return st;
+      }
+      if (q.restart === 'corner') {
+        const off: [number, number] = [goalX + (s === 0 ? 1.2 : -1.2), (q.spot ? q.spot[1] : 50) > 50 ? W - 3 : 3];
+        const flagP: [number, number] = [s === 0 ? L - 0.6 : 0.6, off[1] > W / 2 ? W - 0.6 : 0.6];
+        st.ball = w < 0.5 ? [lerp(f[0], off[0], ease(w / 0.5)), lerp(f[1], off[1], ease(w / 0.5))] : [lerp(off[0], flagP[0], ease((w - 0.5) / 0.5)), lerp(off[1], flagP[1], ease((w - 0.5) / 0.5))];
+        st.banner = w < 0.5 ? 'Saved! Corner' : 'Corner';
+        return st;
+      }
+      // a clearance: their keeper holds it, then kicks it long and we win the second ball
+      const first = pos(s, q.chain[0]);
+      if (w < 0.45) { st.ball = [lerp(f[0], keeperO[0], ease(w / 0.45)), lerp(f[1], keeperO[1], ease(w / 0.45))]; if (w > 0.3 && gkO >= 0) st.holder = { side: ko, k: gkO }; st.banner = prev.out === 'saved' ? 'Saved!' : 'Goal kick'; st.bannerSide = ko; return st; }
+      const k2 = ease((w - 0.45) / 0.55);
+      st.ball = [lerp(keeperO[0], first[0], k2), lerp(keeperO[1], first[1], k2)];
+      st.pass = { from: keeperO, to: first, side: ko };
+      st.banner = 'Keeper clears'; st.bannerSide = ko;
+      return st;
+    }
+    const v = inner(q, vRaw);
+    const sp0 = setPiece(q);
+    if (q.sh >= 0 && v > ce * 0.55) st.chance = { side: s, xg: shots[q.sh].xg, label: q.kind === 'penalty' ? 'Penalty' : q.kind === 'free kick' ? 'Free kick' : shots[q.sh].xg >= 0.25 ? 'Big chance' : 'Goal chance' };
+    // 2) the passing
     if (v < ce) {
       const x = (v / ce) * (n - 0.4); // n holds and n-1 passes; a pass takes 60% of its slot
       const j = Math.floor(x), seg = x - j;
@@ -282,42 +456,43 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
       if (j >= 1 && !st.pass) st.lastPass = { from: pos(s, slotAt(j - 1)), to: a, side: s };
       st.banner = q.restart === 'kickoff' && v < 0.12 ? 'KICK-OFF' : q.restart === 'keeper' && v < 0.15 ? 'Goal kick' : q.restart === 'clear' && v < 0.18 ? 'Second ball'
         : q.restart === 'corner' && v < 0.25 ? 'Corner' : q.label && v < 0.45 ? q.label : q.r === 0 || v < 0.3 ? 'Building up' : q.r === 1 ? 'Attack' : v > 0.5 ? 'Dangerous attack' : 'Attack';
-      if (kind === 'counter' && v < 0.5) st.banner = 'Counter attack';
-      if (kind === 'corner' && v > ce * 0.55) st.banner = 'Corner';
-      if (kind === 'free kick' && v > ce * 0.55) st.banner = 'Free kick';
-      if (kind === 'penalty' && v > ce * 0.45) st.banner = 'PENALTY!';
+      if (q.kind === 'counter' && v < 0.5) st.banner = 'Counter attack';
+      if (q.kind === 'corner' && v > ce * 0.55) st.banner = 'Corner';
       return st;
     }
     const last = pos(s, slotAt(n - 1));
+    const name = (k: number) => lastName(d.names[occAt(s, q.t0)[k] || '']?.name || '');
+    // 3) a set piece: the foul, the ball on the spot, the taker steps up
+    if (sp0 && v < 0.84 && q.spot) {
+      const spot: [number, number] = q.kind === 'penalty' ? [s === 0 ? L - 11 : 11, W / 2] : toPitch(q.spot);
+      const w = ease(c01((v - sp0) / 0.1));
+      const end = pos(s, slotAt(n - 1));
+      st.ball = [lerp(end[0], spot[0], w), lerp(end[1], spot[1], w)];
+      st.holder = w >= 1 ? { side: s, k: slotAt(n - 1) } : null;
+      st.banner = q.kind === 'penalty' ? (v < sp0 + 0.22 ? 'PENALTY!' : `${name(slotAt(n - 1))} steps up…`) : v < sp0 + 0.15 ? 'Foul · free kick' : `${name(slotAt(n - 1))} over the ball…`;
+      return st;
+    }
     if (q.out === 'kept') { st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = 'Keeping the ball'; return st; }
-    const w = c01((v - ce) / 0.1);
     if (q.out === 'lost') {
-      const o = (1 - s) as 0 | 1;
+      const w = c01((v - ce) / Math.min(0.26, 0.3 / Math.max(0.01, (q.t1 - q.t0) * (1 - (q.pre || 0)))));
       const win = q.win !== null ? pos(o, q.win) : last;
       st.ball = [lerp(last[0], win[0], ease(w)), lerp(last[1], win[1], ease(w))];
       if (w >= 1) st.holder = { side: o, k: q.win ?? 0 }; else st.pass = { from: last, to: win, side: o };
       st.banner = 'Ball won back'; st.bannerSide = o;
       return st;
     }
-    // the shot: on target to the keeper, wide past the post, or into the net
-    const o = (1 - s) as 0 | 1;
+    // 4) the shot: it reaches the keeper, the post or the net exactly at the end of the move (the event's minute)
     const gk = F[o].slots.indexOf('GK');
     const keeper = gk >= 0 ? pos(o, gk) : [goalX, W / 2] as [number, number];
+    const from0: [number, number] = sp0 && q.spot ? (q.kind === 'penalty' ? [s === 0 ? L - 11 : 11, W / 2] : toPitch(q.spot)) : last;
     const endY = q.out === 'wide' ? (hash(q.i) % 2 ? W / 2 - 6.5 : W / 2 + 6.5) : W / 2 + ((hash(q.i) % 7) - 3) * 0.5;
     const end: [number, number] = q.out === 'saved' ? keeper : q.out === 'wide' ? [goalX + (s === 0 ? 2 : -2), endY] : [goalX + (s === 0 ? 0.8 : -0.8), endY];
-    st.ball = [lerp(last[0], end[0], ease(w)), lerp(last[1], end[1], ease(w))];
-    st.shotLine = { from: last, to: end, side: s };
-    st.holder = w < 0.15 ? { side: s, k: slotAt(n - 1) } : null;
-    st.banner = w < 1 ? 'SHOT!' : q.out === 'goal' ? 'GOAL!' : q.out === 'saved' ? 'Saved!' : 'Off target';
-    if (w >= 1 && q.out === 'saved' && gk >= 0) { st.holder = { side: o, k: gk }; st.shotLine = null; }
-    // pushed out for a corner: the ball runs off past the post
-    if (q.out === 'saved' && q.parry && v > ce + 0.12) {
-      const r2 = ease(c01((v - ce - 0.12) / 0.25));
-      const off: [number, number] = [goalX + (s === 0 ? 1.2 : -1.2), (q.spot ? q.spot[1] : 50) > 50 ? W - 3 : 3];
-      st.ball = [lerp(keeper[0], off[0], r2), lerp(keeper[1], off[1], r2)]; st.holder = null; st.banner = 'Saved! Corner';
-    }
-    // a shot that went wide: the keeper fetches it for the goal kick
-    if (q.out === 'wide' && v > ce + 0.3) { const r2 = ease(c01((v - ce - 0.3) / 0.4)); st.ball = [lerp(end[0], keeper[0], r2), lerp(end[1], keeper[1], r2)]; st.shotLine = null; if (r2 >= 1 && gk >= 0) st.holder = { side: o, k: gk }; }
+    const w = c01((v - 0.84) / 0.16);
+    st.ball = [lerp(from0[0], end[0], ease(w)), lerp(from0[1], end[1], ease(w))];
+    st.shotLine = { from: from0, to: end, side: s };
+    st.holder = w < 0.1 ? { side: s, k: slotAt(n - 1) } : null;
+    st.banner = q.kind === 'penalty' ? 'PENALTY…' : 'SHOT!';
+    if (w >= 1) { st.banner = q.out === 'goal' ? 'GOAL!' : q.out === 'saved' ? 'Saved!' : 'Off target'; if (q.out === 'saved' && gk >= 0) { st.holder = { side: o, k: gk }; st.shotLine = null; } }
     return st;
   };
 
@@ -330,15 +505,36 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
     const prev = plans[k - 1];
     // the hand-over takes about 0.3 match minutes (1 s live) however short the move is
     const tr = Math.min(0.35, 0.3 / Math.max(0.01, p.t1 - p.t0));
-    if (prev && p.restart !== 'kickoff' && u < tr) {
+    if (prev && p.restart !== 'kickoff' && !p.pre && u < tr) {
       const from = stateAt(prev, 1).ball;
       const w = ease(u / tr);
       S = { ...S, ball: [lerp(from[0], S.ball[0], w), lerp(from[1], S.ball[1], w)], holder: w > 0.9 ? S.holder : null, pass: null, lastPass: null };
     }
+    // pressing fades in and out with each move, so nobody snaps when the ball changes hands
+    const fade = Math.min(c01(u / Math.max(tr, 0.05)), c01((1 - u) / 0.1));
+    pos = pressed(pos, p.s, S.ball, S.holder, fade);
   } else {
     S.banner = t < 0.2 ? 'KICK-OFF' : t > 45 && t < 46 ? 'HALF-TIME' : t >= 90 ? 'FULL TIME' : '';
   }
   const { ball, holder, pass, lastPass, shotLine, banner, bannerSide, chance } = S;
+  // the referee's moments, drawn where they happened for a few seconds: a foul and the free kick, a card
+  // over the player, a penalty on the spot, the offside line with the flag
+  const planAt = (time: number) => { let lo = 0, hi = plans.length - 1; while (lo <= hi) { const mid = (lo + hi) >> 1; if (plans[mid].t1 <= time) lo = mid + 1; else hi = mid - 1; } return plans[lo] && plans[lo].t0 <= time ? plans[lo] : null; };
+  const marks = seen.filter((e) => ['freekick', 'yellow', 'red', 'offside', 'penalty'].includes(e.type) && t - timeOf(e) >= 0 && t - timeOf(e) < 1.1).slice(-2).map((e) => {
+    const at = timeOf(e), q = planAt(at);
+    const qpos = q ? posQ(q, c01((at - q.t0) / (q.t1 - q.t0))) : posP(50, null);
+    let spot: [number, number] = q ? stateAt(q, c01((at - q.t0) / (q.t1 - q.t0))).ball : [L / 2, W / 2];
+    if ((e.type === 'yellow' || e.type === 'red') && e.pid) { const kk = occAt(e.side, at).indexOf(e.pid); if (kk >= 0) spot = pos(e.side, kk); }
+    if (e.type === 'penalty') spot = [e.side === 0 ? L - 11 : 11, W / 2];
+    let line: number | null = null;
+    if (e.type === 'offside') {
+      const dside = (1 - e.side) as 0 | 1, ids2 = occAt(dside, at);
+      const xs = F[dside].slots.map((sl, kk) => (sl !== 'GK' && ids2[kk] ? qpos(dside, kk)[0] : null)).filter((x): x is number => x !== null);
+      if (xs.length) line = dside === 0 ? Math.min(...xs) : Math.max(...xs);
+      if (line !== null) spot = [line, spot[1]];
+    }
+    return { e, spot, line, age: t - at };
+  });
   const chainEnd = chainEndOf(p);
   const ids = [occAt(0, t), occAt(1, t)];
   const ink = (hex: string) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt((hex || '#000000').slice(i, i + 2), 16) || 0); return r * 0.299 + g * 0.587 + b * 0.114 > 150 ? '#151018' : '#fff'; };
@@ -392,10 +588,22 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
               {has && <circle r={3} fill="none" stroke="#5FD3F3" strokeWidth={0.5}><animate attributeName="r" values="2.6;3.4;2.6" dur="0.9s" repeatCount="indefinite" /></circle>}
               <circle r={1.85} fill={c.color1} stroke={c.kit2 || (side ? '#151018' : '#E8F1FA')} strokeWidth={0.42} />
               <text y={0.62} textAnchor="middle" fontSize={1.7} fontWeight={900} fill={ink(c.color1)}>{num}</text>
+              {fitOf && (mineSide < 0 || side === mineSide) && (() => { const f = fitOf(id); if (f == null) return null; const c = f >= 70 ? '#2EE6A0' : f >= 52 ? '#F2C14E' : '#FF5C6C'; return <g transform="translate(-1.9 2.35)"><rect width={3.8} height={0.55} rx={0.2} fill="rgba(0,0,0,0.55)" /><rect width={3.8 * Math.max(0.05, f / 100)} height={0.55} rx={0.2} fill={c} />{f < 52 && <circle cx={1.9} cy={-2.35} r={2.25} fill="none" stroke="#FF5C6C" strokeWidth={0.25}><animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite" /></circle>}</g>; })()}
               {id === capOf(side) && <g transform="translate(1.55 -1.55)"><circle r={0.7} fill="#F2C14E" /><text y={0.3} textAnchor="middle" fontSize={0.9} fontWeight={900} fill="#06121F">C</text></g>}
             </g>
           );
         }))}
+        {/* the referee's moments */}
+        {marks.map(({ e, spot, line, age }, i) => (
+          <g key={`m${i}`} opacity={age > 0.85 ? (1.1 - age) / 0.25 : 1}>
+            {line !== null && <line x1={line} y1={0} x2={line} y2={W} stroke="#FFE86B" strokeWidth={0.35} strokeDasharray="1.2 0.8" />}
+            <circle cx={spot[0]} cy={spot[1]} r={3.6} fill="none" stroke={e.type === 'red' ? '#FF4A5E' : '#FFE86B'} strokeWidth={0.35}><animate attributeName="r" values="2.6;4.2;2.6" dur="0.8s" repeatCount="indefinite" /></circle>
+            <g transform={`translate(${Math.max(9, Math.min(L - 9, spot[0]))} ${Math.max(5, spot[1] - 5.2)})`}>
+              <rect x={-8.5} y={-1.9} width={17} height={3.3} rx={0.5} fill="rgba(6, 14, 26,0.9)" stroke={e.type === 'red' ? '#FF4A5E' : '#FFE86B'} strokeWidth={0.2} />
+              <text y={0.6} textAnchor="middle" fontSize={1.8} fontWeight={900} fill="#FFE86B">{e.type === 'freekick' ? '📣 Foul · free kick' : e.type === 'yellow' ? '🟨 Yellow card' : e.type === 'red' ? '🟥 Sent off' : e.type === 'penalty' ? '📣 PENALTY' : '🚩 Offside'}</text>
+            </g>
+          </g>
+        ))}
         {/* the name of the man on the ball */}
         {holderPos && hName && (
           <g transform={`translate(${Math.max(8, Math.min(L - 8, holderPos[0]))} ${Math.max(4, holderPos[1] - 4.2)})`}>

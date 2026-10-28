@@ -23,14 +23,14 @@ export const GET = handle(async (_req: Request, ctx: { params: Promise<{ fid: st
   const home = clubs.find((c) => c.id === f!.home_id)!, away = clubs.find((c) => c.id === f!.away_id)!;
   const users = await q('SELECT id, username FROM users WHERE id IN ($1,$2)', [home.user_id || 0, away.user_id || 0]);
   const uname = (id: number | null) => users.find((u) => u.id === id)?.username ?? null;
-  let names: Record<string, { name: string; pos: string; ovr: number; num?: number }> = {};
+  let names: Record<string, { name: string; pos: string; ovr: number; num?: number; fit?: number }> = {};
   const rep = f!.status === 'live' || f!.status === 'finalizing' || f!.status === 'done' ? f!.report : null;
   if (rep) {
     const ids = [...new Set([...rep.players.map((p: any) => p.id), ...rep.lineups.flatMap((x: any) => [...x.xi, ...x.bench])])];
     const rows = await q('SELECT id, name, pos, ovr FROM players WHERE id IN (SELECT jsonb_array_elements_text($1::jsonb))', [JSON.stringify(ids)]);
-    const nums: Record<string, number> = {};
-    for (const side of (f!.sides || []) as any[]) for (const p of [...(side.xi || []), ...(side.bench || [])]) if (p.num) nums[p.id] = p.num;
-    names = Object.fromEntries(rows.map((r) => [r.id, { name: r.name, pos: r.pos, ovr: r.ovr, num: nums[r.id] }]));
+    const nums: Record<string, number> = {}, fits: Record<string, number> = {};
+    for (const side of (f!.sides || []) as any[]) for (const p of [...(side.xi || []), ...(side.bench || [])]) { if (p.num) nums[p.id] = p.num; if (p.fitness != null) fits[p.id] = Math.round(p.fitness); }
+    names = Object.fromEntries(rows.map((r) => [r.id, { name: r.name, pos: r.pos, ovr: r.ovr, num: nums[r.id], fit: fits[r.id] }]));
   }
   const comments = await q(
     `SELECT c.text, c.tone, c.club_id, cl.name AS club FROM comments c JOIN clubs cl ON cl.id=c.club_id WHERE c.league_id=$1 AND c.day=$2 AND c.club_id IN ($3,$4)`,

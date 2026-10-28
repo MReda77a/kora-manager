@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { FORMATIONS } from '../../lib/game.ts';
 import { Crest, lastName } from '../ui.tsx';
 import { evAt, tm, type Ev, type Shot } from './Pitch2D.tsx';
+import { counterShare } from '../../lib/engine.ts';
+import { PRESETS } from '../../lib/game.ts';
 
 const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
 const c01 = (u: number) => Math.max(0, Math.min(1, u));
@@ -172,6 +174,84 @@ export function Commentary({ shown }: { shown: Ev[] }) {
       ))}
     </div>
   );
+}
+
+/** a player's fitness right now: from what he started with toward what he ends on, over the minutes he plays */
+export function liveFit(d: any, id: string, gm: number, shown: Ev[]) {
+  const l = d.report.players.find((p: any) => p.id === id);
+  const f0 = d.names[id]?.fit;
+  if (!l || f0 == null) return null;
+  const on = shown.find((e) => e.type === 'sub' && e.pid === id);
+  if (!on && !d.report.lineups.some((x: any) => x.xi.includes(id))) return null;
+  const from = on ? tm(on.m) : 0;
+  const played = Math.max(0, Math.min(Math.max(1, l.mins), gm - from));
+  return Math.round(f0 + (l.fitEnd - f0) * (played / Math.max(1, l.mins)));
+}
+
+/** who is on top, minute by minute (above the line the home side, below the away side) */
+export function Momentum({ d, gm, flow, shots }: { d: any; gm: number; flow: [number, 0 | 1, number, number][]; shots: Shot[] }) {
+  const upTo = Math.min(90, Math.floor(gm));
+  const per = new Array(91).fill(0);
+  for (const f of flow) { if (f[0] > 90 || f[0] > upTo) continue; const sh = f[3] >= 0 ? shots[f[3]] : null; per[f[0]] += (f[1] === 0 ? 1 : -1) * (0.6 + f[2] * 0.7 + (sh ? 2 + sh.xg * 6 : 0)); }
+  const sm = per.map((_, m) => (m > upTo || m === 0 ? 0 : (per[m - 1] * 0.25 + per[m] * 0.5 + (per[m + 1] ?? 0) * 0.25)));
+  const max = Math.max(4, ...sm.map(Math.abs));
+  const goals = shots.filter((x) => x.goal && x.m <= upTo);
+  return (
+    <svg className="mc-mom" viewBox="0 0 91 20" preserveAspectRatio="none" aria-label="Momentum">
+      <line x1={0} y1={10} x2={91} y2={10} stroke="rgba(255,255,255,0.18)" strokeWidth={0.2} />
+      <line x1={45.5} y1={1} x2={45.5} y2={19} stroke="rgba(255,255,255,0.12)" strokeWidth={0.2} />
+      {sm.map((v, m) => (m && v ? <rect key={m} x={m - 0.45} width={0.9} y={v > 0 ? 10 - (v / max) * 9 : 10} height={(Math.abs(v) / max) * 9} fill={v > 0 ? d.home.color1 : d.away.color1} opacity={0.9} /> : null))}
+      {goals.map((g, i) => <circle key={i} cx={Math.min(90, g.m)} cy={g.side === 0 ? 1.4 : 18.6} r={1.1} fill="#fff" />)}
+    </svg>
+  );
+}
+
+export type Tip = { key: string; text: string; ico: string; act?: { label: string; body?: Record<string, unknown>; sub?: string } };
+/** what the assistant would tell you right now (your side only), most urgent first */
+export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPitch: string[]): Tip[] {
+  const rep = d.report, M = Math.floor(gm), them = (1 - mine) as 0 | 1;
+  const nm = (id: string) => lastName(d.names[id]?.name || '?');
+  const tips: Tip[] = [];
+  const score = [0, 0];
+  for (const e of shown) if (e.type === 'goal') score[e.side]++;
+  const diff = score[mine] - score[them];
+  // they changed their set-up: name a counter
+  const theirs = (rep.styles || []).filter((x: any) => x.side === them && x.m > 0 && tm(x.m) <= gm);
+  const lastChange = theirs[theirs.length - 1];
+  const bestVs = (p: string) => Object.keys(PRESETS).sort((a, b) => counterShare(b, p) - counterShare(a, p))[0];
+  if (lastChange?.preset && gm - tm(lastChange.m) < 6) {
+    const best = bestVs(lastChange.preset);
+    tips.push({ key: `opp-${lastChange.m}`, ico: '🧠', text: `They have switched to ${lastChange.preset}. ${best} works well against it.`, act: { label: `Play ${best}`, body: { preset: best } } });
+  }
+  if (shown.some((e) => e.type === 'red' && e.side === mine && gm - tm(e.m) < 4)) tips.push({ key: 'red', ico: '🟥', text: 'Down to ten men. Sitting deeper keeps it tight.', act: { label: 'Park the bus', body: { mentality: 0, line: 0, press: 0 } } });
+  // tired legs
+  if (gm >= 50) {
+    const tired = onPitch.map((id) => ({ id, f: liveFit(d, id, gm, shown) })).filter((x) => x.f != null && x.f < 55 && d.names[x.id]?.pos !== 'GK').sort((a, b) => a.f! - b.f!)[0];
+    if (tired) tips.push({ key: `tired-${tired.id}`, ico: '🔋', text: `${nm(tired.id)} is running out of legs (${tired.f}% fit).`, act: { label: 'Sub him', sub: tired.id } });
+  }
+  // a booked defender
+  if (gm >= 35) {
+    const booked = onPitch.find((id) => ['CB', 'LB', 'RB', 'LWB', 'RWB', 'DM', 'CDM'].includes(d.names[id]?.pos) && shown.some((e) => e.type === 'yellow' && e.pid === id));
+    if (booked) tips.push({ key: `yel-${booked}`, ico: '🟨', text: `${nm(booked)} is on a yellow. One more tackle and he is off.`, act: { label: 'Sub him', sub: booked } });
+  }
+  // they are all over us
+  const recent = (rep.flow || []).filter((f: any) => f[0] <= M && f[0] > M - 10);
+  const theirShare = recent.length ? recent.filter((f: any) => f[1] === them).length / recent.length : 0;
+  const theirShots = (rep.shots || []).filter((x: Shot) => x.side === them && x.m <= M && x.m > M - 10).length;
+  if (M >= 15 && theirShare >= 0.62 && theirShots >= 2) {
+    const theirPreset = theirs.length ? theirs[theirs.length - 1].preset : rep.lineups?.[them]?.preset;
+    const best = theirPreset ? bestVs(theirPreset) : 'Low block';
+    tips.push({ key: `dom-${Math.floor(M / 12)}`, ico: '⚠️', text: `They are all over us: ${Math.round(theirShare * 100)}% of the ball and ${theirShots} shots in ten minutes.`, act: { label: `Try ${best}`, body: { preset: best } } });
+  }
+  // where their chances come from
+  const theirAll = (rep.shots || []).filter((x: Shot) => x.side === them && x.m <= M && x.m > M - 20 && x.kind !== 'penalty');
+  if (theirAll.length >= 3) {
+    const leftOfMe = theirAll.filter((x: Shot) => (mine === 0 ? x.y > 55 : x.y < 45)).length, rightOfMe = theirAll.filter((x: Shot) => (mine === 0 ? x.y < 45 : x.y > 55)).length;
+    if (Math.max(leftOfMe, rightOfMe) >= theirAll.length * 0.7) tips.push({ key: `wing-${Math.floor(M / 20)}`, ico: '🧭', text: `Most of their chances come down our ${leftOfMe > rightOfMe ? 'left' : 'right'} side. A fresh full-back there would help.` });
+  }
+  if (M >= 65 && diff < 0 && diff >= -2) tips.push({ key: `behind-${score.join('-')}`, ico: '⏱', text: `We are ${-diff} down with ${90 - M} minutes left. Time to go for it.`, act: { label: 'All-out attack', body: { mentality: 2, press: 2 } } });
+  if (M >= 78 && diff === 1) tips.push({ key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. Protect it.`, act: { label: 'Park the bus', body: { mentality: 0, line: 0, press: 0 } } });
+  return tips;
 }
 
 export { evAt };

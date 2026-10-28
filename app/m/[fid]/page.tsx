@@ -5,12 +5,11 @@ import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, minuteAt, type ClubType
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
-import { Pitch2D, tm, usePlan } from '../../../components/match/Pitch2D.tsx';
-import { Commentary, Formation, KeyEvents, LiveStats, Lineups, useSmoothClock } from '../../../components/match/Panels.tsx';
+import { Pitch2D, evAt, tm, usePlan } from '../../../components/match/Pitch2D.tsx';
+import { Commentary, Formation, KeyEvents, LiveStats, Lineups, Momentum, assistantTips, liveFit, useSmoothClock, type Tip } from '../../../components/match/Panels.tsx';
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
-const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45 : tm(e.m));
 
 export default function MatchPage({ params }: { params: Promise<{ fid: string }> }) {
   const { fid } = use(params);
@@ -180,6 +179,8 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const [nowMs, setNowMs] = useState(Date.now());
   const htHold = useRef(0);
   const [react, setReact] = useState<null | { type: string; mine: boolean; until: number }>(null);
+  const tipDone = useRef(new Set<string>());
+  const [tip, setTip] = useState<null | (Tip & { until: number })>(null);
   const [speed, setSpeed] = useState(1);
   const [fx, setFx] = useState<Ev | null>(null);
   const [panel, setPanel] = useState<null | 'tactic' | 'sub'>(null);
@@ -189,11 +190,11 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const shown = useRef(-1);
   const mineSide: number = d.home.mine ? 0 : d.away.mine ? 1 : -1;
   const [info, setInfo] = useState('live');
-  const plan = usePlan(rep, events);
+  const plan = usePlan(rep, events, live ? gm : undefined);
 
   const team = (s: number) => (s === 0 ? d.home : d.away);
 
-  const revealed = useMemo(() => { let k = 0; for (; k < events.length; k++) if (evAt(events[k]) > gm) break; return k; }, [gm, events]);
+  const revealed = useMemo(() => { let k = 0; for (; k < events.length; k++) if (plan.timeOf(events[k]) > gm) break; return k; }, [gm, events]);
 
   // sound follows the match: music before kick-off, the crowd while it is on
   useEffect(() => {
@@ -239,7 +240,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         const buzz = (p: number | number[]) => { try { if (!isMuted()) navigator.vibrate?.(p); } catch {} };
         if (big.type === 'goal') buzz(forMe ? [90, 50, 220] : 70);
         // the big moments are when a manager wants to react: offer the quick changes right away
-        if (live && mineSide >= 0 && evAt(big) < 86 && (big.type === 'goal' || big.type === 'red' || (big.type === 'injury' && big.side === mineSide)))
+        if (live && mineSide >= 0 && plan.timeOf(big) < 86 && (big.type === 'goal' || big.type === 'red' || (big.type === 'injury' && big.side === mineSide)))
           setReact({ type: big.type, mine: big.side === mineSide, until: Date.now() + 10_000 });
         else if (big.type === 'red') buzz([150, 60, 150]);
         else if (big.type === 'penalty') buzz(100);
@@ -286,13 +287,13 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     for (const k of marks) {
       if (gm >= k && gm < k + 6 && !chanted.current.has(k)) {
         chanted.current.add(k);
-        const goalJustNow = events.slice(0, revealed).some((e) => e.type === 'goal' && gm - evAt(e) < 6);
+        const goalJustNow = events.slice(0, revealed).some((e) => e.type === 'goal' && gm - plan.timeOf(e) < 6);
         if (!goalJustNow) play(d.derby ? 'chant-derby' : 'chant', { gain: d.derby ? 0.9 : 0.7 });
       }
     }
     // how loud the stadium is: chances and a close finish lift it
     {
-      const recentHot = events.slice(0, revealed).filter((e) => gm - evAt(e) < 8 && ['goal', 'save', 'miss', 'penalty', 'freekick'].includes(e.type)).length;
+      const recentHot = events.slice(0, revealed).filter((e) => gm - plan.timeOf(e) < 8 && ['goal', 'save', 'miss', 'penalty', 'freekick'].includes(e.type)).length;
       const [a, b] = events.slice(0, revealed).reduce((s, e) => { if (e.type === 'goal') s[e.side]++; return s; }, [0, 0]);
       const close = Math.abs(a - b) <= 1 && gm > 75 ? 0.3 : 0;
       crowdLevel(0.3 + Math.min(0.4, recentHot * 0.2) + close + (d.derby ? 0.15 : 0));
@@ -332,6 +333,18 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const minute = Math.min(90, Math.floor(gm));
   const canChange = live && mineSide >= 0 && phase === 'play' && gm < 88;
 
+  // half-time break of a live match: seconds until the second half
+  const htLeft = live && HT > 0 ? (() => { const e = (nowMs + clockSkew - liveFrom) / 1000; return e > LIVE / 2 && e < LIVE / 2 + HT ? Math.ceil(LIVE / 2 + HT - e) : 0; })() : 0;
+  const reactOn = canChange && !htLeft && react && react.until > nowMs ? react : null;
+  // the assistant's advice: one at a time, each for about 12 seconds, never the same one twice
+  const tipNow = tip && tip.until > nowMs ? tip : null;
+  const tipCandidate = canChange && !tipNow && !reactOn ? assistantTips(d, gm, events.slice(0, revealed), mineSide as 0 | 1, onPitch(mineSide as 0 | 1).on).find((x) => !tipDone.current.has(x.key)) : undefined;
+  useEffect(() => {
+    if (!tipCandidate) return;
+    tipDone.current.add(tipCandidate.key);
+    setTip({ ...tipCandidate, until: Date.now() + 12_000 });
+    play('tension', { gain: 0.25 });
+  }, [tipCandidate?.key]);
   if (phase === 'intro') {
     return (
       <div style={{ padding: '8px 14px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -361,15 +374,13 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     { k: 'press', ico: '🔥', t: 'High press', s: 'Win the ball back high', go: () => change({ press: 3 }, 'High press on') },
     ...((d.plans || []).length > 1 ? d.plans.map((k: string) => ({ k: `plan${k}`, ico: '📋', t: `Plan ${k}`, s: 'Switch to your saved plan', go: () => change({ plan: k }, `Plan ${k}!`) })) : []),
   ] : [];
-  // half-time break of a live match: seconds until the second half
-  const htLeft = live && HT > 0 ? (() => { const e = (nowMs + clockSkew - liveFrom) / 1000; return e > LIVE / 2 && e < LIVE / 2 + HT ? Math.ceil(LIVE / 2 + HT - e) : 0; })() : 0;
-  const reactOn = canChange && !htLeft && react && react.until > nowMs ? react : null;
   const reactTitle = !reactOn ? '' : reactOn.type === 'goal' ? (reactOn.mine ? '⚽ You scored! Protect the lead or go for more?' : '😤 Conceded! Change something?')
     : reactOn.type === 'red' ? (reactOn.mine ? '🟥 Down to 10 men! Reorganise?' : '🟥 They are down to 10! Go for it?') : '🚑 Injury! Make a sub?';
   const tabsList: [string, string][] = [['live', 'Live'], ['stats', 'Stats'], ['events', 'Events'], ['lineups', 'Line-ups'], ['shape', 'Formation']];
   const infoTab = () => (
     <>
       {info === 'live' && <Commentary shown={seen} />}
+      {info === 'stats' && hasFlow && <div className="col" style={{ gap: 2, marginBottom: 6 }}><span className="tiny muted" style={{ fontWeight: 900 }}>MOMENTUM</span><Momentum d={d} gm={gm} flow={rep.flow || []} shots={rep.shots || []} /></div>}
       {info === 'stats' && <LiveStats d={d} gm={gm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} />}
       {info === 'events' && <KeyEvents d={d} shown={seen} />}
       {info === 'lineups' && <Lineups d={d} gm={gm} shown={seen} />}
@@ -401,6 +412,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </div>
       </header>
       <div className="mc-cond tiny muted row">
+        {hasFlow && <span className="row" style={{ gap: 6 }}><b style={{ letterSpacing: 0.5 }}>MOMENTUM</b><Momentum d={d} gm={gm} flow={rep.flow || []} shots={rep.shots || []} /></span>}
         <span>🏟 {d.home.stadium}</span><span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon} {d.conditions.weatherInfo.label}</span><span>🧑‍⚖️ {d.conditions.referee.name} ({d.conditions.referee.label})</span>
       </div>
       <div className="mc-body">
@@ -412,14 +424,14 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           <div className="mc-tabbody">{infoTab()}</div>
         </aside>
         <main className="field mc-pitch" style={{ animation: fx && (fx.type === 'red' || (fx.type === 'goal' && fx.side !== mineSide && mineSide >= 0)) ? 'shake .5s ease' : fx?.type === 'goal' ? 'beat .6s ease' : undefined }}>
-          {hasFlow ? <SmoothPitch d={d} gm={gm} rate={htLeft ? 0 : live ? 90 / LIVE : (90 / LIVE) * speed} plan={plan} mineSide={mineSide} /> : (
+          {hasFlow ? <SmoothPitch d={d} gm={gm} rate={htLeft ? 0 : live ? 90 / LIVE : (90 / LIVE) * speed} plan={plan} mineSide={mineSide} seen={seen} /> : (
             <>
               <div className="ln" style={{ inset: '26px 10px' }} />
               <div className="ln" style={{ top: 26, bottom: 26, left: '50%', width: 0, borderWidth: '0 0 0 1.5px' }} />
               <Dots d={d} gm={gm} events={events} revealed={revealed} />
             </>
           )}
-          {!htLeft && lastEv && gm - evAt(lastEv) < 3.5 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny ellipsis mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
+          {!htLeft && lastEv && gm - plan.timeOf(lastEv) < 3.5 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny ellipsis mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
           {fx && !htLeft && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
           {htLeft > 0 && (
             <div className="mc-ht">
@@ -434,6 +446,17 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
                   {tactics.filter((x) => x.k.startsWith('plan')).map((x) => <button key={x.k} className="ghost" onClick={x.go}><span>{x.t}</span></button>)}
                 </div>
               </>}
+            </div>
+          )}
+          {tipNow && !htLeft && (
+            <div className="mc-tip">
+              <span style={{ fontSize: 18 }}>{tipNow.ico}</span>
+              <span className="col grow" style={{ gap: 2, minWidth: 0 }}>
+                <span className="tiny" style={{ color: 'var(--mint)', fontWeight: 900, letterSpacing: 0.5 }}>ASSISTANT</span>
+                <span className="small" style={{ fontWeight: 700 }}>{tipNow.text}</span>
+              </span>
+              {tipNow.act && <button className="seg" style={{ minHeight: 32 }} onClick={() => { const a = tipNow.act!; setTip(null); if (a.sub) { setSubOut(a.sub); setPanel('sub'); } else if (a.body) change(a.body, a.label); }}><span>{tipNow.act.label}</span></button>}
+              <button className="seg" style={{ minHeight: 32 }} onClick={() => setTip(null)}><span>✕</span></button>
             </div>
           )}
           {reactOn && (
@@ -504,9 +527,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
 }
 
 // only the pitch redraws every frame (a smooth clock between the page's ticks)
-function SmoothPitch({ d, gm, rate, plan, mineSide }: { d: any; gm: number; rate: number; plan: ReturnType<typeof usePlan>; mineSide: number }) {
+function SmoothPitch({ d, gm, rate, plan, mineSide, seen }: { d: any; gm: number; rate: number; plan: ReturnType<typeof usePlan>; mineSide: number; seen: Ev[] }) {
   const t = useSmoothClock(gm, rate);
-  return <Pitch2D d={d} t={t} plan={plan} mineSide={mineSide} />;
+  return <Pitch2D d={d} t={t} plan={plan} mineSide={mineSide} seen={seen} fitOf={(id) => liveFit(d, id, t, seen)} />;
 }
 
 function Crowd({ color, alt, top, loud }: { color: string; alt: string; top?: boolean; loud: boolean }) {
