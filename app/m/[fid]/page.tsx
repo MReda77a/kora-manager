@@ -5,7 +5,8 @@ import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, type ClubTypeKey } from
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
-import { LivePitch, tm } from '../../../components/LivePitch.tsx';
+import { Pitch2D, tm, usePlan } from '../../../components/match/Pitch2D.tsx';
+import { Commentary, Formation, KeyEvents, LiveStats, Lineups, useSmoothClock } from '../../../components/match/Panels.tsx';
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
@@ -181,6 +182,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const shotSeen = useRef(-1);
   const shown = useRef(-1);
   const mineSide: number = d.home.mine ? 0 : d.away.mine ? 1 : -1;
+  const [info, setInfo] = useState('live');
+  const plan = usePlan(rep, events);
+
   const team = (s: number) => (s === 0 ? d.home : d.away);
 
   const revealed = useMemo(() => { let k = 0; for (; k < events.length; k++) if (evAt(events[k]) > gm) break; return k; }, [gm, events]);
@@ -330,81 +334,106 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   }
   if (phase === 'ft') return <FullTime d={d} skipped={skip} reload={reload} />;
 
-  // momentum: shots and goals in the last 12 minutes
-  const recent = events.slice(0, revealed).filter((e) => e.m > minute - 12);
-  const w = (s: number) => recent.filter((e) => e.side === s && ['goal', 'save', 'miss', 'penalty'].includes(e.type)).length * 10 + rep.stats.poss[s] / 4;
-  const mom = Math.round((w(0) / Math.max(1, w(0) + w(1))) * 100);
+  // the live match centre
   const lastEv = events[Math.max(0, revealed - 1)];
+  const seen = events.slice(0, revealed);
   const { on, bench } = mineSide >= 0 ? onPitch(mineSide as 0 | 1) : { on: [], bench: [] };
-  const homeBig = mineSide !== 1;
+  const hasFlow = !!rep.flow;
+  const formSide = (mineSide >= 0 ? mineSide : 0) as 0 | 1;
+  const tactics = canChange ? [
+    { k: 'att', ico: '⚔️', t: 'All-out attack', s: 'Everyone forward, press high', go: () => change({ mentality: 2, press: 2 }, 'All out attack!') },
+    { k: 'bus', ico: '🚌', t: 'Park the bus', s: 'Sit deep, protect the lead', go: () => change({ mentality: 0, line: 0, press: 0 }, 'Park the bus') },
+    { k: 'press', ico: '🔥', t: 'High press', s: 'Win the ball back high', go: () => change({ press: 3 }, 'High press on') },
+    ...((d.plans || []).length > 1 ? d.plans.map((k: string) => ({ k: `plan${k}`, ico: '📋', t: `Plan ${k}`, s: 'Switch to your saved plan', go: () => change({ plan: k }, `Plan ${k}!`) })) : []),
+  ] : [];
+  const tabsList: [string, string][] = [['live', 'Live'], ['stats', 'Stats'], ['events', 'Events'], ['lineups', 'Line-ups'], ['shape', 'Formation']];
+  const infoTab = () => (
+    <>
+      {info === 'live' && <Commentary shown={seen} />}
+      {info === 'stats' && <LiveStats d={d} gm={gm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} />}
+      {info === 'events' && <KeyEvents d={d} shown={seen} />}
+      {info === 'lineups' && <Lineups d={d} gm={gm} shown={seen} />}
+      {info === 'shape' && <Formation d={d} side={formSide} shown={seen} />}
+    </>
+  );
   return (
-    <div className="live-root" style={{ height: '100dvh', display: 'flex', flexDirection: 'column', padding: '6px 12px 8px', gap: 6, position: 'relative', overflow: 'hidden' }}>
-      <header className="row between" style={{ gap: 10 }}>
+    <div className="mc-root">
+      <header className="mc-top">
         <Back d={d} />
-        <div className="row" style={{ gap: 10, minWidth: 0 }}>
-          <Crest c1={d.home.color1} c2={d.home.color2} size={30} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} />
-          <b className="lz ellipsis tname" style={{ fontSize: 19, maxWidth: 170 }}>{d.home.name}</b>
-          <div className="col" style={{ alignItems: 'center', gap: 0 }}>
-            <span className="lz" style={{ fontSize: 34, lineHeight: 1, whiteSpace: 'nowrap' }}>{score[0]} – {score[1]}</span>
-            <span className="tiny" style={{ color: live ? 'var(--red)' : 'var(--cyan)', fontWeight: 900 }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))} · <span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon}</span></span>
+        <div className="mc-score">
+          <div className="row mc-side" style={{ justifyContent: 'flex-end' }}>
+            <span className="col" style={{ alignItems: 'flex-end', gap: 0, minWidth: 0 }}><b className="lz ellipsis tname">{d.home.name}</b><span className="tiny muted">{rep.lineups?.[0]?.formation}</span></span>
+            <Crest c1={d.home.color1} c2={d.home.color2} size={30} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} />
           </div>
-          <b className="lz ellipsis tname" style={{ fontSize: 19, maxWidth: 170 }}>{d.away.name}</b>
-          <Crest c1={d.away.color1} c2={d.away.color2} size={30} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />
+          <div className="col" style={{ alignItems: 'center', gap: 0 }}>
+            <span className="lz" style={{ fontSize: 32, lineHeight: 1, whiteSpace: 'nowrap' }}>{score[0]} – {score[1]}</span>
+            <span className="tiny" style={{ color: live ? 'var(--red)' : 'var(--cyan)', fontWeight: 900, whiteSpace: 'nowrap' }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))}</span>
+          </div>
+          <div className="row mc-side">
+            <Crest c1={d.away.color1} c2={d.away.color2} size={30} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />
+            <span className="col" style={{ gap: 0, minWidth: 0 }}><b className="lz ellipsis tname">{d.away.name}</b><span className="tiny muted">{rep.lineups?.[1]?.formation}</span></span>
+          </div>
         </div>
         <div className="row" style={{ gap: 4 }}>
-          {!live && [1, 2, 4].map((s) => <button key={s} className={`seg ${speed === s ? 'on' : ''}`} onClick={() => setSpeed(s)}><span>{s}x</span></button>)}
+          {!live && [1, 2, 4].map((sp) => <button key={sp} className={`seg ${speed === sp ? 'on' : ''}`} onClick={() => setSpeed(sp)}><span>{sp}x</span></button>)}
           <SoundButton />
+          <button className="ghost mc-skip" onClick={() => setPhase('ft')}><span>{live ? 'Result' : 'Skip'}</span></button>
         </div>
       </header>
-      <div className="row tiny" style={{ gap: 8, fontWeight: 900 }}>
-        <span style={{ color: '#7FE9F7' }}>Momentum {mom}%</span>
-        <div style={{ flex: 1, height: 7, background: d.away.color1, transform: 'skewX(-20deg)' }}><i style={{ display: 'block', height: '100%', width: `${mom}%`, background: `linear-gradient(90deg, ${d.home.color1}, #EE7650)`, transition: 'width .8s' }} /></div>
-        <span>{100 - mom}%</span>
+      <div className="mc-cond tiny muted row">
+        <span>🏟 {d.home.stadium}</span><span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon} {d.conditions.weatherInfo.label}</span><span>🧑‍⚖️ {d.conditions.referee.name} ({d.conditions.referee.label})</span>
       </div>
-      <div className="live-grid" style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(150px, 240px) minmax(0, 1fr)', gap: 10 }}>
-        <section className="panel" style={{ padding: 8, gap: 4, overflowY: 'auto', minHeight: 0 }}>
-          <span className="kicker">Live commentary</span>
-          {events.slice(0, revealed).slice().reverse().map((e, i) => (
-            <div key={revealed - i} className="row small" style={{ gap: 8, alignItems: 'flex-start', animation: i === 0 ? 'slidein .4s both' : undefined, fontWeight: e.type === 'goal' ? 900 : 700, color: e.type === 'goal' ? '#F3EEFF' : 'var(--soft)' }}>
-              <b style={{ width: 34, flex: 'none', color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>
-              <span>{e.text}</span>
-            </div>
-          ))}
-        </section>
-        <section className="field" style={{ position: 'relative', minHeight: 180, animation: fx && (fx.type === 'red' || (fx.type === 'goal' && fx.side !== mineSide && mineSide >= 0)) ? 'shake .5s ease' : fx?.type === 'goal' ? 'beat .6s ease' : undefined }}>
-          <Crowd color={team(homeBig ? 0 : 1).color1} alt={team(homeBig ? 1 : 0).color1} top loud={!!fx && ['goal', 'penalty'].includes(fx.type)} />
-          <Crowd color={d.home.color1} alt={d.away.color1} loud={!!fx && ['goal', 'penalty'].includes(fx.type)} />
-          <div className="ln" style={{ inset: '26px 10px' }} />
-          <div className="ln" style={{ top: 26, bottom: 26, left: '50%', width: 0, borderWidth: '0 0 0 1.5px' }} />
-          <div className="ln" style={{ left: '50%', top: '50%', width: 56, height: 56, margin: '-28px 0 0 -28px', borderRadius: '50%' }} />
-          <div className="ln" style={{ left: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderLeft: 'none' }} />
-          <div className="ln" style={{ right: 10, top: '50%', width: 44, height: 96, marginTop: -48, borderRight: 'none' }} />
-          {rep.flow ? <LivePitch d={d} gm={gm} rate={live ? 90 / LIVE : (90 / LIVE) * speed} events={events} revealed={revealed} contrastInk={contrastInk} />
-            : <Dots d={d} gm={gm} events={events} revealed={revealed} />}
-          {lastEv && gm - evAt(lastEv) < 6 && lastEv.type !== 'kickoff' && <span className="tiny ellipsis" style={{ position: 'absolute', left: 14, top: 30, background: 'rgba(14,8,40,0.85)', padding: '3px 10px', fontWeight: 900, color: lastEv.side === 0 ? '#7FE9F7' : '#B5F3FB', zIndex: 3, maxWidth: '70%' }}>{team(lastEv.side).name} · {lastEv.text}</span>}
+      <div className="mc-body">
+        <aside className="panel mc-left mc-wide">
+          <Lineups d={d} gm={gm} shown={seen} />
+        </aside>
+        <aside className="panel mc-tabs mc-narrow">
+          <div className="row mc-tabrow">{tabsList.map(([k, l]) => <button key={k} className={`seg ${info === k ? 'on' : ''}`} onClick={() => setInfo(k)}><span>{l}</span></button>)}</div>
+          <div className="mc-tabbody">{infoTab()}</div>
+        </aside>
+        <main className="field mc-pitch" style={{ animation: fx && (fx.type === 'red' || (fx.type === 'goal' && fx.side !== mineSide && mineSide >= 0)) ? 'shake .5s ease' : fx?.type === 'goal' ? 'beat .6s ease' : undefined }}>
+          {hasFlow ? <SmoothPitch d={d} gm={gm} rate={live ? 90 / LIVE : (90 / LIVE) * speed} plan={plan} mineSide={mineSide} /> : (
+            <>
+              <div className="ln" style={{ inset: '26px 10px' }} />
+              <div className="ln" style={{ top: 26, bottom: 26, left: '50%', width: 0, borderWidth: '0 0 0 1.5px' }} />
+              <Dots d={d} gm={gm} events={events} revealed={revealed} />
+            </>
+          )}
+          {lastEv && gm - evAt(lastEv) < 3.5 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny ellipsis mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
           {fx && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
-        </section>
+        </main>
+        <aside className="panel mc-right mc-wide">
+          {canChange ? (
+            <>
+              <span className="kicker">Quick tactics</span>
+              {tactics.map((x) => <button key={x.k} className="mc-tac" onClick={x.go}><span className="mc-tac-ico">{x.ico}</span><span className="col" style={{ gap: 0, alignItems: 'flex-start' }}><b>{x.t}</b><span className="tiny muted">{x.s}</span></span></button>)}
+              <button className={`mc-tac ${panel === 'tactic' ? 'on' : ''}`} onClick={() => setPanel(panel === 'tactic' ? null : 'tactic')}><span className="mc-tac-ico">🎛</span><span className="col" style={{ gap: 0, alignItems: 'flex-start' }}><b>Style</b><span className="tiny muted">Plan, tackling, offside trap</span></span></button>
+              <button className={`mc-tac ${panel === 'sub' ? 'on' : ''}`} disabled={subsUsed(mineSide) >= 5} onClick={() => setPanel(panel === 'sub' ? null : 'sub')}><span className="mc-tac-ico">🔁</span><span className="col" style={{ gap: 0, alignItems: 'flex-start' }}><b>Substitution</b><span className="tiny muted">{5 - subsUsed(mineSide)} left</span></span></button>
+            </>
+          ) : (
+            <>
+              <span className="kicker">Match stats</span>
+              <LiveStats d={d} gm={gm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} />
+            </>
+          )}
+        </aside>
       </div>
-      <div className="row" style={{ gap: 6, minHeight: 44 }}>
-        <div className="row live-actions" style={{ gap: 6, flex: 1, minWidth: 0, overflowX: 'auto', flexWrap: 'nowrap', scrollbarWidth: 'none' }}>
-        {canChange ? (
-          <>
-            <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ mentality: 2, press: 2 }, 'All out attack!')}><span>All-out attack</span></button>
-            <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ mentality: 0, line: 0, press: 0 }, 'Park the bus')}><span>Park the bus</span></button>
-            <button className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={() => change({ press: 3 }, 'High press on')}><span>High press</span></button>
-            {(d.plans || []).length > 1 && d.plans.map((k: string) => <button key={k} className="seg" style={{ minHeight: 40, background: 'rgba(242,193,78,0.2)', color: '#F2C14E' }} onClick={() => change({ plan: k }, `Plan ${k}!`)}><span>Plan {k}</span></button>)}
-            <button className={`seg ${panel === 'tactic' ? 'on' : ''}`} style={{ minHeight: 40 }} onClick={() => setPanel(panel === 'tactic' ? null : 'tactic')}><span>Style</span></button>
-            <button className={`seg ${panel === 'sub' ? 'on' : ''}`} style={{ minHeight: 40 }} disabled={subsUsed(mineSide) >= 5} onClick={() => setPanel(panel === 'sub' ? null : 'sub')}><span>Substitution ({5 - subsUsed(mineSide)})</span></button>
-          </>
-        ) : (
-          <span className="small" style={{ fontWeight: 800 }}><b style={{ color: 'var(--cyan)' }}>{lastEv ? fmtMin(lastEv.m) : ''}</b> {lastEv?.text}</span>
-        )}
+      <div className="mc-bottom mc-wide">
+        <section className="panel"><span className="kicker">Live commentary</span><div className="mc-scroll"><Commentary shown={seen} /></div></section>
+        <section className="panel"><span className="kicker">{canChange ? 'Match stats' : 'Key events'}</span><div className="mc-scroll">{canChange ? <LiveStats d={d} gm={gm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} /> : <KeyEvents d={d} shown={seen} />}</div></section>
+        {canChange && <section className="panel"><span className="kicker">Key events</span><div className="mc-scroll"><KeyEvents d={d} shown={seen} /></div></section>}
+        <section className="panel"><span className="kicker">Current formation</span><Formation d={d} side={formSide} shown={seen} /></section>
+      </div>
+      {canChange && (
+        <div className="row mc-actions mc-narrow">
+          {tactics.map((x) => <button key={x.k} className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={x.go}><span>{x.ico} {x.t}</span></button>)}
+          <button className={`seg ${panel === 'tactic' ? 'on' : ''}`} style={{ minHeight: 40 }} onClick={() => setPanel(panel === 'tactic' ? null : 'tactic')}><span>Style</span></button>
+          <button className={`seg ${panel === 'sub' ? 'on' : ''}`} style={{ minHeight: 40 }} disabled={subsUsed(mineSide) >= 5} onClick={() => setPanel(panel === 'sub' ? null : 'sub')}><span>Substitution ({5 - subsUsed(mineSide)})</span></button>
         </div>
-        <button className="ghost" style={{ marginLeft: 'auto', flex: 'none' }} onClick={() => setPhase('ft')}><span>{live ? 'Skip to result' : 'Skip'}</span></button>
-      </div>
+      )}
       {panel === 'tactic' && (
-        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, background: 'rgba(20,10,52,0.97)', boxShadow: '0 -8px 30px rgba(0,0,0,0.55)', maxHeight: 'calc(100% - 120px)', overflowY: 'auto', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {Object.keys(PRESETS).map((p) => <button key={p} className="seg" style={{ minHeight: 36 }} onClick={() => change({ preset: p }, `Switched to ${p}`)}><span>{p}</span></button>)}
+        <div className="panel cut mc-pop" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {Object.keys(PRESETS).map((pr) => <button key={pr} className="seg" style={{ minHeight: 36 }} onClick={() => change({ preset: pr }, `Switched to ${pr}`)}><span>{pr}</span></button>)}
           <span className="tiny muted" style={{ width: '100%', fontWeight: 900, marginTop: 4 }}>TACKLING</span>
           {TACKLE_STYLES.map((x, i) => <button key={x.name} className="seg" style={{ minHeight: 36 }} onClick={() => change({ tackle: i }, `${x.face} ${x.name}`)}><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 20 }}>{x.face}</span>{x.short}</span></button>)}
           <span className="tiny muted" style={{ width: '100%', fontWeight: 900, marginTop: 4 }}>OFFSIDE TRAP</span>
@@ -413,12 +442,12 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </div>
       )}
       {panel === 'sub' && (
-        <div className="panel cut" style={{ position: 'absolute', left: 12, right: 12, bottom: 58, zIndex: 20, background: 'rgba(20,10,52,0.97)', boxShadow: '0 -8px 30px rgba(0,0,0,0.55)', maxHeight: 'calc(100% - 120px)', overflowY: 'auto', gap: 6 }}>
+        <div className="panel cut mc-pop" style={{ gap: 6 }}>
           <span className="kicker">{subOut ? 'Who comes on?' : 'Who comes off?'}</span>
           <div className="row wrap" style={{ gap: 6 }}>
             {(subOut ? bench : on).map((id) => {
-              const p = d.names[id];
-              return <button key={id} className={`bench ${subOut === id ? 'sel' : ''}`} style={{ width: 84 }} onClick={() => (subOut ? change({ kind: 'sub', out: subOut, in: id }, `${lastName(p?.name || '')} comes on`) : setSubOut(id))}><b>{p?.ovr ?? ''}</b><small>{lastName(p?.name || '?')} · {p?.pos}</small></button>;
+              const pl = d.names[id];
+              return <button key={id} className={`bench ${subOut === id ? 'sel' : ''}`} style={{ width: 84 }} onClick={() => (subOut ? change({ kind: 'sub', out: subOut, in: id }, `${lastName(pl?.name || '')} comes on`) : setSubOut(id))}><b>{pl?.ovr ?? ''}</b><small>{lastName(pl?.name || '?')} · {pl?.pos}</small></button>;
             })}
           </div>
           {subOut && <button className="tiny muted" onClick={() => setSubOut(null)}>‹ choose another player</button>}
@@ -427,6 +456,12 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       {toast.node}
     </div>
   );
+}
+
+// only the pitch redraws every frame (a smooth clock between the page's ticks)
+function SmoothPitch({ d, gm, rate, plan, mineSide }: { d: any; gm: number; rate: number; plan: ReturnType<typeof usePlan>; mineSide: number }) {
+  const t = useSmoothClock(gm, rate);
+  return <Pitch2D d={d} t={t} plan={plan} mineSide={mineSide} />;
 }
 
 function Crowd({ color, alt, top, loud }: { color: string; alt: string; top?: boolean; loud: boolean }) {

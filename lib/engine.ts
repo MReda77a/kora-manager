@@ -28,7 +28,7 @@ export type Change =
   | { m: number; side: 0 | 1; kind: 'tactic'; tactic: Partial<Tactic> & { preset?: string; plan?: string } }
   | { m: number; side: 0 | 1; kind: 'sub'; out: string; in: string };
 export type SimOpts = { changes?: Change[]; knockout?: boolean; derby?: boolean; weather?: string; strict?: number };
-export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string };
+export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean };
 export type Shootout = { kicks: { side: 0 | 1; pid: string; scored: boolean }[]; score: [number, number] };
 export type MatchEvent = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 export type PlayerLine = { id: string; name: string; side: 0 | 1; pos: string; r: number; g: number; a: number; mins: number; fitEnd: number; yc: number; rc: boolean; inj: boolean };
@@ -250,13 +250,13 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       // VAR checks every goal; a few are ruled out for offside
       if (kind !== 'free kick' && r.next() < 0.035) {
         shots[a]++; xg[a] += q;
-        shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind });
+        shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: false });
         log('var', a, `VAR check... goal by ${sc.p.name} ruled out for offside!`, sc.p.id);
         return;
       }
       goals[a]++;
       onT[a]++;
-      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: true, kind, pid: sc.p.id });
+      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: true, kind, pid: sc.p.id, on: true });
       sc.line.g++;
       sc.line.r += 1.0;
       let txt = `GOAL! ${sc.p.name}`;
@@ -271,7 +271,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       log('goal', a, `${txt} ${how[kind] || ''}`.trim(), sc.p.id, as?.p.id);
       S[b].pitch.filter((o) => o.slot === 'DEF' || o.slot === 'GK').forEach((o) => (o.line.r -= 0.25));
     } else {
-      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind });
+      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: onTarget });
       if (onTarget) {
         onT[a]++;
         const gk = S[b].pitch.find((o) => o.slot === 'GK');
@@ -394,6 +394,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     shotsList.push({ m: minute, side: a, x: a === 0 ? 88.5 : 11.5, y: 50, xg: 0.76, goal: false, kind: 'penalty' });
     if (r.next() < p) {
       shotsList[shotsList.length - 1].goal = true;
+      shotsList[shotsList.length - 1].on = true;
       shotsList[shotsList.length - 1].pid = taker.p.id;
       goals[a]++;
       onT[a]++;
@@ -403,6 +404,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     } else {
       const saved = r.next() < 0.6;
       if (saved) onT[a]++;
+      shotsList[shotsList.length - 1].on = saved;
       taker.line.r -= 0.6;
       log('penmiss', a, saved ? `${taker.p.name}'s penalty is SAVED!` : `${taker.p.name} misses the penalty!`, taker.p.id);
     }
