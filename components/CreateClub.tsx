@@ -50,7 +50,7 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
             <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={f.color1} c2={f.color2} pattern={f.pattern} size={44} label="Home kit" /><span className="tiny muted">Home</span></div>
             <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={f.away1} c2={f.away2} size={44} label="Away kit" /><span className="tiny muted">Away</span></div>
           </div>
-          {late ? <div className="tag"><span>Club type: a surprise</span></div> : <div className="tag" style={{ background: TYPE_COLOR[f.type], color: '#1B1048' }}><span>{T.name}</span></div>}
+          {late ? <div className="tag"><span>Club type: a surprise</span></div> : <div className="tag" style={{ background: TYPE_COLOR[f.type], color: '#06121F' }}><span>{T.name}</span></div>}
         </div>
         {step === 0 || late ? (
           <div className="glass cut pad col" style={{ gap: 10 }}>
@@ -64,7 +64,7 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
             <div className="row wrap"><span className="small muted" style={{ width: 70 }}>Shirt</span>{PATTERNS.map((s, i) => <button key={s} className={`chip ${f.pattern === i ? 'on' : ''}`} onClick={() => set('pattern', i)}><span>{s}</span></button>)}</div>
             {(['color1', 'color2', 'away1', 'away2'] as const).map((k, j) => (
               <div key={k} className="row wrap"><span className="small muted" style={{ width: 70 }}>{['Main', 'Second', 'Away', 'Away 2nd'][j]}</span>
-                {COLORS.map((c) => <button key={c} aria-label={c} onClick={() => set(k, c)} style={{ width: 28, height: 28, background: c, boxShadow: f[k] === c ? '0 0 0 2px #1E1250, 0 0 0 4px #F3EEFF' : 'inset 0 0 0 1px rgba(255,255,255,0.25)' }} />)}
+                {COLORS.map((c) => <button key={c} aria-label={c} onClick={() => set(k, c)} style={{ width: 28, height: 28, background: c, boxShadow: f[k] === c ? '0 0 0 2px #0F2238, 0 0 0 4px #E8F1FA' : 'inset 0 0 0 1px rgba(255,255,255,0.25)' }} />)}
               </div>
             ))}
             {late ? (
@@ -86,10 +86,10 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
               ))}
             </div>
             <div className="grid2" style={{ gap: 8 }}>
-              <Info label="Perk" text={T.perk} color="#7CE3A1" />
+              <Info label="Perk" text={T.perk} color="#2EE6A0" />
               <Info label="Weakness" text={T.weak} color="#FF9AA8" />
               <Info label="Board target" text={T.board} color={TYPE_COLOR[f.type]} />
-              <Info label="Sponsor target" text={T.sponsor} color="#7FE9F7" />
+              <Info label="Sponsor target" text={T.sponsor} color="#5FD3F3" />
             </div>
             {f.type === 'fan' && <div className="small" style={{ padding: '6px 10px', background: 'rgba(242,193,78,0.14)', color: '#F2C14E' }}>If another manager here is also a Fan Club, your games against them become the derby, with a gold match day.</div>}
             <button className="cta shine" style={{ alignSelf: 'flex-end' }} disabled={busy || f.name.trim().length < 3} onClick={save}><span>Create {name}</span></button>
@@ -103,7 +103,7 @@ export default function CreateClub({ league, onDone }: { league: any; onDone: ()
 
 function Info({ label, text, color }: { label: string; text: string; color: string }) {
   return (
-    <div className="col" style={{ gap: 2, padding: '6px 10px', background: 'rgba(10,4,30,0.3)', borderLeft: `3px solid ${color}` }}>
+    <div className="col" style={{ gap: 2, padding: '6px 10px', background: 'rgba(6, 14, 26,0.3)', borderLeft: `3px solid ${color}` }}>
       <span className="tiny" style={{ color, fontWeight: 900 }}>{label.toUpperCase()}</span>
       <span className="small">{text}</span>
     </div>

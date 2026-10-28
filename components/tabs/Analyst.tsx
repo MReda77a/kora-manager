@@ -6,7 +6,7 @@ import { PRESETS } from '../../lib/game.ts';
 import { BackHead, Spinner } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
-const formColor = (r: string) => (r === 'W' ? '#7CE3A1' : r === 'L' ? '#FF8A80' : '#C9C0EC');
+const formColor = (r: string) => (r === 'W' ? '#2EE6A0' : r === 'L' ? '#FF8A80' : '#9FB3C9');
 
 export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
   const [a, setA] = useState<any>(null);
@@ -37,12 +37,12 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
   const numbers = r.plans[0]?.win !== null;
   return (
     <div className="col" style={{ gap: 10 }}>
-      <BackHead title="Match Analyst" sub={<span className="small muted">vs <b style={{ color: '#F3EEFF' }}>{o.name}</b>{o.pos ? ` · ${o.pos}${['st', 'nd', 'rd'][o.pos - 1] || 'th'} in the table` : ''}{o.human ? ' · a manager' : ' · AI club'}</span>} right={staffBox} />
+      <BackHead title="Match Analyst" sub={<span className="small muted">vs <b style={{ color: '#E8F1FA' }}>{o.name}</b>{o.pos ? ` · ${o.pos}${['st', 'nd', 'rd'][o.pos - 1] || 'th'} in the table` : ''}{o.human ? ' · a manager' : ' · AI club'}</span>} right={staffBox} />
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.15fr)', gap: 12 }}>
         <section className="panel cut col" style={{ gap: 10 }}>
           <div className="row between">
             <span className="tag"><span>The opponent</span></span>
-            <span className="row" style={{ gap: 3 }}>{(o.form || []).map((x: string, i: number) => <b key={i} className="tiny" style={{ width: 18, height: 18, display: 'grid', placeItems: 'center', background: formColor(x), color: '#1B1048' }}>{x}</b>)}</span>
+            <span className="row" style={{ gap: 3 }}>{(o.form || []).map((x: string, i: number) => <b key={i} className="tiny" style={{ width: 18, height: 18, display: 'grid', placeItems: 'center', background: formColor(x), color: '#06121F' }}>{x}</b>)}</span>
           </div>
           <div className="col" style={{ gap: 5 }}>
             <div className="row tiny muted" style={{ fontWeight: 900 }}><span style={{ width: 36 }} /><span className="grow">YOU</span><span>THEM</span></div>
@@ -51,9 +51,9 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
               return (
                 <div key={x.line} className="row small" style={{ gap: 8, fontWeight: 800 }}>
                   <span style={{ width: 36 }} className="muted">{x.line}</span>
-                  <b style={{ width: 24, color: diff >= 2 ? '#7CE3A1' : undefined }}>{x.mine}</b>
+                  <b style={{ width: 24, color: diff >= 2 ? '#2EE6A0' : undefined }}>{x.mine}</b>
                   <div className="grow" style={{ display: 'flex', height: 8, background: 'rgba(255,255,255,0.08)' }}>
-                    <i style={{ width: `${(x.mine / (x.mine + x.theirs || 1)) * 100}%`, background: diff >= 0 ? '#7FE9F7' : 'rgba(127,233,247,0.45)' }} />
+                    <i style={{ width: `${(x.mine / (x.mine + x.theirs || 1)) * 100}%`, background: diff >= 0 ? '#5FD3F3' : 'rgba(95, 211, 243,0.45)' }} />
                     <i style={{ flex: 1, background: diff < 0 ? '#FF8A80' : 'rgba(255,138,128,0.45)' }} />
                   </div>
                   <b style={{ width: 24, textAlign: 'right', color: diff <= -2 ? '#FF8A80' : undefined }}>{x.theirs}</b>
@@ -63,7 +63,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
           </div>
           {r.weak.length > 0 && (
             <div className="col" style={{ gap: 4 }}>
-              <span className="tiny" style={{ color: '#7CE3A1', fontWeight: 900 }}>WHERE THEY ARE WEAK</span>
+              <span className="tiny" style={{ color: '#2EE6A0', fontWeight: 900 }}>WHERE THEY ARE WEAK</span>
               {r.weak.map((t: string, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}>✓ {t}</span>)}
             </div>
           )}
@@ -82,7 +82,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
           </div>
         </section>
         <section className="panel cut col" style={{ gap: 10 }}>
-          <div className="row between"><span className="tag gold"><span>The plan</span></span><span className="tiny" style={{ fontWeight: 900, color: r.confidence === 'High' ? '#7CE3A1' : r.confidence === 'Medium' ? '#F2C14E' : '#FF8A80' }}>CONFIDENCE: {r.confidence.toUpperCase()}</span></div>
+          <div className="row between"><span className="tag gold"><span>The plan</span></span><span className="tiny" style={{ fontWeight: 900, color: r.confidence === 'High' ? '#2EE6A0' : r.confidence === 'Medium' ? '#F2C14E' : '#FF8A80' }}>CONFIDENCE: {r.confidence.toUpperCase()}</span></div>
           <div className="row wrap" style={{ gap: 10, alignItems: 'center' }}>
             <div className="col grow" style={{ gap: 2, minWidth: 150 }}>
               <span className="tiny muted" style={{ fontWeight: 900 }}>BEST FOR YOU</span>
@@ -99,16 +99,16 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
                 {numbers ? (
                   <>
                     <div className="grow" style={{ display: 'flex', height: 8 }}>
-                      <i style={{ width: `${x.win}%`, background: '#7CE3A1' }} /><i style={{ width: `${x.draw}%`, background: '#C9C0EC' }} /><i style={{ width: `${x.loss}%`, background: '#FF8A80' }} />
+                      <i style={{ width: `${x.win}%`, background: '#2EE6A0' }} /><i style={{ width: `${x.draw}%`, background: '#9FB3C9' }} /><i style={{ width: `${x.loss}%`, background: '#FF8A80' }} />
                     </div>
-                    <span className="tiny" style={{ width: 86, textAlign: 'right', whiteSpace: 'nowrap' }}><b style={{ color: '#7CE3A1' }}>{x.win}</b> · {x.draw} · <span style={{ color: '#FF8A80' }}>{x.loss}</span></span>
+                    <span className="tiny" style={{ width: 86, textAlign: 'right', whiteSpace: 'nowrap' }}><b style={{ color: '#2EE6A0' }}>{x.win}</b> · {x.draw} · <span style={{ color: '#FF8A80' }}>{x.loss}</span></span>
                   </>
                 ) : <span className="grow tiny muted">{i === 0 ? 'Looks best' : 'Could work'}</span>}
               </button>
             ))}
           </div>
           <span className="small" style={{ fontWeight: 800 }}><b style={{ color: '#FF8A80' }}>Avoid:</b> {r.avoid}{r.myLast && r.myLast === r.avoid ? ' (you played it last time, and they are ready for it)' : ''}</span>
-          {r.tip && <span className="small" style={{ fontWeight: 700, color: '#7FE9F7' }}>💡 {r.tip}</span>}
+          {r.tip && <span className="small" style={{ fontWeight: 700, color: '#5FD3F3' }}>💡 {r.tip}</span>}
           {(r.style || []).map((t: string, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}>{t}</span>)}
           {!numbers && <span className="tiny muted">A part-time analyst only gives a rough guess and can be wrong. A Match analyst plays the game through hundreds of times first.</span>}
           <div className="row" style={{ gap: 8, marginTop: 'auto' }}>

@@ -71,13 +71,13 @@ function Conditions({ d }: { d: any }) {
     <div className="row small" style={{ gap: 10, flexWrap: 'wrap', fontWeight: 800 }}>
       <span title={c.weatherInfo.note}>{c.weatherInfo.icon} {c.weatherInfo.label}</span>
       <span className="muted">·</span>
-      <span>Referee {c.referee.name} <span className="tiny" style={{ color: c.referee.strict === 2 ? '#FF8A80' : c.referee.strict === 0 ? '#7CE3A1' : 'var(--muted)' }}>({c.referee.label})</span></span>
+      <span>Referee {c.referee.name} <span className="tiny" style={{ color: c.referee.strict === 2 ? '#FF8A80' : c.referee.strict === 0 ? '#2EE6A0' : 'var(--muted)' }}>({c.referee.label})</span></span>
     </div>
   );
 }
 
 function Back({ d }: { d: any }) {
-  return <a className="back" href={`/l/${d.fixture.leagueId}`} aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3EEFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></a>;
+  return <a className="back" href={`/l/${d.fixture.leagueId}`} aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8F1FA" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></a>;
 }
 
 // ---------------------------------------------------------------- before kick-off
@@ -126,8 +126,8 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
           {d.derby && (
             <div className="col" style={{ gap: 4 }}>
               <div className="row between"><span className="kicker">Tension</span><span className="lz" style={{ fontSize: 24, color: '#F2C14E' }}>{tension}%</span></div>
-              <div style={{ height: 12, background: 'repeating-linear-gradient(135deg, #E0A22E 0 10px, #E8438C 10px 20px)', width: `${tension}%`, transform: 'skewX(-20deg)' }} />
-              <div className="row wrap tiny" style={{ gap: 6, fontWeight: 800 }}><span className="tag" style={{ background: 'rgba(232,67,140,0.3)' }}><span>Cards ×1.5</span></span><span className="tag" style={{ background: 'rgba(242,193,78,0.3)' }}><span>Fans swing ×2</span></span><span className="tag"><span>Form is wilder</span></span></div>
+              <div style={{ height: 12, background: 'repeating-linear-gradient(135deg, #E0A22E 0 10px, #2EE6A0 10px 20px)', width: `${tension}%`, transform: 'skewX(-20deg)' }} />
+              <div className="row wrap tiny" style={{ gap: 6, fontWeight: 800 }}><span className="tag" style={{ background: 'rgba(46, 230, 160,0.3)' }}><span>Cards ×1.5</span></span><span className="tag" style={{ background: 'rgba(242,193,78,0.3)' }}><span>Fans swing ×2</span></span><span className="tag"><span>Form is wilder</span></span></div>
             </div>
           )}
           {d.comments.length > 0 && (
@@ -146,7 +146,7 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
                 <span className="kicker">{rivals ? 'Mind games' : 'Say something to the paper'}</span>
                 {rivals && <div className="segrow">{(['calm', 'confident', 'provocative'] as const).map((t) => <button key={t} className={`seg ${tone === t ? 'on' : ''}`} onClick={() => setTone(t)}><span>{t[0].toUpperCase() + t.slice(1)}</span></button>)}</div>}
                 {rivals && <span className="tiny muted">{tone === 'calm' ? 'Calm: no effect.' : tone === 'confident' ? 'Confident: your players +1 tonight.' : 'Provocative: +2, but the game gets dirtier.'}</span>}
-                <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={160} rows={2} placeholder="Your words go in the matchday paper…" style={{ background: 'rgba(10,4,30,0.45)', border: '1px solid rgba(255,255,255,0.12)', color: 'inherit', padding: 8, resize: 'none', font: 'inherit' }} />
+                <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={160} rows={2} placeholder="Your words go in the matchday paper…" style={{ background: 'rgba(6, 14, 26,0.45)', border: '1px solid rgba(255,255,255,0.12)', color: 'inherit', padding: 8, resize: 'none', font: 'inherit' }} />
                 <button className={`cta small ${d.derby ? 'gold' : ''}`} disabled={text.trim().length < 2} onClick={post}><span>Send to the matchday paper</span></button>
               </div>
             </>
@@ -426,7 +426,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       </div>
       {canChange && (
         <div className="row mc-actions mc-narrow">
-          {tactics.map((x) => <button key={x.k} className="seg" style={{ minHeight: 40, background: 'rgba(127,233,247,0.2)', color: '#B5F3FB' }} onClick={x.go}><span>{x.ico} {x.t}</span></button>)}
+          {tactics.map((x) => <button key={x.k} className="seg" style={{ minHeight: 40, background: 'rgba(95, 211, 243,0.2)', color: '#A8E8F8' }} onClick={x.go}><span>{x.ico} {x.t}</span></button>)}
           <button className={`seg ${panel === 'tactic' ? 'on' : ''}`} style={{ minHeight: 40 }} onClick={() => setPanel(panel === 'tactic' ? null : 'tactic')}><span>Style</span></button>
           <button className={`seg ${panel === 'sub' ? 'on' : ''}`} style={{ minHeight: 40 }} disabled={subsUsed(mineSide) >= 5} onClick={() => setPanel(panel === 'sub' ? null : 'sub')}><span>Substitution ({5 - subsUsed(mineSide)})</span></button>
         </div>
@@ -503,8 +503,8 @@ function Dots({ d, gm, events, revealed }: { d: any; gm: number; events: Ev[]; r
     const team = p.side === 0 ? d.home : d.away;
     const no = p.id ? d.names[p.id]?.num ?? shirt(p.id, d.names[p.id]?.pos || 'CM') : '';
     return (
-      <span key={`${p.side}${p.i}`} style={{ position: 'absolute', left: `${p.xy[0]}%`, top: `${p.xy[1]}%`, width: 17, height: 17, marginLeft: -8.5, marginTop: -8.5, borderRadius: '50%', background: team.color1, boxShadow: `0 0 0 2px ${team.kit2 || (p.side ? '#151018' : '#F3EEFF')}`, transition: 'left .25s linear, top .25s linear', zIndex: 2, display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 900, color: contrastInk(team.color1) }}>{no}
-        {p.id && p.id === rep.lineups?.[p.side]?.captain && <i aria-label="Captain" style={{ position: 'absolute', right: -6, top: -6, width: 10, height: 10, borderRadius: '50%', background: '#F2C14E', color: '#1B1048', fontSize: 7, fontStyle: 'normal', display: 'grid', placeItems: 'center', fontWeight: 900 }}>C</i>}</span>
+      <span key={`${p.side}${p.i}`} style={{ position: 'absolute', left: `${p.xy[0]}%`, top: `${p.xy[1]}%`, width: 17, height: 17, marginLeft: -8.5, marginTop: -8.5, borderRadius: '50%', background: team.color1, boxShadow: `0 0 0 2px ${team.kit2 || (p.side ? '#151018' : '#E8F1FA')}`, transition: 'left .25s linear, top .25s linear', zIndex: 2, display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 900, color: contrastInk(team.color1) }}>{no}
+        {p.id && p.id === rep.lineups?.[p.side]?.captain && <i aria-label="Captain" style={{ position: 'absolute', right: -6, top: -6, width: 10, height: 10, borderRadius: '50%', background: '#F2C14E', color: '#06121F', fontSize: 7, fontStyle: 'normal', display: 'grid', placeItems: 'center', fontWeight: 900 }}>C</i>}</span>
     );
   };
   return (
@@ -512,7 +512,7 @@ function Dots({ d, gm, events, revealed }: { d: any; gm: number; events: Ev[]; r
       {home.map(dot)}
       {away.map(dot)}
       {carrier && carrierName && soon >= 0.5 && (
-        <span className="tiny" style={{ position: 'absolute', left: `${carrier.xy[0]}%`, top: `calc(${carrier.xy[1]}% - 22px)`, transform: 'translateX(-50%)', zIndex: 4, padding: '0 5px', background: 'rgba(14,8,40,0.8)', fontWeight: 800, whiteSpace: 'nowrap', transition: 'left .25s linear, top .25s linear', pointerEvents: 'none' }}>{carrierName}</span>
+        <span className="tiny" style={{ position: 'absolute', left: `${carrier.xy[0]}%`, top: `calc(${carrier.xy[1]}% - 22px)`, transform: 'translateX(-50%)', zIndex: 4, padding: '0 5px', background: 'rgba(8, 18, 32,0.8)', fontWeight: 800, whiteSpace: 'nowrap', transition: 'left .25s linear, top .25s linear', pointerEvents: 'none' }}>{carrierName}</span>
       )}
       <span style={{ position: 'absolute', left: `${bx}%`, top: `${clampY(by)}%`, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff', transition: soon < 0.5 ? 'left .35s ease-in, top .35s ease-in' : 'left .2s linear, top .2s linear', zIndex: 3 }} />
     </>
@@ -544,16 +544,16 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
   }
   if (e.type === 'goal') {
     return (
-      <div className="ov" style={{ background: 'rgba(10,4,20,0.55)', animation: 'vign 1.6s ease-out forwards' }}>
+      <div className="ov" style={{ background: 'rgba(6, 14, 26,0.55)', animation: 'vign 1.6s ease-out forwards' }}>
         <span className="big" style={{ fontSize: 70, color: 'var(--dim)', animation: 'shake .6s ease both' }}>GOAL</span>
         <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--soft)', animation: 'fadeUp .4s .4s both' }}>{who(e.pid)} scores for {team.name}</span>
-        <span className="tiny" style={{ fontWeight: 700, color: '#7FE9F7', animation: 'fadeUp .4s .7s both' }}>Momentum swings to them</span>
+        <span className="tiny" style={{ fontWeight: 700, color: '#5FD3F3', animation: 'fadeUp .4s .7s both' }}>Momentum swings to them</span>
       </div>
     );
   }
   if (e.type === 'yellow') {
     return (
-      <div className="ov" style={{ perspective: 600, background: 'rgba(10,4,20,0.35)' }}>
+      <div className="ov" style={{ perspective: 600, background: 'rgba(6, 14, 26,0.35)' }}>
         <div style={{ width: 70, height: 96, background: 'linear-gradient(135deg,#FFE86B,#F2C14E)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,0.5)', animation: 'cardIn .8s cubic-bezier(.3,1.3,.5,1) both' }} />
         <span className="lz" style={{ fontSize: 26, color: '#FFE86B', animation: 'fadeUp .4s .5s both' }}>Yellow card</span>
         <span style={{ fontSize: 13, fontWeight: 800, animation: 'fadeUp .4s .7s both' }}>{who(e.pid)} · {team.name}</span>
@@ -571,31 +571,31 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
   }
   if (e.type === 'injury') {
     return (
-      <div className="ov" style={{ background: 'rgba(10,4,20,0.45)' }}>
+      <div className="ov" style={{ background: 'rgba(6, 14, 26,0.45)' }}>
         <div style={{ position: 'relative', width: 70, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ position: 'absolute', inset: 0, border: '3px solid #7CE3A1', borderRadius: '50%', animation: 'ringOut 1.2s ease-out infinite' }} />
-          <svg width="54" height="54" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="4" fill="#F3EEFF" /><path d="M10 6h4v4h4v4h-4v4h-4v-4H6v-4h4z" fill="#1F9D55" /></svg>
+          <span style={{ position: 'absolute', inset: 0, border: '3px solid #2EE6A0', borderRadius: '50%', animation: 'ringOut 1.2s ease-out infinite' }} />
+          <svg width="54" height="54" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="4" fill="#E8F1FA" /><path d="M10 6h4v4h4v4h-4v4h-4v-4H6v-4h4z" fill="#1F9D55" /></svg>
         </div>
-        <span className="lz" style={{ fontSize: 24, color: '#7CE3A1' }}>Injury</span>
+        <span className="lz" style={{ fontSize: 24, color: '#2EE6A0' }}>Injury</span>
         <span style={{ fontSize: 13, fontWeight: 800 }}>{who(e.pid)} · {team.name}</span>
-        <svg width="70" height="22" viewBox="0 0 70 22" aria-hidden="true" style={{ animation: 'stretcher 2.4s linear both' }}><rect x="4" y="6" width="62" height="6" rx="2" fill="#F3EEFF" /><circle cx="14" cy="17" r="4" fill="#CFC6F0" /><circle cx="56" cy="17" r="4" fill="#CFC6F0" /></svg>
+        <svg width="70" height="22" viewBox="0 0 70 22" aria-hidden="true" style={{ animation: 'stretcher 2.4s linear both' }}><rect x="4" y="6" width="62" height="6" rx="2" fill="#E8F1FA" /><circle cx="14" cy="17" r="4" fill="#B8C9DA" /><circle cx="56" cy="17" r="4" fill="#B8C9DA" /></svg>
       </div>
     );
   }
   if (e.type === 'penalty') {
     return (
-      <div className="ov" style={{ background: 'rgba(10,4,20,0.5)' }}>
-        <span style={{ position: 'absolute', width: 120, height: 120, border: '3px solid #F3EEFF', borderRadius: '50%', animation: 'ringOut .9s ease-out 2' }} />
-        <span className="big" style={{ fontSize: 'min(64px, 13vw)', color: '#F3EEFF', animation: 'zoomIn .9s cubic-bezier(.2,.9,.3,1) both' }}>PENALTY!</span>
-        <svg width="160" height="70" viewBox="0 0 160 70" aria-hidden="true" style={{ animation: 'fadeUp .4s .6s both' }}><path d="M20 10h120v40" fill="none" stroke="#F3EEFF" strokeWidth="3" /><path d="M20 10v40" stroke="#F3EEFF" strokeWidth="3" /><circle cx="80" cy="62" r="5" fill="#F3EEFF" style={{ animation: 'ballUp .7s 1.3s ease-in forwards' }} /></svg>
+      <div className="ov" style={{ background: 'rgba(6, 14, 26,0.5)' }}>
+        <span style={{ position: 'absolute', width: 120, height: 120, border: '3px solid #E8F1FA', borderRadius: '50%', animation: 'ringOut .9s ease-out 2' }} />
+        <span className="big" style={{ fontSize: 'min(64px, 13vw)', color: '#E8F1FA', animation: 'zoomIn .9s cubic-bezier(.2,.9,.3,1) both' }}>PENALTY!</span>
+        <svg width="160" height="70" viewBox="0 0 160 70" aria-hidden="true" style={{ animation: 'fadeUp .4s .6s both' }}><path d="M20 10h120v40" fill="none" stroke="#E8F1FA" strokeWidth="3" /><path d="M20 10v40" stroke="#E8F1FA" strokeWidth="3" /><circle cx="80" cy="62" r="5" fill="#E8F1FA" style={{ animation: 'ballUp .7s 1.3s ease-in forwards' }} /></svg>
         <span style={{ fontSize: 13, fontWeight: 800 }}>{team.name}</span>
       </div>
     );
   }
   if (e.type === 'penmiss' || e.type === 'save' || e.type === 'miss') {
     return (
-      <div className="ov" style={{ zIndex: 6, background: 'radial-gradient(circle, rgba(10,4,20,0) 30%, rgba(10,4,20,0.8) 85%)' }}>
-        <span className="big" style={{ fontSize: 48, color: '#F3EEFF', animation: 'beat 1s ease-in-out' }}>{e.type === 'save' ? 'WHAT A SAVE' : e.type === 'penmiss' ? 'NO GOAL!' : 'BIG CHANCE'}</span>
+      <div className="ov" style={{ zIndex: 6, background: 'radial-gradient(circle, rgba(6, 14, 26,0) 30%, rgba(6, 14, 26,0.8) 85%)' }}>
+        <span className="big" style={{ fontSize: 48, color: '#E8F1FA', animation: 'beat 1s ease-in-out' }}>{e.type === 'save' ? 'WHAT A SAVE' : e.type === 'penmiss' ? 'NO GOAL!' : 'BIG CHANCE'}</span>
         <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--cyan)' }}>{e.text}</span>
       </div>
     );
@@ -603,46 +603,46 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
   if (e.type === 'sub') {
     const p1 = names[e.pid || ''], p2 = names[e.pid2 || ''];
     return (
-      <div className="ov" style={{ background: 'rgba(10,4,20,0.5)', gap: 10 }}>
+      <div className="ov" style={{ background: 'rgba(6, 14, 26,0.5)', gap: 10 }}>
         <span className="lz" style={{ fontSize: 22, color: 'var(--cyan)', animation: 'fadeUp .3s both' }}>Substitution · {team.name}</span>
-        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(232,67,140,0.25)', animation: 'outL .9s .5s ease forwards' }}><span style={{ color: 'var(--red)', fontWeight: 900 }}>▼ OUT</span><b>{p2?.name}</b><span className="lz" style={{ color: 'var(--soft)' }}>{p2?.ovr}</span></div>
-        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(124,227,161,0.25)', animation: 'inR .7s .7s cubic-bezier(.3,1.3,.5,1) both' }}><span style={{ color: '#7CE3A1', fontWeight: 900 }}>▲ IN</span><b>{p1?.name}</b><span className="lz" style={{ color: '#7CE3A1' }}>{p1?.ovr}</span></div>
+        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(46, 230, 160,0.25)', animation: 'outL .9s .5s ease forwards' }}><span style={{ color: 'var(--red)', fontWeight: 900 }}>▼ OUT</span><b>{p2?.name}</b><span className="lz" style={{ color: 'var(--soft)' }}>{p2?.ovr}</span></div>
+        <div className="row" style={{ gap: 8, padding: '8px 16px', background: 'rgba(46, 230, 160,0.25)', animation: 'inR .7s .7s cubic-bezier(.3,1.3,.5,1) both' }}><span style={{ color: '#2EE6A0', fontWeight: 900 }}>▲ IN</span><b>{p1?.name}</b><span className="lz" style={{ color: '#2EE6A0' }}>{p1?.ovr}</span></div>
         <span className="tiny" style={{ color: 'var(--soft)', fontWeight: 700 }}>{e.text.startsWith("Manager") ? 'Manager’s decision' : 'Assistant’s decision'}</span>
       </div>
     );
   }
   if (e.type === 'var') {
     return (
-      <div className="ov" style={{ background: 'rgba(8,4,24,0.75)', gap: 8 }}>
-        <div style={{ position: 'relative', width: 190, height: 110, border: '3px solid #7FE9F7', background: 'repeating-linear-gradient(0deg, rgba(127,233,247,0.08) 0 2px, transparent 2px 6px)', overflow: 'hidden' }}>
-          <span style={{ position: 'absolute', left: 0, right: 0, height: 3, background: '#7FE9F7', boxShadow: '0 0 12px #7FE9F7', animation: 'varScan 1.1s ease-in-out 2 alternate' }} />
-          <span className="lz" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 40, color: '#7FE9F7', letterSpacing: 4 }}>VAR</span>
+      <div className="ov" style={{ background: 'rgba(4, 10, 20,0.75)', gap: 8 }}>
+        <div style={{ position: 'relative', width: 190, height: 110, border: '3px solid #5FD3F3', background: 'repeating-linear-gradient(0deg, rgba(95, 211, 243,0.08) 0 2px, transparent 2px 6px)', overflow: 'hidden' }}>
+          <span style={{ position: 'absolute', left: 0, right: 0, height: 3, background: '#5FD3F3', boxShadow: '0 0 12px #5FD3F3', animation: 'varScan 1.1s ease-in-out 2 alternate' }} />
+          <span className="lz" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 40, color: '#5FD3F3', letterSpacing: 4 }}>VAR</span>
         </div>
-        <span className="lz" style={{ fontSize: 20, color: '#F3EEFF', animation: 'fadeUp .4s 1.4s both' }}>{e.text.includes('overturns') ? 'PENALTY OVERTURNED' : 'GOAL RULED OUT'}</span>
+        <span className="lz" style={{ fontSize: 20, color: '#E8F1FA', animation: 'fadeUp .4s 1.4s both' }}>{e.text.includes('overturns') ? 'PENALTY OVERTURNED' : 'GOAL RULED OUT'}</span>
         <span className="tiny" style={{ fontWeight: 800, color: 'var(--soft)', animation: 'fadeUp .4s 1.7s both', maxWidth: '80%', textAlign: 'center' }}>{e.text}</span>
       </div>
     );
   }
   if (e.type === 'freekick') {
     return (
-      <div className="ov" style={{ background: 'rgba(10,4,20,0.4)' }}>
-        <svg width="150" height="60" viewBox="0 0 150 60" aria-hidden="true">{[0, 1, 2, 3].map((i) => <rect key={i} x={50 + i * 12} y="10" width="9" height="34" rx="4" fill={team.color1} stroke="#F3EEFF" strokeWidth="1.5" style={{ animation: `fadeUp .3s ${i * 0.08}s both` }} />)}<circle cx="20" cy="50" r="5" fill="#fff" style={{ animation: 'ballUp .8s .6s ease-in forwards' }} /></svg>
+      <div className="ov" style={{ background: 'rgba(6, 14, 26,0.4)' }}>
+        <svg width="150" height="60" viewBox="0 0 150 60" aria-hidden="true">{[0, 1, 2, 3].map((i) => <rect key={i} x={50 + i * 12} y="10" width="9" height="34" rx="4" fill={team.color1} stroke="#E8F1FA" strokeWidth="1.5" style={{ animation: `fadeUp .3s ${i * 0.08}s both` }} />)}<circle cx="20" cy="50" r="5" fill="#fff" style={{ animation: 'ballUp .8s .6s ease-in forwards' }} /></svg>
         <span className="lz" style={{ fontSize: 26, color: '#F2C14E', animation: 'zoomIn .6s both' }}>FREE KICK</span>
         <span className="tiny" style={{ fontWeight: 800 }}>{e.text}</span>
       </div>
     );
   }
   if (e.type === 'tactic') {
-    return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="kicker" style={{ color: '#F3EEFF' }}>Change of plan</span><span className="lz" style={{ fontSize: 24, color: 'var(--cyan)', animation: 'fadeUp .5s both', maxWidth: '80%' }}>{e.text}</span></div>;
+    return <div className="ov" style={{ background: 'rgba(6, 14, 26,0.35)' }}><span className="kicker" style={{ color: '#E8F1FA' }}>Change of plan</span><span className="lz" style={{ fontSize: 24, color: 'var(--cyan)', animation: 'fadeUp .5s both', maxWidth: '80%' }}>{e.text}</span></div>;
   }
   if (e.type === 'offside') {
-    return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="big" style={{ fontSize: 46, color: '#F2C14E', animation: 'stamp .5s both' }}>🚩 OFFSIDE!</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
+    return <div className="ov" style={{ background: 'rgba(6, 14, 26,0.35)' }}><span className="big" style={{ fontSize: 46, color: '#F2C14E', animation: 'stamp .5s both' }}>🚩 OFFSIDE!</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
   }
   if (e.type === 'trap') {
-    return <div className="ov" style={{ background: 'rgba(10,4,20,0.35)' }}><span className="big" style={{ fontSize: 40, animation: 'zoomIn .6s both' }}>TRAP BEATEN!</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
+    return <div className="ov" style={{ background: 'rgba(6, 14, 26,0.35)' }}><span className="big" style={{ fontSize: 40, animation: 'zoomIn .6s both' }}>TRAP BEATEN!</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
   }
   if (e.type === 'ht' || e.type === 'ft' || e.type === 'pens') {
-    return <div className="ov" style={{ background: 'rgba(10,4,20,0.55)' }}><span className="big" style={{ fontSize: 52, animation: 'zoomIn .8s both' }}>{e.type === 'ht' ? 'HALF-TIME' : e.type === 'pens' ? 'PENALTIES' : 'FULL TIME'}</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
+    return <div className="ov" style={{ background: 'rgba(6, 14, 26,0.55)' }}><span className="big" style={{ fontSize: 52, animation: 'zoomIn .8s both' }}>{e.type === 'ht' ? 'HALF-TIME' : e.type === 'pens' ? 'PENALTIES' : 'FULL TIME'}</span><span className="small" style={{ fontWeight: 800 }}>{e.text}</span></div>;
   }
   return null;
 }
@@ -673,7 +673,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
     ['Expected goals', s.xg[0], s.xg[1], (v) => v.toFixed(2)], ['Corners', s.corners[0], s.corners[1], String], ['Yellow cards', s.yellows[0], s.yellows[1], String],
   ];
   const icon = (e: Ev) => {
-    const c = e.type === 'goal' ? '#F3EEFF' : e.type === 'yellow' ? '#FFE86B' : e.type === 'red' ? '#FF4A5E' : e.type === 'injury' ? '#7CE3A1' : e.type === 'sub' ? '#7FE9F7' : '#C5B3FF';
+    const c = e.type === 'goal' ? '#E8F1FA' : e.type === 'yellow' ? '#FFE86B' : e.type === 'red' ? '#FF4A5E' : e.type === 'injury' ? '#2EE6A0' : e.type === 'sub' ? '#5FD3F3' : '#A9C8F0';
     if (e.type === 'goal') return <span style={{ width: 12, height: 12, borderRadius: '50%', background: c, flex: 'none' }} />;
     if (e.type === 'yellow' || e.type === 'red') return <span style={{ width: 10, height: 13, background: c, flex: 'none' }} />;
     if (e.type === 'sub') return <span style={{ color: c, fontWeight: 900, width: 12, flex: 'none' }}>⇅</span>;
@@ -699,7 +699,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
         <div className="row" style={{ justifyContent: 'flex-end', gap: 10, minWidth: 0 }}><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.home.name}</span><Crest c1={d.home.color1} c2={d.home.color2} size={40} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} /></div>
         <div className="col" style={{ alignItems: 'center', gap: 0 }}>
           <span className="lz" style={{ fontSize: 46, lineHeight: 1, animation: 'pop .6s both', whiteSpace: 'nowrap' }}>{hg} – {ag}</span>
-          <span className="tiny" style={{ color: '#7CE3A1', fontWeight: 900 }}>{so ? `${rep.winner === 0 ? d.home.name : d.away.name} win ${Math.max(...so.score)}–${Math.min(...so.score)} on penalties` : res ? `FULL TIME · ${res}` : 'FULL TIME'}</span>
+          <span className="tiny" style={{ color: '#2EE6A0', fontWeight: 900 }}>{so ? `${rep.winner === 0 ? d.home.name : d.away.name} win ${Math.max(...so.score)}–${Math.min(...so.score)} on penalties` : res ? `FULL TIME · ${res}` : 'FULL TIME'}</span>
         </div>
         <div className="row" style={{ gap: 10, minWidth: 0 }}><Crest c1={d.away.color1} c2={d.away.color2} size={40} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} /><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.away.name}</span></div>
         {skipped ? <span className="tag cyan simtag"><span>SIMULATED · YOU SKIPPED</span></span> : <span className="simtag"><KitPair d={d} size={26} /></span>}
@@ -710,9 +710,9 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
           <span className="kicker">What happened · <span style={{ color: 'var(--cyan)' }}>AST</span> = your assistant</span>
           {key.length === 0 && <span className="small muted">A quiet one.</span>}
           {key.map((e: Ev, i: number) => (
-            <div key={i} className="row small" style={{ gap: 8, fontWeight: 800, color: e.type === 'goal' ? (e.side === mine || mine < 0 ? '#7CE3A1' : '#FF8A80') : undefined }}>
+            <div key={i} className="row small" style={{ gap: 8, fontWeight: 800, color: e.type === 'goal' ? (e.side === mine || mine < 0 ? '#2EE6A0' : '#FF8A80') : undefined }}>
               <b style={{ width: 38, color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>{icon(e)}<span className="grow ellipsis">{txt(e)} <span className="tiny muted">{e.side === 0 ? d.home.short : d.away.short}</span></span>
-              {isAst(e) && (e.side === mine) && <span className="tag" style={{ height: 16, fontSize: 11, background: 'rgba(127,233,247,0.25)', color: '#7FE9F7' }}><span>AST</span></span>}
+              {isAst(e) && (e.side === mine) && <span className="tag" style={{ height: 16, fontSize: 11, background: 'rgba(95, 211, 243,0.25)', color: '#5FD3F3' }}><span>AST</span></span>}
             </div>
           ))}
           {so && (
@@ -720,7 +720,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
               {[0, 1].map((side) => (
                 <div key={side} className="row tiny" style={{ gap: 4, fontWeight: 900 }}>
                   <span style={{ width: 36 }}>{side === 0 ? d.home.short : d.away.short}</span>
-                  {so.kicks.filter((k: any) => k.side === side).map((k: any, i: number) => <span key={i} title={name(k.pid)} style={{ width: 16, height: 16, borderRadius: '50%', display: 'grid', placeItems: 'center', background: k.scored ? '#7CE3A1' : 'var(--red)', color: '#1B1048', fontSize: 11, animation: `pop .3s ${i * 0.15}s both` }}>{k.scored ? '✓' : '✕'}</span>)}
+                  {so.kicks.filter((k: any) => k.side === side).map((k: any, i: number) => <span key={i} title={name(k.pid)} style={{ width: 16, height: 16, borderRadius: '50%', display: 'grid', placeItems: 'center', background: k.scored ? '#2EE6A0' : 'var(--red)', color: '#06121F', fontSize: 11, animation: `pop .3s ${i * 0.15}s both` }}>{k.scored ? '✓' : '✕'}</span>)}
                 </div>
               ))}
             </div>
@@ -732,7 +732,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
             <div key={l} className="col" style={{ gap: 2 }}>
               <div className="row tiny between" style={{ fontWeight: 900 }}><b>{f(a)}</b><span className="muted">{l}</span><b>{f(b)}</b></div>
               <div className="row" style={{ gap: 3 }}>
-                <div className="bar" style={{ direction: 'rtl' }}><i style={{ width: `${(a / Math.max(0.01, a + b)) * 100}%`, background: '#E8438C' }} /></div>
+                <div className="bar" style={{ direction: 'rtl' }}><i style={{ width: `${(a / Math.max(0.01, a + b)) * 100}%`, background: '#2EE6A0' }} /></div>
                 <div className="bar"><i style={{ width: `${(b / Math.max(0.01, a + b)) * 100}%`, background: '#1F9D55' }} /></div>
               </div>
             </div>
@@ -753,10 +753,10 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
           <div className="panel cut" style={{ gap: 2 }}>
             <span className="kicker">{mine >= 0 ? 'Your ratings' : 'Ratings'}</span>
             {ratings.slice(0, 8).map((p: any) => (
-              <div key={p.id} className="row small between" style={{ fontWeight: 800 }}><span className="ellipsis">{name(p.id)}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span><b style={{ color: p.r >= 7.5 ? '#7CE3A1' : p.r < 6 ? '#FF8A80' : undefined }}>{p.r.toFixed(1)}</b></div>
+              <div key={p.id} className="row small between" style={{ fontWeight: 800 }}><span className="ellipsis">{name(p.id)}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span><b style={{ color: p.r >= 7.5 ? '#2EE6A0' : p.r < 6 ? '#FF8A80' : undefined }}>{p.r.toFixed(1)}</b></div>
             ))}
           </div>
-          {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'rgba(124,227,161,0.12)', fontWeight: 800, color: '#7CE3A1' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}
+          {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'rgba(46, 230, 160,0.12)', fontWeight: 800, color: '#2EE6A0' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}
         </section>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
@@ -810,7 +810,7 @@ function XgRace({ d }: { d: any }) {
         <path d={`M${(45 / 93) * W} 0V${H}`} stroke="rgba(255,255,255,0.15)" strokeWidth="0.4" strokeDasharray="1 1" />
         {[0, 1].map((s) => <polyline key={s} points={lines[s].map(pt).join(' ')} fill="none" stroke={col(s)} strokeWidth="1.2" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.6))' }} />)}
         {shots.filter((s) => s.goal).map((s, i) => { const before = shots.filter((x) => x.side === s.side && x.m <= s.m).reduce((a, x) => a + x.xg, 0); return <circle key={i} cx={(Math.min(93, s.m) / 93) * W} cy={H - (before / max) * H} r="1.8" fill={col(s.side)} stroke="#fff" strokeWidth="0.5" />; })}
-        <text x="0" y={H + 6} fontSize="4" fill="#B4A8E0">0'</text><text x={(45 / 93) * W - 3} y={H + 6} fontSize="4" fill="#B4A8E0">45'</text><text x={W - 6} y={H + 6} fontSize="4" fill="#B4A8E0">90'</text>
+        <text x="0" y={H + 6} fontSize="4" fill="#8FA6BF">0'</text><text x={(45 / 93) * W - 3} y={H + 6} fontSize="4" fill="#8FA6BF">45'</text><text x={W - 6} y={H + 6} fontSize="4" fill="#8FA6BF">90'</text>
       </svg>
       <div className="row tiny" style={{ gap: 12, fontWeight: 800 }}><span><i style={{ display: 'inline-block', width: 10, height: 3, background: col(0), marginRight: 4, verticalAlign: 'middle' }} />{d.home.name}</span><span><i style={{ display: 'inline-block', width: 10, height: 3, background: col(1), marginRight: 4, verticalAlign: 'middle' }} />{d.away.name}</span></div>
     </section>
@@ -831,7 +831,7 @@ function Press({ d, reload }: { d: any; reload?: () => void }) {
       {done ? (
         <>
           <div className="small" style={{ fontStyle: 'italic' }}>{res?.quote || 'You have already spoken to the press.'}</div>
-          {res?.effect && <div className="tiny" style={{ color: '#7FE9F7', fontWeight: 800 }}>{res.effect}</div>}
+          {res?.effect && <div className="tiny" style={{ color: '#5FD3F3', fontWeight: 800 }}>{res.effect}</div>}
         </>
       ) : (
         <>

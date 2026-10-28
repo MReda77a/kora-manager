@@ -15,7 +15,7 @@ const KEYS: Record<string, string[]> = {
 
 import { TRAITS } from '../../lib/game.ts';
 
-const mood = (m: number) => (m >= 85 ? ['😁', '#7CE3A1', 'Delighted'] : m >= 65 ? ['🙂', '#7FE9F7', 'Content'] : m >= 40 ? ['😐', '#F2C14E', 'Restless'] : m >= 25 ? ['😠', '#FF8A80', 'Unhappy'] : ['🤬', 'var(--red)', 'Furious']);
+const mood = (m: number) => (m >= 85 ? ['😁', '#2EE6A0', 'Delighted'] : m >= 65 ? ['🙂', '#5FD3F3', 'Content'] : m >= 40 ? ['😐', '#F2C14E', 'Restless'] : m >= 25 ? ['😠', '#FF8A80', 'Unhappy'] : ['🤬', 'var(--red)', 'Furious']);
 
 export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
   const { d, load } = useSquad(lid);
@@ -50,8 +50,8 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
                   {ps.map((p: any) => {
                     const out = p.outUntil >= d.nextDay;
                     return (
-                      <button key={p.id} className="col" style={{ gap: 3, padding: 2, outline: sel?.id === p.id ? '2px solid #7FE9F7' : 'none', outlineOffset: 1, background: sel?.id === p.id ? 'rgba(127,233,247,0.12)' : undefined }} onClick={() => setSel(p)}>
-                        <PlayerCard p={{ ...p, ovr: p.ovr + (p.form || 0) }} badge={p.request ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>WANTS OUT</span> : p.loan ? <span style={{ background: 'var(--muted)', color: '#1B1048', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>LOAN</span> : out ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.outReason === 'Suspended' ? 'SUS' : 'INJ'}</span> : p.form > 0 ? <span style={{ background: '#7CE3A1', color: '#0E3020', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>+{p.form}</span> : p.form < 0 ? <span style={{ background: '#FF8A80', color: '#3A0A12', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.form}</span> : p.listing ? <span style={{ background: '#7FE9F7', color: '#12204A', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>SALE</span> : null} />
+                      <button key={p.id} className="col" style={{ gap: 3, padding: 2, outline: sel?.id === p.id ? '2px solid #5FD3F3' : 'none', outlineOffset: 1, background: sel?.id === p.id ? 'rgba(95, 211, 243,0.12)' : undefined }} onClick={() => setSel(p)}>
+                        <PlayerCard p={{ ...p, ovr: p.ovr + (p.form || 0) }} badge={p.request ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>WANTS OUT</span> : p.loan ? <span style={{ background: 'var(--muted)', color: '#06121F', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>LOAN</span> : out ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.outReason === 'Suspended' ? 'SUS' : 'INJ'}</span> : p.form > 0 ? <span style={{ background: '#2EE6A0', color: '#0E3020', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>+{p.form}</span> : p.form < 0 ? <span style={{ background: '#FF8A80', color: '#3A0A12', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.form}</span> : p.listing ? <span style={{ background: '#5FD3F3', color: '#04202B', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>SALE</span> : null} />
                         <div className="row" style={{ gap: 3 }}><FitBar v={p.fitness} /><span title={`Morale ${p.morale}`} style={{ fontSize: 11, lineHeight: 1 }}>{mood(p.morale)[0]}</span></div>
                       </button>
                     );
@@ -68,7 +68,7 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
               <div className="col grow" style={{ gap: 2 }}>
                 <b style={{ fontSize: 15 }}>{sel.name}</b>
                 <span className="tiny muted">{sel.pos}{sel.natPos !== sel.pos ? ` (was ${sel.natPos})` : ''} · {sel.age} yrs · {sel.foot === 'L' ? 'Left' : 'Right'} foot · {sel.nat}</span>
-                <span className="tiny muted">Potential {sel.pot}{sel.ovrDelta ? <b style={{ color: sel.ovrDelta > 0 ? '#7CE3A1' : '#FF8A80' }}> · {sel.ovrDelta > 0 ? '+' : ''}{sel.ovrDelta} since signing</b> : null} · Value {sel.attrs?.v ?? '?'}M{sel.academy ? ' · Academy' : ''}</span>
+                <span className="tiny muted">Potential {sel.pot}{sel.ovrDelta ? <b style={{ color: sel.ovrDelta > 0 ? '#2EE6A0' : '#FF8A80' }}> · {sel.ovrDelta > 0 ? '+' : ''}{sel.ovrDelta} since signing</b> : null} · Value {sel.attrs?.v ?? '?'}M{sel.academy ? ' · Academy' : ''}</span>
                 <div className="row tiny" style={{ gap: 6 }}><span className="muted">Fitness</span><FitBar v={sel.fitness} /><b>{sel.fitness}%</b></div>
               </div>
             </div>
@@ -76,7 +76,7 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
               <span style={{ fontSize: 22 }}>{mood(sel.morale)[0]}</span>
               <div className="col grow" style={{ gap: 2 }}>
                 <div className="row tiny" style={{ gap: 6 }}><b style={{ color: mood(sel.morale)[1] }}>{mood(sel.morale)[2]}</b><Bar v={sel.morale} color={mood(sel.morale)[1]} h={6} /><b>{sel.morale}</b></div>
-                <span className="tiny muted"><b style={{ color: '#F3EEFF' }}>{sel.trait}</b> · {TRAITS[sel.trait]}</span>
+                <span className="tiny muted"><b style={{ color: '#E8F1FA' }}>{sel.trait}</b> · {TRAITS[sel.trait]}</span>
               </div>
             </div>
             {sel.request && <div className="small" style={{ color: 'var(--red)', fontWeight: 800 }}>He has asked to leave. Talk to him, play him, or sell him.</div>}
@@ -86,10 +86,10 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
               <button className="seg" disabled={sel.promised} onClick={() => talk('promise')}><span>{sel.promised ? 'Games promised' : 'Promise games'}</span></button>
             </div>
             {sel.outUntil >= d.nextDay && <div className="small err">{sel.outReason}: back on day {sel.outUntil + 1}</div>}
-            {sel.formNote && <div className="small" style={{ color: sel.form > 0 ? '#7CE3A1' : '#FF8A80', fontWeight: 800 }}>{sel.formNote}: {sel.form > 0 ? '+' : ''}{sel.form} rating for now</div>}
+            {sel.formNote && <div className="small" style={{ color: sel.form > 0 ? '#2EE6A0' : '#FF8A80', fontWeight: 800 }}>{sel.formNote}: {sel.form > 0 ? '+' : ''}{sel.form} rating for now</div>}
             <div className="col" style={{ gap: 4 }}>
               {KEYS[LINE[sel.pos] || 'MID'].map((k) => (
-                <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 82 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} color={(sel.attrs?.[k] ?? 0) >= 85 ? '#7CE3A1' : (sel.attrs?.[k] ?? 0) >= 70 ? '#7FE9F7' : 'var(--muted)'} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
+                <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 82 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} color={(sel.attrs?.[k] ?? 0) >= 85 ? '#2EE6A0' : (sel.attrs?.[k] ?? 0) >= 70 ? '#5FD3F3' : 'var(--muted)'} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
               ))}
             </div>
             {sel.stats && <div className="tiny muted">{sel.stats.apps} apps · {sel.stats.goals} goals · {sel.stats.assists} assists · avg {(Number(sel.stats.rating_sum) / Math.max(1, sel.stats.apps)).toFixed(1)}</div>}

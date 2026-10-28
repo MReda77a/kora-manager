@@ -10,10 +10,10 @@ import { BackHead, Crest, Spinner } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
 const OUTLETS = [
-  { name: 'Kora Daily', color: '#E8438C' }, { name: 'The Touchline', color: '#7FE9F7' }, { name: 'Matchday Times', color: '#F2C14E' },
-  { name: 'Goal Line Radio', color: '#7CE3A1' }, { name: 'The Back Page', color: '#C5B3FF' }, { name: 'Pitchside TV', color: '#FF8A65' },
+  { name: 'Kora Daily', color: '#2EE6A0' }, { name: 'The Touchline', color: '#5FD3F3' }, { name: 'Matchday Times', color: '#F2C14E' },
+  { name: 'Goal Line Radio', color: '#2EE6A0' }, { name: 'The Back Page', color: '#A9C8F0' }, { name: 'Pitchside TV', color: '#FF8A65' },
 ];
-const TONE_COLOR: Record<string, string> = { calm: '#7FE9F7', humble: '#C5B3FF', bold: '#F2C14E', fiery: '#FF6B7A', witty: '#7CE3A1', mind: '#E8A0FF' };
+const TONE_COLOR: Record<string, string> = { calm: '#5FD3F3', humble: '#A9C8F0', bold: '#F2C14E', fiery: '#FF6B7A', witty: '#2EE6A0', mind: '#B9A6FF' };
 
 export default function PressTab({ lid, d, go, toast }: TabProps) {
   const [v, setV] = useState<any>(null);
@@ -203,7 +203,7 @@ export default function PressTab({ lid, d, go, toast }: TabProps) {
             <span className="tag"><span>What your words will do</span></span>
             {v.summary.lines.length === 0 && <span className="small muted">Nothing much. A quiet press conference.</span>}
             {v.summary.lines.map((l: any, i: number) => (
-              <span key={i} className="small press-line" style={{ animationDelay: `${0.6 + i * 0.15}s`, color: l.good ? '#7CE3A1' : '#FF9AA8' }}>{l.good ? '▲' : '▼'} {l.t}</span>
+              <span key={i} className="small press-line" style={{ animationDelay: `${0.6 + i * 0.15}s`, color: l.good ? '#2EE6A0' : '#FF9AA8' }}>{l.good ? '▲' : '▼'} {l.t}</span>
             ))}
             <span className="tiny muted">The effects count in this match only. {v.opp.human ? 'The other manager has been told what you said.' : ''}</span>
             <div className="row wrap" style={{ gap: 8, marginTop: 'auto' }}>
@@ -218,10 +218,10 @@ export default function PressTab({ lid, d, go, toast }: TabProps) {
         <div className="press-mics">
           {OUTLETS.map((o, i) => (
             <svg key={o.name} width="34" height="58" viewBox="0 0 34 58" style={{ transform: `rotate(${(i - 2.5) * 5}deg)` }}>
-              <rect x="15" y="22" width="4" height="36" fill="#2A2350" />
+              <rect x="15" y="22" width="4" height="36" fill="#22344F" />
               <rect x="5" y="20" width="24" height="12" rx="2" fill={o.color} />
-              <ellipse cx="17" cy="12" rx="9" ry="11" fill="#1A1430" stroke="#4B4380" strokeWidth="1.5" />
-              <path d="M10 8h14M9 12h16M10 16h14" stroke="#4B4380" strokeWidth="1" />
+              <ellipse cx="17" cy="12" rx="9" ry="11" fill="#0E1A2B" stroke="#2C4A6B" strokeWidth="1.5" />
+              <path d="M10 8h14M9 12h16M10 16h14" stroke="#2C4A6B" strokeWidth="1" />
             </svg>
           ))}
         </div>

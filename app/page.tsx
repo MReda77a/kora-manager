@@ -40,8 +40,8 @@ export default function Home() {
 function Logo({ size = 46 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <path d="M20 1l17 10v18L20 39 3 29V11z" fill="#E8438C" />
-      <path d="M20 5l13.5 8v14L20 35 6.5 27V13z" fill="#1E1250" />
+      <path d="M20 1l17 10v18L20 39 3 29V11z" fill="#2EE6A0" />
+      <path d="M20 5l13.5 8v14L20 35 6.5 27V13z" fill="#0A1626" />
       <path d="M20 11a9 9 0 110 18 9 9 0 010-18zm0 4l-3.5 2.6 1.3 4.1h4.4l1.3-4.1z" fill="#F3EEFF" />
     </svg>
   );
@@ -116,7 +116,7 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
       <header className="row between" style={{ height: 52 }}>
         <div className="row"><Logo size={36} /><span className="lz" style={{ fontSize: 24 }}>Kora Manager</span></div>
         <div className="row">
-          <span className="muted small">Hi, <b style={{ color: '#F3EEFF' }}>{me.user!.name}</b></span>
+          <span className="muted small">Hi, <b style={{ color: '#E8F1FA' }}>{me.user!.name}</b></span>
           <SoundButton />
           <button className="ghost" onClick={logout}><span>Log out</span></button>
         </div>
@@ -133,8 +133,8 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
           <div className="row between"><span className="lz" style={{ fontSize: 22 }}>Global manager ranking</span><span className="small muted">Your reputation: <b style={{ color: '#F2C14E' }}>{(me.user as any).reputation ?? 0}</b></span></div>
           <div className="tiny muted" style={{ marginBottom: 6 }}>Win +3 · draw +1 · title +50 · cup +30 · promotion +30 · Manager of the Season +20 · relegation −20</div>
           {((me as any).ranking || []).map((r: any, i: number) => (
-            <div key={r.username} className="row small" style={{ gap: 10, padding: '5px 10px', fontWeight: 800, background: r.username === me.user!.name ? 'rgba(127,233,247,0.14)' : i % 2 ? 'rgba(255,255,255,0.03)' : undefined }}>
-              <span className="lz" style={{ width: 26, fontSize: 18, color: i === 0 ? '#F2C14E' : i < 3 ? '#7FE9F7' : 'var(--muted)' }}>{i + 1}</span>
+            <div key={r.username} className="row small" style={{ gap: 10, padding: '5px 10px', fontWeight: 800, background: r.username === me.user!.name ? 'rgba(95, 211, 243,0.14)' : i % 2 ? 'rgba(255,255,255,0.03)' : undefined }}>
+              <span className="lz" style={{ width: 26, fontSize: 18, color: i === 0 ? '#F2C14E' : i < 3 ? '#5FD3F3' : 'var(--muted)' }}>{i + 1}</span>
               <span className="grow ellipsis">{r.username}</span>
               <span className="tiny muted">{r.titles} 🏆</span>
               <b className="lz" style={{ width: 54, textAlign: 'right', fontSize: 18 }}>{r.reputation}</b>

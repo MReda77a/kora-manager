@@ -29,12 +29,12 @@ export function TableTab({ d: ov, lid }: TabProps) {
             {table.map((t: any, i: number) => {
               const z = zone(i);
               return (
-              <tr key={t.id} className={`clickrow ${t.id === club.id ? 'me' : ''}`} onClick={() => setOpen(t.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(t.id); }} title={`See ${t.name}'s squad`} style={{ boxShadow: z === 'up' ? 'inset 3px 0 0 #7CE3A1' : z === 'down' ? 'inset 3px 0 0 #FF6B7A' : i + 1 === club.targetPos && div === club.division ? 'inset 0 -2px 0 rgba(242,193,78,0.6)' : undefined }}>
+              <tr key={t.id} className={`clickrow ${t.id === club.id ? 'me' : ''}`} onClick={() => setOpen(t.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(t.id); }} title={`See ${t.name}'s squad`} style={{ boxShadow: z === 'up' ? 'inset 3px 0 0 #2EE6A0' : z === 'down' ? 'inset 3px 0 0 #FF6B7A' : i + 1 === club.targetPos && div === club.division ? 'inset 0 -2px 0 rgba(242,193,78,0.6)' : undefined }}>
                 <td><b>{i + 1}</b></td>
                 <td><span className="row" style={{ gap: 6 }}><Crest c1={t.color1} c2={t.color2} shape={t.shape} emblem={t.user_id ? t.emblem : -1} short={t.short} size={20} /><span className="ellipsis" style={{ maxWidth: 190 }}>{t.name}</span>{t.user_id ? <span className="tag cyan" style={{ height: 16, fontSize: 9 }}><span>MGR</span></span> : <span className="tiny dim hide-sm">{CLUB_TYPES[t.club_type as ClubTypeKey]?.name}</span>}</span></td>
                 <td className="num">{t.p}</td><td className="num">{t.w}</td><td className="num">{t.d}</td><td className="num">{t.l}</td>
                 <td className="num">{t.gf - t.ga > 0 ? '+' : ''}{t.gf - t.ga}</td><td className="num"><b>{t.pts}</b></td>
-                <td><span className="row" style={{ gap: 2 }}>{t.form.map((f: string, k: number) => <i key={k} style={{ width: 15, height: 15, fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', background: f === 'W' ? '#7CE3A1' : f === 'D' ? 'var(--muted)' : 'var(--red)', color: '#1B1048' }}>{f}</i>)}</span></td>
+                <td><span className="row" style={{ gap: 2 }}>{t.form.map((f: string, k: number) => <i key={k} style={{ width: 15, height: 15, fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', background: f === 'W' ? '#2EE6A0' : f === 'D' ? 'var(--muted)' : 'var(--red)', color: '#06121F' }}>{f}</i>)}</span></td>
               </tr>
               );
             })}
@@ -42,7 +42,7 @@ export function TableTab({ d: ov, lid }: TabProps) {
         </table>
         <div className="tiny muted" style={{ padding: '6px 6px 0' }}>Tap a club to see its squad.</div>
         {D > 1 && <div className="row tiny muted" style={{ gap: 14, padding: '8px 6px 2px' }}>
-          {div > 1 && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: '#7CE3A1', marginRight: 5 }} />Top {P} promoted</span>}
+          {div > 1 && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: '#2EE6A0', marginRight: 5 }} />Top {P} promoted</span>}
           {div < D && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--red)', marginRight: 5 }} />Bottom {P} relegated</span>}
         </div>}
       </div>
@@ -76,7 +76,7 @@ export function FixturesTab({ lid, d: ov }: TabProps) {
           const derby = f.ht === 'fan' && f.at === 'fan' && f.hu && f.au;
           const me = f.home_id === myId || f.away_id === myId;
           return (
-            <a key={f.id} href={`/m/${f.id}`} className="row small" style={{ color: 'inherit', padding: '7px 10px', gap: 8, background: derby ? 'rgba(242,193,78,0.16)' : f.comp === 'cup' ? 'rgba(47,230,176,0.12)' : me ? 'rgba(232,67,140,0.12)' : 'rgba(255,255,255,0.05)', fontWeight: 700 }}>
+            <a key={f.id} href={`/m/${f.id}`} className="row small" style={{ color: 'inherit', padding: '7px 10px', gap: 8, background: derby ? 'rgba(242,193,78,0.16)' : f.comp === 'cup' ? 'rgba(47,230,176,0.12)' : me ? 'rgba(46, 230, 160,0.12)' : 'rgba(255,255,255,0.05)', fontWeight: 700 }}>
               <span className="tiny" style={{ width: 54, color: f.comp === 'cup' ? '#2FE6B0' : derby ? '#F2C14E' : 'var(--dim)', fontWeight: 900 }}>{f.comp === 'cup' ? 'CUP' : derby ? 'DERBY' : `MD ${f.matchday}`}</span>
               <span className="grow ellipsis" style={{ textAlign: 'right', fontWeight: 800 }}>{f.home}</span>
               <Crest c1={f.hc} c2={f.hc2} shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={20} />
@@ -111,11 +111,11 @@ export function LeadersTab({ lid, d: ov }: TabProps) {
           {rows.map((r, i) => {
             const mine = r.club_id === ov.club.id;
             return (
-              <div key={r.player_id} className="row small" style={{ gap: 10, padding: '5px 10px', background: mine ? 'rgba(127,233,247,0.14)' : undefined, fontWeight: 800 }}>
+              <div key={r.player_id} className="row small" style={{ gap: 10, padding: '5px 10px', background: mine ? 'rgba(95, 211, 243,0.14)' : undefined, fontWeight: 800 }}>
                 <span className="lz" style={{ width: 22, fontSize: 18, color: i === 0 ? '#F2C14E' : i === 2 ? '#EE7650' : 'var(--muted)' }}>{i + 1}</span>
-                <span className="grow col" style={{ minWidth: 0, gap: 0 }}><span className="ellipsis">{r.name} {mine && <span className="tiny" style={{ color: '#7FE9F7' }}>YOURS</span>}</span><span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{r.club}</span></span>
+                <span className="grow col" style={{ minWidth: 0, gap: 0 }}><span className="ellipsis">{r.name} {mine && <span className="tiny" style={{ color: '#5FD3F3' }}>YOURS</span>}</span><span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{r.club}</span></span>
                 <span className="tiny ellipsis hide-sm" style={{ width: 130, color: 'var(--soft)' }}><i style={{ display: 'inline-block', width: 8, height: 8, background: r.color1, transform: 'rotate(45deg)', marginRight: 6 }} />{r.club}</span>
-                <div className="hide-sm" style={{ width: 150 }}><div className="bar" style={{ height: 8 }}><i style={{ width: `${(val(r) / max) * 100}%`, background: i === 0 ? '#F2C14E' : mine ? '#E8438C' : '#7FE9F7' }} /></div></div>
+                <div className="hide-sm" style={{ width: 150 }}><div className="bar" style={{ height: 8 }}><i style={{ width: `${(val(r) / max) * 100}%`, background: i === 0 ? '#F2C14E' : mine ? '#2EE6A0' : '#5FD3F3' }} /></div></div>
                 <span className="lz" style={{ width: 40, textAlign: 'right', fontSize: 20 }}>{val(r)}</span>
               </div>
             );
@@ -123,13 +123,13 @@ export function LeadersTab({ lid, d: ov }: TabProps) {
         </section>
         <aside className="col" style={{ gap: 10 }}>
           <div className="panel cut" style={{ alignItems: 'center', textAlign: 'center' }}>
-            <svg width="44" height="54" viewBox="0 0 44 54" aria-hidden="true"><path d="M14 0h16l-4 18h-8z" fill="#E8438C" /><circle cx="22" cy="34" r="17" fill="#F2C14E" /><path d="M22 24l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#B5860A" /></svg>
+            <svg width="44" height="54" viewBox="0 0 44 54" aria-hidden="true"><path d="M14 0h16l-4 18h-8z" fill="#2EE6A0" /><circle cx="22" cy="34" r="17" fill="#F2C14E" /><path d="M22 24l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#B5860A" /></svg>
             <span className="lz" style={{ fontSize: 20, color: '#F2C14E' }}>{title}</span>
             <span className="tiny muted">{top ? (mineTop && mineTop !== top ? `${mineTop.name} is ${(val(top) - val(mineTop)).toFixed(tab === 'rating' ? 2 : 0)} behind ${top.name}` : `${top.name} leads with ${val(top)}`) : 'Nobody yet'}</span>
           </div>
           <div className="panel cut" style={{ gap: 6 }}>
             <span className="kicker">How awards affect players</span>
-            <div className="row-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}><b className="small" style={{ color: '#7CE3A1' }}>Team of the Week</b><span className="tiny">+2 rating for the next 2 days.</span></div>
+            <div className="row-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}><b className="small" style={{ color: '#2EE6A0' }}>Team of the Week</b><span className="tiny">+2 rating for the next 2 days.</span></div>
             <div className="row-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}><b className="small" style={{ color: '#F2C14E' }}>Player of the Month</b><span className="tiny">Winner +3 for 4 days. Nominees who lose sulk: −2 for 2 days.</span></div>
           </div>
         </aside>

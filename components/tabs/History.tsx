@@ -33,13 +33,13 @@ export default function HistoryTab({ lid, d: ov }: TabProps) {
               <div key={dv.d} className="col" style={{ gap: 2 }}>
                 <span className="kicker">{dv.name}</span>
                 {dv.table.slice(0, 3).map((t: any) => (
-                  <div key={t.id} className="row small" style={{ gap: 8, fontWeight: 800, color: t.id === ov.club.id ? '#7FE9F7' : undefined }}>
+                  <div key={t.id} className="row small" style={{ gap: 8, fontWeight: 800, color: t.id === ov.club.id ? '#5FD3F3' : undefined }}>
                     <span className="lz" style={{ width: 20, color: t.pos === 1 ? '#F2C14E' : 'var(--muted)' }}>{t.pos}</span>
                     <i style={{ width: 8, height: 8, background: t.color1, transform: 'rotate(45deg)' }} />
                     <span className="grow ellipsis">{t.name}</span><span>{t.pts} pts</span>
                   </div>
                 ))}
-                {(() => { const me = dv.table.find((t: any) => t.id === ov.club.id); return me && me.pos > 3 ? <div className="tiny" style={{ color: '#7FE9F7', fontWeight: 800 }}>You: {me.pos}th, {me.pts} pts</div> : null; })()}
+                {(() => { const me = dv.table.find((t: any) => t.id === ov.club.id); return me && me.pos > 3 ? <div className="tiny" style={{ color: '#5FD3F3', fontWeight: 800 }}>You: {me.pos}th, {me.pts} pts</div> : null; })()}
               </div>
             ))}
             {s.cup?.winner && <div className="row small" style={{ gap: 8, fontWeight: 800 }}><span>🏆</span><span className="grow">{s.cup.name}</span><b style={{ color: '#2FE6B0' }}>{s.cup.winner}</b></div>}
@@ -49,7 +49,7 @@ export default function HistoryTab({ lid, d: ov }: TabProps) {
           <section className="panel cut rise" style={{ gap: 6, animationDelay: '.06s' }}>
             <span className="tag cyan" style={{ alignSelf: 'flex-start' }}><span>Season awards</span></span>
             {s.awards.map((a: any) => (
-              <div key={a.title} className="row-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0, background: a.clubId === ov.club.id ? 'rgba(127,233,247,0.14)' : undefined }}>
+              <div key={a.title} className="row-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0, background: a.clubId === ov.club.id ? 'rgba(95, 211, 243,0.14)' : undefined }}>
                 <span className="tiny" style={{ color: '#F2C14E', fontWeight: 900 }}>⭐ {a.title}</span>
                 <b className="small">{a.name} <span className="muted" style={{ fontWeight: 700 }}>· {a.club}</span></b>
                 <span className="tiny muted">{a.value}</span>

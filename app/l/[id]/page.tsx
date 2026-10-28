@@ -81,7 +81,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
             <button key={sec.key} className={on ? 'on' : ''} onClick={() => go(lastIn[sec.key] && sec.tabs.includes(lastIn[sec.key]) ? lastIn[sec.key] : sec.tabs[0])} aria-current={on ? 'page' : undefined} style={{ position: 'relative' }}>
               <Icon name={sec.icon} />
               <span>{sec.label}</span>
-              {badge > 0 && <i style={{ position: 'absolute', top: 4, right: 10, minWidth: 16, height: 16, borderRadius: 8, background: '#E8438C', color: '#fff', fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', padding: '0 4px' }}>{badge}</i>}
+              {badge > 0 && <i style={{ position: 'absolute', top: 4, right: 10, minWidth: 16, height: 16, borderRadius: 8, background: '#2EE6A0', color: '#fff', fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', padding: '0 4px' }}>{badge}</i>}
             </button>
           );
         })}

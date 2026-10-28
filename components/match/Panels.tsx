@@ -165,7 +165,7 @@ export function Commentary({ shown }: { shown: Ev[] }) {
   return (
     <div className="col" style={{ gap: 4 }}>
       {shown.slice().reverse().map((e, i) => (
-        <div key={shown.length - i} className="row small" style={{ gap: 8, alignItems: 'flex-start', animation: i === 0 ? 'slidein .4s both' : undefined, fontWeight: e.type === 'goal' ? 900 : 700, color: e.type === 'goal' ? '#F3EEFF' : 'var(--soft)' }}>
+        <div key={shown.length - i} className="row small" style={{ gap: 8, alignItems: 'flex-start', animation: i === 0 ? 'slidein .4s both' : undefined, fontWeight: e.type === 'goal' ? 900 : 700, color: e.type === 'goal' ? '#E8F1FA' : 'var(--soft)' }}>
           <b style={{ width: 34, flex: 'none', color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>
           <span>{e.text}</span>
         </div>

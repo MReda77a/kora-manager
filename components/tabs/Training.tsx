@@ -41,7 +41,7 @@ export default function TrainingTab({ lid, toast }: TabProps) {
             return (
               <button key={x.id} className={`row-item ${sel === x.id ? 'sel' : ''}`} style={{ textAlign: 'left' }} onClick={() => { setSel(x.id); setTarget(null); }}>
                 <span className="col grow" style={{ gap: 0, minWidth: 0 }}><b className="small ellipsis">{x.name}</b><span className="tiny muted">{x.pos} · {x.age} yrs · {x.ovr}</span></span>
-                {t && <span className="tag" style={{ height: 20, fontSize: 11, background: t.kind === 'pos' ? 'rgba(127,233,247,0.2)' : 'rgba(124,227,161,0.2)', color: t.kind === 'pos' ? '#7FE9F7' : '#7CE3A1' }}><span>{t.kind === 'pos' ? `Learning ${t.target}` : `${t.target} +${t.amount}`}</span></span>}
+                {t && <span className="tag" style={{ height: 20, fontSize: 11, background: t.kind === 'pos' ? 'rgba(95, 211, 243,0.2)' : 'rgba(46, 230, 160,0.2)', color: t.kind === 'pos' ? '#5FD3F3' : '#2EE6A0' }}><span>{t.kind === 'pos' ? `Learning ${t.target}` : `${t.target} +${t.amount}`}</span></span>}
               </button>
             );
           })}
@@ -55,7 +55,7 @@ export default function TrainingTab({ lid, toast }: TabProps) {
                   <span className="grow"><b>{busy.kind === 'pos' ? `Learning to play ${busy.target}` : `Improving ${busy.target} (+${busy.amount})`}</b><br /><span className="tiny muted">Ready {when(busy.ends_at)}</span></span>
                   <button className="seg" onClick={() => cancel(busy.id)}><span>Stop</span></button>
                 </div>
-                <Bar v={Math.min(100, ((Date.now() - new Date(busy.started_at).getTime()) / (new Date(busy.ends_at).getTime() - new Date(busy.started_at).getTime())) * 100)} color="#7CE3A1" h={8} />
+                <Bar v={Math.min(100, ((Date.now() - new Date(busy.started_at).getTime()) / (new Date(busy.ends_at).getTime() - new Date(busy.started_at).getTime())) * 100)} color="#2EE6A0" h={8} />
               </div>
             ) : (
               <>
@@ -66,8 +66,8 @@ export default function TrainingTab({ lid, toast }: TabProps) {
                 {mode === 'attr' ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
                     {SKILLS[line].map((k) => (
-                      <button key={k} onClick={() => setTarget(k)} style={{ textAlign: 'left', padding: '6px 10px', background: target === k ? 'rgba(124,227,161,0.15)' : 'rgba(255,255,255,0.07)', boxShadow: target === k ? 'inset 0 0 0 2px #7CE3A1' : undefined }}>
-                        <div className="tiny" style={{ fontWeight: 800 }}>{k}{p.boost?.[k] ? <span style={{ color: '#7CE3A1' }}> +{p.boost[k]}</span> : null}</div>
+                      <button key={k} onClick={() => setTarget(k)} style={{ textAlign: 'left', padding: '6px 10px', background: target === k ? 'rgba(46, 230, 160,0.15)' : 'rgba(255,255,255,0.07)', boxShadow: target === k ? 'inset 0 0 0 2px #2EE6A0' : undefined }}>
+                        <div className="tiny" style={{ fontWeight: 800 }}>{k}{p.boost?.[k] ? <span style={{ color: '#2EE6A0' }}> +{p.boost[k]}</span> : null}</div>
                         <div className="lz" style={{ fontSize: 22 }}>{p.attrs[k] ?? '–'}</div>
                       </button>
                     ))}
@@ -80,8 +80,8 @@ export default function TrainingTab({ lid, toast }: TabProps) {
                   </div>
                 )}
                 {target && (
-                  <div className="panel" style={{ background: 'rgba(10,4,30,0.35)', gap: 6 }}>
-                    <div className="row between"><b>{mode === 'attr' ? target : `New position: ${target}`}</b>{mode === 'attr' && <span className="lz" style={{ fontSize: 22 }}>{cur} → <span style={{ color: '#7CE3A1' }}>{Math.min(99, cur + gain)}</span></span>}</div>
+                  <div className="panel" style={{ background: 'rgba(6, 14, 26,0.35)', gap: 6 }}>
+                    <div className="row between"><b>{mode === 'attr' ? target : `New position: ${target}`}</b>{mode === 'attr' && <span className="lz" style={{ fontSize: 22 }}>{cur} → <span style={{ color: '#2EE6A0' }}>{Math.min(99, cur + gain)}</span></span>}</div>
                     <span className="tiny muted">{mode === 'attr' ? `About ${Math.round(36 * (1 - d.coach * 0.1))} hours for +1 or +2. Up to +6 per skill each season.` : `About ${Math.round(72 * (1 - d.coach * 0.1))} hours. He then plays ${target} without the out-of-position penalty.`}</span>
                     <button className="cta small" onClick={start} disabled={d.active.length >= d.slots}><span>{d.active.length >= d.slots ? 'All slots busy' : 'Start training'}</span></button>
                   </div>

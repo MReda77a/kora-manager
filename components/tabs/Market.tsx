@@ -26,10 +26,10 @@ function Listings({ lid, toast, reload }: TabProps) {
     .sort((a: any, b: any) => (sort === 'price' ? a.price - b.price : sort === 'age' ? a.age - b.age : b[sort] - a[sort]));
   return (
     <div className="col" style={{ gap: 8 }}>
-      <BackHead title="Transfer Market" tag={<MarketModes />} right={<div className="row" style={{ gap: 8, padding: '4px 14px', transform: 'skewX(-12deg)', border: '1px solid #F2C14E' }}><span className="tiny" style={{ transform: 'skewX(12deg)', fontWeight: 900, color: 'var(--muted)' }}>BUDGET</span><span className="lz" style={{ fontSize: 22, color: '#F2C14E', transform: 'skewX(12deg)' }}>{d.money.toFixed(1)}M</span></div>} />
+      <BackHead title="Transfer Market" tag={<MarketModes />} right={<div className="row" style={{ gap: 8, padding: '4px 14px', border: '1px solid #F2C14E', borderRadius: 10 }}><span className="tiny" style={{ fontWeight: 900, color: 'var(--muted)' }}>BUDGET</span><span className="lz" style={{ fontSize: 22, color: '#F2C14E' }}>{d.money.toFixed(1)}M</span></div>} />
       <div className="row wrap" style={{ gap: 6 }}>
-        <span className="tag" style={{ background: d.window.open ? '#7CE3A1' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN${d.window.closesAt ? ` · shuts in ${timeLeft(d.window.closesAt)}` : ` · ${d.window.label}`}` : d.window.label.toUpperCase()}</span></span>
-        <input placeholder="Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
+        <span className="tag" style={{ background: d.window.open ? '#2EE6A0' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN${d.window.closesAt ? ` · shuts in ${timeLeft(d.window.closesAt)}` : ` · ${d.window.label}`}` : d.window.label.toUpperCase()}</span></span>
+        <input placeholder="Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30 }} />
         {([['all', 'Everyone'], ['league', 'This league'], ['abroad', '🌍 Abroad']] as const).map(([k, t]) => <button key={k} className={`seg ${from === k ? 'on' : ''}`} onClick={() => setFrom(k)}><span>{t}</span></button>)}
                 {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
         <span className="tiny muted" style={{ fontWeight: 900, marginLeft: 6 }}>SORT</span>
@@ -50,7 +50,7 @@ function Listings({ lid, toast, reload }: TabProps) {
                 <span className="hide-sm" style={{ width: 30 }}>{l.age}</span>
                 <span style={{ width: 110 }} className="ellipsis muted hide-sm">{l.seller}{l.bot ? ' (AI)' : ''}</span>
                 <span className="hide-sm" style={{ width: 30 }}>{l.pot}</span>
-                <b style={{ width: 56, textAlign: 'right', color: '#7FE9F7' }}>{l.price.toFixed(1)}M</b>
+                <b style={{ width: 56, textAlign: 'right', color: '#5FD3F3' }}>{l.price.toFixed(1)}M</b>
               </button>
             ))}
           </div>
@@ -58,11 +58,11 @@ function Listings({ lid, toast, reload }: TabProps) {
         <aside className="panel cut" style={{ gap: 8 }}>
           {sel ? (
             <>
-              <div className="row" style={{ gap: 10 }}><div style={{ width: 66 }}><PlayerCard p={sel} /></div><div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.nat}</span>{sel.abroad && <span className="tiny" style={{ color: '#7FE9F7', fontWeight: 800 }}>🌍 From a club abroad</span>}<span className="tiny muted">Seller: {sel.seller}</span></div></div>
+              <div className="row" style={{ gap: 10 }}><div style={{ width: 66 }}><PlayerCard p={sel} /></div><div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.nat}</span>{sel.abroad && <span className="tiny" style={{ color: '#5FD3F3', fontWeight: 800 }}>🌍 From a club abroad</span>}<span className="tiny muted">Seller: {sel.seller}</span></div></div>
               {['Pace', 'Passing', 'Finishing', 'Tackling', 'Stamina'].map((k) => (
                 <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 62 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
               ))}
-              <div className="row between"><span className="lz" style={{ fontSize: 26, color: '#7FE9F7' }}>{sel.price.toFixed(1)}M</span><span className="tiny muted">value ≈ {sel.attrs?.v}M</span></div>
+              <div className="row between"><span className="lz" style={{ fontSize: 26, color: '#5FD3F3' }}>{sel.price.toFixed(1)}M</span><span className="tiny muted">value ≈ {sel.attrs?.v}M</span></div>
               {sel.sellerId === d.myClub ? <span className="tag"><span>Your listing</span></span> : <button className="cta" disabled={!d.window.open || d.money < sel.price} onClick={() => buy(sel)}><span>{d.money < sel.price ? 'Not enough money' : 'Buy now'}</span></button>}
             </>
           ) : <span className="small muted">Pick a player to see details.</span>}
@@ -137,8 +137,8 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
     <div className="col" style={{ gap: 8 }}>
       <BackHead title="Transfer Market" tag={<MarketModes />} right={<span className="lz" style={{ fontSize: 22, color: '#F2C14E' }}>{money.toFixed(1)}M</span>} />
       <div className="row wrap" style={{ gap: 6 }}>
-        <span className="tag" style={{ background: win.open ? '#7CE3A1' : 'var(--red)', color: win.open ? '#0E3020' : '#fff' }}><span>{win.open ? `WINDOW OPEN${win.closesAt ? ` · shuts in ${timeLeft(win.closesAt)}` : ` · ${win.label}`}` : win.label.toUpperCase()}</span></span>
-        <input placeholder="Player or club…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30, transform: 'skewX(-12deg)' }} />
+        <span className="tag" style={{ background: win.open ? '#2EE6A0' : 'var(--red)', color: win.open ? '#0E3020' : '#fff' }}><span>{win.open ? `WINDOW OPEN${win.closesAt ? ` · shuts in ${timeLeft(win.closesAt)}` : ` · ${win.label}`}` : win.label.toUpperCase()}</span></span>
+        <input placeholder="Player or club…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30 }} />
         {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
       </div>
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(230px, 270px)', gap: 12 }}>
@@ -151,7 +151,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
                 <span style={{ width: 36 }} className="muted">{p.pos}</span>
                 <span className="hide-sm" style={{ width: 28 }}>{p.age}</span>
                 <span style={{ flex: '1.4 1 0', minWidth: 0, maxWidth: 140 }} className="ellipsis muted"><i style={{ display: 'inline-block', width: 7, height: 7, background: p.color1, transform: 'rotate(45deg)', marginRight: 5 }} />{p.club}{p.human ? '' : ' (AI)'}</span>
-                <b style={{ width: 48, textAlign: 'right', color: '#7FE9F7' }}>{p.v.toFixed(1)}M</b>
+                <b style={{ width: 48, textAlign: 'right', color: '#5FD3F3' }}>{p.v.toFixed(1)}M</b>
               </button>
             ))}
           </div>
@@ -181,7 +181,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
   );
 }
 
-const STATUS_COLOR: Record<string, string> = { pending: '#F2C14E', countered: '#7FE9F7', accepted: '#7CE3A1', rejected: 'var(--red)', withdrawn: 'var(--dim)', expired: 'var(--dim)' };
+const STATUS_COLOR: Record<string, string> = { pending: '#F2C14E', countered: '#5FD3F3', accepted: '#2EE6A0', rejected: 'var(--red)', withdrawn: 'var(--dim)', expired: 'var(--dim)' };
 
 function OffersInbox({ lid, toast, reload }: TabProps) {
   const [d, setD] = useState<any>(null);

@@ -28,11 +28,11 @@ export default function LiveAlert({ live, club }: { live: any[]; club: any }) {
   };
   const derby = f.ht === 'fan' && f.at === 'fan' && f.hu && f.au;
   const cup = f.comp === 'cup';
-  const accent = derby ? '#F2C14E' : cup ? '#2FE6B0' : '#E8438C';
+  const accent = derby ? '#F2C14E' : cup ? '#2FE6B0' : '#2EE6A0';
   return (
     <div className="overlay" style={{ zIndex: 70 }}>
       <div className={`panel cut ${derby ? 'theme-derby' : cup ? 'theme-cup' : ''}`} style={{ width: 'min(520px, 100%)', alignItems: 'center', textAlign: 'center', gap: 10, padding: 18, animation: 'pop .4s both' }}>
-        <span className="tag" style={{ background: accent, color: derby || cup ? '#1B1048' : '#fff' }}><span>{derby ? 'DERBY · KICK-OFF' : cup ? 'CUP · KICK-OFF' : 'KICK-OFF'}</span></span>
+        <span className="tag" style={{ background: accent, color: derby || cup ? '#06121F' : '#fff' }}><span>{derby ? 'DERBY · KICK-OFF' : cup ? 'CUP · KICK-OFF' : 'KICK-OFF'}</span></span>
         <div className="row" style={{ gap: 16, justifyContent: 'center' }}>
           <Crest c1={f.hc} c2={f.hc2} shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={52} />
           <span className="lz" style={{ fontSize: 30, color: accent, animation: 'beat 1s infinite' }}>LIVE</span>
@@ -45,7 +45,7 @@ export default function LiveAlert({ live, club }: { live: any[]; club: any }) {
           <a className="ghost" href={`/m/${f.id}?skip=1`} onClick={dismiss}><span>Skip to result</span></a>
         </div>
         {'Notification' in globalThis && typeof Notification !== 'undefined' && Notification.permission === 'default' && (
-          <button className="tiny" style={{ color: '#7FE9F7', fontWeight: 800 }} onClick={() => Notification.requestPermission()}>Turn on kick-off notifications</button>
+          <button className="tiny" style={{ color: '#5FD3F3', fontWeight: 800 }} onClick={() => Notification.requestPermission()}>Turn on kick-off notifications</button>
         )}
         <button className="tiny muted" onClick={dismiss}>Later</button>
       </div>

@@ -46,7 +46,7 @@ export function PlayerCard({ p, style, onClick, selected, badge }: { p: P; style
     <div
       className={`pcard ${tier(p.ovr)}`}
       onClick={onClick}
-      style={{ cursor: onClick ? 'pointer' : undefined, outline: selected ? '3px solid #7FE9F7' : undefined, ...style }}
+      style={{ cursor: onClick ? 'pointer' : undefined, outline: selected ? '3px solid #5FD3F3' : undefined, ...style }}
     >
       <div className="no">{p.num ?? shirt(p.id, p.pos)}</div>
       <div style={{ position: 'relative' }}>
@@ -60,7 +60,7 @@ export function PlayerCard({ p, style, onClick, selected, badge }: { p: P; style
 }
 
 export function FitBar({ v }: { v: number }) {
-  const c = v >= 80 ? '#7CE3A1' : v >= 60 ? '#F2C14E' : 'var(--red)';
+  const c = v >= 80 ? '#2EE6A0' : v >= 60 ? '#F2C14E' : 'var(--red)';
   return (
     <div className="bar" style={{ maxWidth: 60, height: 5 }}>
       <i style={{ width: `${Math.max(4, v)}%`, background: c }} />
@@ -89,7 +89,7 @@ export function Coin({ size = 16 }: { size?: number }) {
 }
 export function Cash({ size = 16 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1l8 6-8 12L2 7z" fill="#7FE9F7" /><path d="M2 7h16" stroke="#E6FDFF" strokeWidth="1" /></svg>
+    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1l8 6-8 12L2 7z" fill="#5FD3F3" /><path d="M2 7h16" stroke="#E6FDFF" strokeWidth="1" /></svg>
   );
 }
 
@@ -139,7 +139,7 @@ export function Spinner() {
 export function MiniCard({ p, selected, dim }: { p: P; selected?: boolean; dim?: boolean }) {
   const last = p.name.split(' ').slice(-1)[0];
   return (
-    <div className={`pcard ${tier(p.ovr)}`} style={{ aspectRatio: 'auto', width: 'auto', padding: '3px 6px 4px', clipPath: 'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)', outline: selected ? '3px solid #7FE9F7' : undefined, opacity: dim ? 0.45 : 1, alignItems: 'center', gap: 0, minWidth: 54 }}>
+    <div className={`pcard ${tier(p.ovr)}`} style={{ aspectRatio: 'auto', width: 'auto', padding: '3px 6px 4px', clipPath: 'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)', outline: selected ? '3px solid #5FD3F3' : undefined, opacity: dim ? 0.45 : 1, alignItems: 'center', gap: 0, minWidth: 54 }}>
       <span className="lz" style={{ fontSize: 17, lineHeight: 1 }}>{p.ovr}</span>
       <span style={{ fontSize: 11, fontWeight: 900, maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{last}</span>
     </div>
@@ -147,7 +147,7 @@ export function MiniCard({ p, selected, dim }: { p: P; selected?: boolean; dim?:
 }
 
 export function BackHead({ title, sub, onBack, href, right, tag }: { title: string; sub?: React.ReactNode; onBack?: () => void; href?: string; right?: React.ReactNode; tag?: React.ReactNode }) {
-  const arrow = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3EEFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>;
+  const arrow = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8F1FA" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>;
   return (
     <header className="row between backhead" style={{ minHeight: 44, flex: 'none', gap: 12, flexWrap: 'wrap', rowGap: 6 }}>
       <div className="row" style={{ gap: 12, minWidth: 0, flex: '1 1 auto' }}>
@@ -161,7 +161,7 @@ export function BackHead({ title, sub, onBack, href, right, tag }: { title: stri
   );
 }
 
-export function Ring({ v, size = 64, color = '#E8438C', track = 'rgba(255,255,255,0.12)', label, font = 22 }: { v: number; size?: number; color?: string; track?: string; label?: React.ReactNode; font?: number }) {
+export function Ring({ v, size = 64, color = '#2EE6A0', track = 'rgba(255,255,255,0.12)', label, font = 22 }: { v: number; size?: number; color?: string; track?: string; label?: React.ReactNode; font?: number }) {
   const r = size / 2 - 6, c = 2 * Math.PI * r;
   return (
     <div className="ring" style={{ width: size, height: size }}>
@@ -184,7 +184,7 @@ export function Seg<T extends string | number>({ opts, value, onPick, small }: {
   );
 }
 
-export function Bar({ v, color = '#7FE9F7', h = 6, max = 100 }: { v: number; color?: string; h?: number; max?: number }) {
+export function Bar({ v, color = '#5FD3F3', h = 6, max = 100 }: { v: number; color?: string; h?: number; max?: number }) {
   return <div className="bar" style={{ height: h }}><i style={{ width: `${Math.max(2, Math.min(100, (v / max) * 100))}%`, background: color }} /></div>;
 }
 

@@ -45,7 +45,7 @@ export default function WindowSplash({ lid, season, win, go }: { lid: number; se
           {first ? 'Every team plays every other team once.' : 'The return games: every fixture again, home and away swapped.'}
         </span>
         <div style={{ position: 'relative', margin: '8px 0', animation: 'pop .55s .8s both' }}>
-          <span className="lz" style={{ display: 'inline-block', padding: '10px 22px', fontSize: 'clamp(20px, 4.2vw, 32px)', color: '#1B1048', background: '#F2C14E', boxShadow: '0 0 0 3px #1B1048, 0 0 0 6px #F2C14E', transform: 'rotate(-2deg)' }}>
+          <span className="lz" style={{ display: 'inline-block', padding: '10px 22px', fontSize: 'clamp(20px, 4.2vw, 32px)', color: '#06121F', background: '#F2C14E', boxShadow: '0 0 0 3px #06121F, 0 0 0 6px #F2C14E', transform: 'rotate(-2deg)' }}>
             🔓 TRANSFER WINDOW OPEN
           </span>
         </div>
@@ -61,7 +61,7 @@ export default function WindowSplash({ lid, season, win, go }: { lid: number; se
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Transfer window closed" style={{ zIndex: 65, flexDirection: 'column', gap: 14, textAlign: 'center' }}>
       <div style={{ animation: 'pop .55s .2s both' }}>
-        <span className="lz" style={{ display: 'inline-block', padding: '10px 22px', fontSize: 'clamp(20px, 4.2vw, 32px)', color: '#fff', background: 'var(--red)', boxShadow: '0 0 0 3px #1B1048, 0 0 0 6px var(--red)', transform: 'rotate(-2deg)' }}>
+        <span className="lz" style={{ display: 'inline-block', padding: '10px 22px', fontSize: 'clamp(20px, 4.2vw, 32px)', color: '#fff', background: 'var(--red)', boxShadow: '0 0 0 3px #06121F, 0 0 0 6px var(--red)', transform: 'rotate(-2deg)' }}>
           🔒 TRANSFER WINDOW CLOSED
         </span>
       </div>

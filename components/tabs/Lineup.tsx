@@ -116,7 +116,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
   return (
     <div className="col" style={{ gap: 8, height: '100%' }}>
       <BackHead title="Lineup" tag={opp ? <span className="tag pink"><span>vs {opp}</span></span> : undefined}
-        right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: '#7FE9F7' }}>{strength}</span></>} />
+        right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: '#5FD3F3' }}>{strength}</span></>} />
       <div className="split" style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="col" style={{ gap: 8, minWidth: 0 }}>
           <Pitch sized>
@@ -126,7 +126,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
                 const mem = F.slots.map((sl, i) => ({ i, sl })).filter((m) => xi[m.i] && chemGroup(m.sl) === g).sort((a, b) => F.xy[a.i][1] - F.xy[b.i][1]);
                 return mem.slice(1).map((m, k) => {
                   const a = mem[k], v = chem[pairKey(xi[a.i], xi[m.i])] ?? CHEM_START;
-                  const col = v >= 70 ? '#7CE3A1' : v >= 45 ? '#F2C14E' : '#FF6B7A';
+                  const col = v >= 70 ? '#2EE6A0' : v >= 45 ? '#F2C14E' : '#FF6B7A';
                   return <line key={`${g}${k}`} x1={spreadX(F.xy[a.i][0])} y1={F.xy[a.i][1]} x2={spreadX(F.xy[m.i][0])} y2={F.xy[m.i][1]} stroke={col} strokeWidth={3} strokeOpacity={0.85} strokeDasharray={v < 45 ? '4 4' : undefined} vectorEffect="non-scaling-stroke" />;
                 });
               })}
@@ -201,7 +201,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
           <span className="tiny muted" style={{ fontWeight: 800 }}>Chemistry</span>
           {([['DEF', 'Defence'], ['MID', 'Midfield'], ['FWD', 'Attack']] as const).map(([k, label]) => {
             const v = lc[k], fx = Math.round(((v - 50) / 50) * 2.5 * 10) / 10;
-            const col = v >= 70 ? '#7CE3A1' : v >= 45 ? '#F2C14E' : '#FF6B7A';
+            const col = v >= 70 ? '#2EE6A0' : v >= 45 ? '#F2C14E' : '#FF6B7A';
             return (
               <div key={k} className="row tiny" style={{ gap: 6, fontWeight: 800 }}>
                 <span style={{ width: 62 }}>{label}</span>
@@ -213,7 +213,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
           })}
           <span className="tiny muted">Players who play together (league, cup or friendly) understand each other better. New signings start as strangers.</span
           >
-          <button className="ghost" style={{ marginTop: 'auto', borderColor: '#7FE9F7', color: '#7FE9F7' }} onClick={() => go('tactics')}><span>Advanced tactics</span></button>
+          <button className="ghost" style={{ marginTop: 'auto', borderColor: '#5FD3F3', color: '#5FD3F3' }} onClick={() => go('tactics')}><span>Advanced tactics</span></button>
           <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty}><span>{dirty ? 'Save lineup' : 'Saved'}</span></button>
         </section>
       </div>

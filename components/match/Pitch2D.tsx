@@ -284,18 +284,18 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
           const has = holder && holder.side === side && holder.k === k;
           return (
             <g key={`${side}-${k}`} transform={`translate(${x} ${y})`}>
-              {has && <circle r={3} fill="none" stroke="#7FE9F7" strokeWidth={0.5}><animate attributeName="r" values="2.6;3.4;2.6" dur="0.9s" repeatCount="indefinite" /></circle>}
-              <circle r={1.85} fill={c.color1} stroke={c.kit2 || (side ? '#151018' : '#F3EEFF')} strokeWidth={0.42} />
+              {has && <circle r={3} fill="none" stroke="#5FD3F3" strokeWidth={0.5}><animate attributeName="r" values="2.6;3.4;2.6" dur="0.9s" repeatCount="indefinite" /></circle>}
+              <circle r={1.85} fill={c.color1} stroke={c.kit2 || (side ? '#151018' : '#E8F1FA')} strokeWidth={0.42} />
               <text y={0.62} textAnchor="middle" fontSize={1.7} fontWeight={900} fill={ink(c.color1)}>{num}</text>
-              {id === capOf(side) && <g transform="translate(1.55 -1.55)"><circle r={0.7} fill="#F2C14E" /><text y={0.3} textAnchor="middle" fontSize={0.9} fontWeight={900} fill="#1B1048">C</text></g>}
+              {id === capOf(side) && <g transform="translate(1.55 -1.55)"><circle r={0.7} fill="#F2C14E" /><text y={0.3} textAnchor="middle" fontSize={0.9} fontWeight={900} fill="#06121F">C</text></g>}
             </g>
           );
         }))}
         {/* the name of the man on the ball */}
         {holderPos && hName && (
           <g transform={`translate(${Math.max(8, Math.min(L - 8, holderPos[0]))} ${Math.max(4, holderPos[1] - 4.2)})`}>
-            <rect x={-((hName.length + String(hNum).length + 1) * 0.95 + 1.6) / 2} y={-1.8} width={(hName.length + String(hNum).length + 1) * 0.95 + 1.6} height={3.1} rx={0.4} fill="rgba(10,6,30,0.88)" />
-            <text y={0.55} textAnchor="middle" fontSize={1.8} fontWeight={800} fill="#F3EEFF">{hNum ? `${hNum} ` : ''}{hName}</text>
+            <rect x={-((hName.length + String(hNum).length + 1) * 0.95 + 1.6) / 2} y={-1.8} width={(hName.length + String(hNum).length + 1) * 0.95 + 1.6} height={3.1} rx={0.4} fill="rgba(6, 14, 26,0.88)" />
+            <text y={0.55} textAnchor="middle" fontSize={1.8} fontWeight={800} fill="#E8F1FA">{hNum ? `${hNum} ` : ''}{hName}</text>
           </g>
         )}
         <circle cx={ball[0]} cy={ball[1]} r={0.9} fill="#fff" stroke="rgba(0,0,0,0.4)" strokeWidth={0.18} />
@@ -304,7 +304,7 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
         <div className="p2d-chance">
           <span className="p2d-chance-ico">⚽</span>
           <span className="col" style={{ gap: 0 }}>
-            <b style={{ color: '#7CE3A1' }}>{chance.label}</b>
+            <b style={{ color: '#2EE6A0' }}>{chance.label}</b>
             <span>{team(chance.side).name}</span>
             <span className="muted">xG {chance.xg.toFixed(2)}</span>
           </span>

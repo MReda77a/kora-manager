@@ -48,7 +48,7 @@ export default function FriendlyTab({ lid, d, reload, toast }: TabProps) {
               {v.recent.map((r: any, i: number) => (
                 <button key={i} className="row-item" style={{ gap: 8, fontWeight: 800, textAlign: 'left' }} onClick={() => setRes(r)}>
                   <span className="grow ellipsis">vs {r.opp.name}</span>
-                  <b className="lz" style={{ fontSize: 18, color: r.score[0] > r.score[1] ? '#7CE3A1' : r.score[0] < r.score[1] ? '#FF8A80' : undefined }}>{r.score[0]} – {r.score[1]}</b>
+                  <b className="lz" style={{ fontSize: 18, color: r.score[0] > r.score[1] ? '#2EE6A0' : r.score[0] < r.score[1] ? '#FF8A80' : undefined }}>{r.score[0]} – {r.score[1]}</b>
                 </button>
               ))}
             </>
@@ -67,7 +67,7 @@ function Result({ r, club }: { r: any; club: any }) {
   );
   return (
     <div className="col" style={{ gap: 8, animation: 'fadeUp .4s both' }}>
-      <div className="row between"><span className="tag gold"><span>Friendly · full time</span></span><span className="tiny" style={{ fontWeight: 900, color: outcome === 'WIN' ? '#7CE3A1' : outcome === 'LOSS' ? '#FF8A80' : '#C9C0EC' }}>{outcome}</span></div>
+      <div className="row between"><span className="tag gold"><span>Friendly · full time</span></span><span className="tiny" style={{ fontWeight: 900, color: outcome === 'WIN' ? '#2EE6A0' : outcome === 'LOSS' ? '#FF8A80' : '#9FB3C9' }}>{outcome}</span></div>
       <div className="row center" style={{ gap: 12 }}>
         <span className="lz ellipsis" style={{ fontSize: 18, maxWidth: 140 }}>{club.name}</span>
         <span className="lz" style={{ fontSize: 40, animation: 'pop .5s both' }}>{r.score[0]} – {r.score[1]}</span>

@@ -37,12 +37,12 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
           <section className="panel cut rise" style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <div className="col" style={{ alignItems: 'center', gap: 4 }}>
               <span className="tag"><span>Team</span></span>
-              <Ring v={club.strength} size={84} label={club.strength} font={30} color="#E8438C" />
+              <Ring v={club.strength} size={84} label={club.strength} font={30} color="#2EE6A0" />
             </div>
             <div className="col grow" style={{ gap: 10 }}>
-              <Stat label="Morale" v={club.morale} color="#7FE9F7" />
-              <Stat label="Fitness" v={club.fitness} color="#7FE9F7" />
-              <Stat label="Fans" v={Math.round(Math.min(100, (club.fans / club.capacity) * 100))} color="#E8438C" note={`${(club.fans / 1000).toFixed(1)}k`} />
+              <Stat label="Morale" v={club.morale} color="#5FD3F3" />
+              <Stat label="Fitness" v={club.fitness} color="#5FD3F3" />
+              <Stat label="Fans" v={Math.round(Math.min(100, (club.fans / club.capacity) * 100))} color="#2EE6A0" note={`${(club.fans / 1000).toFixed(1)}k`} />
             </div>
           </section>
           <section className="panel cut rise" style={{ gap: 4, animationDelay: '.08s' }}>
@@ -51,10 +51,10 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
               const i = table.indexOf(t) + 1;
               const me = t.id === club.id;
               return (
-                <div key={t.id} className="row" style={{ height: 30, padding: '0 10px', fontWeight: 800, fontSize: 13, transform: me ? 'skewX(-10deg)' : undefined, background: me ? 'linear-gradient(90deg, rgba(127,233,247,0.32), rgba(127,233,247,0.1))' : undefined }}>
-                  <span style={{ width: 22, transform: me ? 'skewX(10deg)' : undefined, color: me ? '#fff' : 'var(--muted)' }}>{i}</span>
-                  <span className="grow ellipsis" style={{ transform: me ? 'skewX(10deg)' : undefined }}>{t.name}</span>
-                  <span style={{ transform: me ? 'skewX(10deg)' : undefined }}>{t.pts}</span>
+                <div key={t.id} className="row" style={{ height: 30, padding: '0 10px', fontWeight: 800, fontSize: 13, borderRadius: 8, background: me ? 'linear-gradient(90deg, rgba(95, 211, 243,0.32), rgba(95, 211, 243,0.1))' : undefined }}>
+                  <span style={{ width: 22, color: me ? '#fff' : 'var(--muted)' }}>{i}</span>
+                  <span className="grow ellipsis" >{t.name}</span>
+                  <span>{t.pts}</span>
                 </div>
               );
             })}
@@ -65,9 +65,9 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
             <button onClick={() => go('players')} className="pcard holo" style={{ aspectRatio: '0.74', padding: '10px 12px', textAlign: 'left' }}>
               <div className="no" style={{ fontSize: 96, opacity: 0.35 }}>{star.num ?? shirt(star.id, star.pos)}</div>
               <div style={{ position: 'relative' }}><div className="ovr" style={{ fontSize: 30 }}>{star.ovr}</div><div className="pos">{star.pos}</div></div>
-              <div style={{ marginTop: 'auto', position: 'relative', background: 'rgba(20,10,50,0.72)', color: '#F3EEFF', margin: '0 -12px -10px', padding: '6px 8px 14px', textAlign: 'center' }}>
+              <div style={{ marginTop: 'auto', position: 'relative', background: 'rgba(9, 26, 47, 0.72)', color: '#E8F1FA', margin: '0 -12px -10px', padding: '6px 8px 14px', textAlign: 'center' }}>
                 <div style={{ fontWeight: 900, fontSize: 14 }} className="ellipsis">{star.name}</div>
-                <div className="tiny" style={{ color: '#7FE9F7', fontWeight: 900 }}>Goals {star.goals} · Assists {star.assists}</div>
+                <div className="tiny" style={{ color: '#5FD3F3', fontWeight: 900 }}>Goals {star.goals} · Assists {star.assists}</div>
               </div>
             </button>
           )}
@@ -75,10 +75,10 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
         </section>
       </div>
       {d.window?.open && league.status === 'running' && (
-        <button className="row small" onClick={() => go('market')} style={{ gap: 10, flexWrap: 'wrap', rowGap: 2, padding: '8px 12px', background: 'linear-gradient(90deg, rgba(242,193,78,0.3), rgba(242,193,78,0.05))', color: '#F3EEFF', fontWeight: 800, textAlign: 'left' }}>
+        <button className="row small" onClick={() => go('market')} style={{ gap: 10, flexWrap: 'wrap', rowGap: 2, padding: '8px 12px', background: 'linear-gradient(90deg, rgba(242,193,78,0.3), rgba(242,193,78,0.05))', color: '#E8F1FA', fontWeight: 800, textAlign: 'left' }}>
           <span className="lz" style={{ fontSize: 18, color: '#F2C14E' }}>🔓 TRANSFER WINDOW OPEN</span>
           <span className="grow" style={{ minWidth: 200 }}>{d.window.round === 2 ? 'Second round' : 'First round'} · shuts in <b style={{ color: '#F2C14E' }}>{timeLeft(d.window.closesAt)}</b>. Buy, sell, loan and swap in the Market.</span>
-          {club.offers > 0 && <span className="tag" style={{ background: '#E8438C' }}><span>{club.offers} offer{club.offers > 1 ? 's' : ''} for your players</span></span>}
+          {club.offers > 0 && <span className="tag" style={{ background: '#2EE6A0' }}><span>{club.offers} offer{club.offers > 1 ? 's' : ''} for your players</span></span>}
         </button>
       )}
       {league.status === 'running' && <Today lid={lid} go={go} stamp={d} />}
@@ -88,7 +88,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
       <div className="ticker" style={{ marginTop: 'auto' }}>
         <span className="lbl">BREAKING</span>
         <div className="run" key={news.length}>
-          {news.slice(0, 10).map((n: any, i: number) => <span key={i} className="row" style={{ gap: 10 }}><i style={{ width: 8, height: 8, background: '#7FE9F7', transform: 'rotate(45deg)', display: 'inline-block' }} />{n.text}</span>)}
+          {news.slice(0, 10).map((n: any, i: number) => <span key={i} className="row" style={{ gap: 10 }}><i style={{ width: 8, height: 8, background: '#5FD3F3', transform: 'rotate(45deg)', display: 'inline-block' }} />{n.text}</span>)}
         </div>
       </div>
       <style>{`@media (max-width: 760px){ .home-grid{ grid-template-columns: 1fr 1fr !important; } } @media (max-width: 480px){ .home-grid{ grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
@@ -111,7 +111,7 @@ function MoreHome({ d, go }: { d: any; go: TabProps['go'] }) {
         {!done.length && <span className="small muted">No matches played yet.</span>}
         {done.map((f) => { const r = res(f); return (
           <a key={f.id} href={`/m/${f.id}`} className="row small" style={{ gap: 8, color: 'inherit', fontWeight: 700 }}>
-            <i style={{ width: 20, height: 20, display: 'grid', placeItems: 'center', fontStyle: 'normal', fontWeight: 900, fontSize: 11, background: r === 'W' ? '#7CE3A1' : r === 'L' ? 'var(--red)' : '#B4A8E0', color: '#1B1048' }}>{r}</i>
+            <i style={{ width: 20, height: 20, display: 'grid', placeItems: 'center', fontStyle: 'normal', fontWeight: 900, fontSize: 11, background: r === 'W' ? '#2EE6A0' : r === 'L' ? 'var(--red)' : '#8FA6BF', color: '#06121F' }}>{r}</i>
             <span className="grow ellipsis">{f.home} <b>{f.home_goals}–{f.away_goals}</b> {f.away}</span>
             <span className="tiny muted">{f.comp === 'cup' ? 'Cup' : `MD ${f.matchday}`}</span>
           </a>
@@ -149,10 +149,10 @@ function Today({ lid, go, stamp }: { lid: number; go: TabProps['go']; stamp: unk
         {s && (
           <button className="row small" style={{ gap: 8, fontWeight: 800 }} onClick={() => setOpen(!open)} aria-expanded={open}>
             <span className="muted">Match strength</span>
-            <b className="lz" style={{ fontSize: 20, color: '#7FE9F7' }}>{s.me.total}</b>
+            <b className="lz" style={{ fontSize: 20, color: '#5FD3F3' }}>{s.me.total}</b>
             <span className="muted">vs</span>
             <b className="lz" style={{ fontSize: 20 }}>{s.them.total}</b>
-            <span className="tiny" style={{ color: diff > 0.5 ? '#7CE3A1' : diff < -0.5 ? '#FF8A80' : '#C9C0EC' }}>{diff > 0 ? `+${diff}` : diff} {open ? '▲' : '▼'}</span>
+            <span className="tiny" style={{ color: diff > 0.5 ? '#2EE6A0' : diff < -0.5 ? '#FF8A80' : '#9FB3C9' }}>{diff > 0 ? `+${diff}` : diff} {open ? '▲' : '▼'}</span>
           </button>
         )}
       </div>
@@ -162,7 +162,7 @@ function Today({ lid, go, stamp }: { lid: number; go: TabProps['go']; stamp: unk
             const v = s.me.parts[k];
             return (
               <span key={k} className="tiny" style={{ padding: '3px 8px', background: 'rgba(255,255,255,0.07)', fontWeight: 800 }}>
-                {label} <b style={{ color: k === 'players' ? '#F3EEFF' : v > 0 ? '#7CE3A1' : '#FF8A80' }}>{k === 'players' ? v : v > 0 ? `+${v}` : v}</b>
+                {label} <b style={{ color: k === 'players' ? '#E8F1FA' : v > 0 ? '#2EE6A0' : '#FF8A80' }}>{k === 'players' ? v : v > 0 ? `+${v}` : v}</b>
               </span>
             );
           })}
@@ -172,7 +172,7 @@ function Today({ lid, go, stamp }: { lid: number; go: TabProps['go']; stamp: unk
       <div className="col" style={{ gap: 2 }}>
         {t.items.map((it: any, i: number) => (
           <button key={i} className="row small" style={{ gap: 8, textAlign: 'left', fontWeight: 700, padding: '3px 0' }} onClick={() => go(it.tab)}>
-            <b style={{ width: 16, color: it.ok ? '#7CE3A1' : '#F2C14E' }}>{it.ok ? '✓' : '!'}</b>
+            <b style={{ width: 16, color: it.ok ? '#2EE6A0' : '#F2C14E' }}>{it.ok ? '✓' : '!'}</b>
             <span className="grow">{it.text}</span>
             <span className="tiny muted">›</span>
           </button>
@@ -222,7 +222,7 @@ function SeasonOver({ lid, d, reload, toast, go }: TabProps) {
       <span className="tag gold" style={{ alignSelf: 'flex-start' }}><span>Season {league.season} is over</span></span>
       {champ && <div className="lz" style={{ fontSize: 24, color: '#F2C14E' }}>🏆 {champ.name}</div>}
       <div className="small">You finished <b>{club.pos}{suffix(club.pos)}</b>{D > 1 ? ` in the ${league.divisionNames[club.division - 1]}` : ''}.
-        {up && <b style={{ color: '#7CE3A1' }}> Promoted!</b>}{down && <b style={{ color: 'var(--red)' }}> Relegated.</b>}</div>
+        {up && <b style={{ color: '#2EE6A0' }}> Promoted!</b>}{down && <b style={{ color: 'var(--red)' }}> Relegated.</b>}</div>
       <div className="tiny muted">Next season: players age, veterans retire, academy graduates arrive, loans end and you get prize money plus 300 coins.</div>
       <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
         <button className="ghost" onClick={() => go('history')}><span>Awards & history</span></button>
@@ -252,11 +252,11 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
   const live = f.status === 'live';
   const cd = countdown(new Date(f.kickoff_at).getTime(), now);
   const homeMine = f.home_id === club.id;
-  const accent = derby ? '#F2C14E' : cup ? '#2FE6B0' : '#E8438C';
+  const accent = derby ? '#F2C14E' : cup ? '#2FE6B0' : '#2EE6A0';
   return (
     <section className="panel cut rise" style={{ padding: 10, gap: 8, background: derby ? 'linear-gradient(160deg, rgba(242,193,78,0.22), rgba(242,193,78,0.05))' : cup ? 'linear-gradient(160deg, rgba(47,230,176,0.16), rgba(230,238,242,0.04))' : undefined }}>
       <div className="row between">
-        <span className="tag" style={{ background: accent, color: derby || cup ? '#1B1048' : '#fff' }}><span>{live ? 'LIVE NOW' : 'Next match'}</span></span>
+        <span className="tag" style={{ background: accent, color: derby || cup ? '#06121F' : '#fff' }}><span>{live ? 'LIVE NOW' : 'Next match'}</span></span>
         <span className="tiny" style={{ fontWeight: 900, color: accent }}>{derby ? 'DERBY' : cup ? 'CUP' : `MATCHDAY ${f.matchday}`}</span>
       </div>
       <a href={`/m/${f.id}`} style={{ position: 'relative', flex: 1, minHeight: 150, overflow: 'hidden', display: 'block', color: 'inherit' }}>
@@ -267,10 +267,10 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
             <span className="lz ellipsis" style={{ fontSize: 16, maxWidth: 120, textAlign: 'center' }}>{f.home}</span>
             {homeMine && <span className="tiny" style={{ fontWeight: 900 }}>YOU</span>}
           </div>
-          <span style={{ width: 54, height: 54, transform: 'rotate(45deg)', background: '#1B1048', border: `2px solid ${derby ? '#F2C14E' : '#7FE9F7'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 10px rgba(127,233,247,0.35)' }}>
+          <span style={{ width: 54, height: 54, transform: 'rotate(45deg)', background: '#06121F', border: `2px solid ${derby ? '#F2C14E' : '#5FD3F3'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 10px rgba(95, 211, 243,0.35)' }}>
             <span className="lz" style={{ transform: 'rotate(-45deg)', fontSize: 21 }}>VS</span>
           </span>
-          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#1E1250' }}>
+          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#0F2238' }}>
             <Crest c1={f.ac} c2="#fff" shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={50} />
             <span className="lz ellipsis" style={{ fontSize: 16, maxWidth: 120, textAlign: 'center' }}>{f.away}</span>
             {!homeMine && <span className="tiny" style={{ fontWeight: 900 }}>YOU</span>}
@@ -278,7 +278,7 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
         </div>
       </a>
       <div className="row between" style={{ gap: 8 }}>
-        {live ? <span className="lz" style={{ fontSize: 24, color: 'var(--red)', animation: 'pulse 1.2s infinite' }}>● LIVE</span> : <span className="lz" style={{ fontSize: 28, whiteSpace: 'nowrap' }}>{cd.main}{cd.sec && <span style={{ color: '#7FE9F7', fontSize: 20 }}>:{cd.sec}</span>}</span>}
+        {live ? <span className="lz" style={{ fontSize: 24, color: 'var(--red)', animation: 'pulse 1.2s infinite' }}>● LIVE</span> : <span className="lz" style={{ fontSize: 28, whiteSpace: 'nowrap' }}>{cd.main}{cd.sec && <span style={{ color: '#5FD3F3', fontSize: 20 }}>:{cd.sec}</span>}</span>}
         {live ? <a className="cta shine" href={`/m/${f.id}`}><span>Watch live</span></a> : <button className="cta shine" onClick={() => go('lineup')}><span>Set lineup</span></button>}
       </div>
     </section>
@@ -328,7 +328,7 @@ function SetupHome({ lid, d, reload, toast, go }: TabProps) {
       </section>
       <section className="panel cut rise" style={{ animationDelay: '.06s' }}>
         <div className="row between"><span className="tag cyan"><span>Invite friends</span></span><span className="tiny muted">{clubs.length}/{league.maxClubs} clubs</span></div>
-        <div className="lz" style={{ fontSize: 36, letterSpacing: 6, color: '#7FE9F7' }}>{league.code}</div>
+        <div className="lz" style={{ fontSize: 36, letterSpacing: 6, color: '#5FD3F3' }}>{league.code}</div>
         <div className="small muted">Send this code. Empty places become {['easy', 'normal', 'hard'][league.aiLevel]} AI clubs with {league.poolName.replace(' League', '')} names when the season starts.</div>
         <div className="col" style={{ gap: 4, maxHeight: 150, overflow: 'auto' }}>
           {clubs.map((c) => (
@@ -354,7 +354,7 @@ function SetupHome({ lid, d, reload, toast, go }: TabProps) {
 }
 
 function Check({ ok, text }: { ok: boolean; text: string }) {
-  return <div className="row small" style={{ gap: 8 }}><span style={{ width: 18, height: 18, display: 'grid', placeItems: 'center', background: ok ? '#7CE3A1' : 'rgba(255,255,255,0.12)', color: '#0E3020', fontWeight: 900 }}>{ok ? '✓' : ''}</span>{text}</div>;
+  return <div className="row small" style={{ gap: 8 }}><span style={{ width: 18, height: 18, display: 'grid', placeItems: 'center', background: ok ? '#2EE6A0' : 'rgba(255,255,255,0.12)', color: '#0E3020', fontWeight: 900 }}>{ok ? '✓' : ''}</span>{text}</div>;
 }
 
 export { lastName };
