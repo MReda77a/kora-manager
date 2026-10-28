@@ -84,7 +84,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
     const day = await C.nextDay(lid, c.id);
     const players = await L.squadOf(c.id, day);
     const stats = await q('SELECT * FROM pstats WHERE league_id=$1 AND club_id=$2', [lid, c.id]);
-    const listed = await q('SELECT player_id, id, price FROM listings WHERE seller_id=$1', [c.id]);
+    const [listed, win] = await Promise.all([q('SELECT player_id, id, price FROM listings WHERE seller_id=$1', [c.id]), L.windowFor(l)]);
     const st = new Map(stats.map((x) => [x.player_id, x]));
     const li = new Map(listed.map((x) => [x.player_id, x]));
     const chem = Object.fromEntries(await CH.chemPairs(c.id));
@@ -96,7 +96,8 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
         captain: c.captain || null, vice: c.vice || null,
       },
       nextDay: day, next,
-      players: players.map((p) => ({ ...L.pub(p), fitness: Math.round(p.fitness), outUntil: p.out_until, outReason: p.out_reason, form: p.form, formNote: p.form ? p.form_note : null, stats: st.get(p.id) || null, listing: li.get(p.id) || null,
+      players: players.map((p) => ({ ...L.pub(p), fitness: Math.round(p.fitness), outUntil: p.out_until, outReason: p.out_reason, form: p.form, formNote: p.form ? p.form_note : null, stats: st.get(p.id) || null, value: marketValue(p.ovr, p.age, p.pot),
+        listing: li.get(p.id) ? { ...li.get(p.id), odds: T.saleOdds(Number(li.get(p.id)!.price), marketValue(p.ovr, p.age, p.pot), players.length, win.open) } : null,
         morale: p.morale ?? 70, trait: traitOf(p.id), request: !!p.request, loan: !!p.loan_from, promised: !!p.promise_day, ovrDelta: p.ovr_delta || 0, lead: leadership(p) })),
     };
   }

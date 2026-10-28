@@ -68,7 +68,7 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
               <div className="col grow" style={{ gap: 2 }}>
                 <b style={{ fontSize: 15 }}>{sel.name}</b>
                 <span className="tiny muted">{sel.pos}{sel.natPos !== sel.pos ? ` (was ${sel.natPos})` : ''} · {sel.age} yrs · {sel.foot === 'L' ? 'Left' : 'Right'} foot · {sel.nat}</span>
-                <span className="tiny muted">Potential {sel.pot}{sel.ovrDelta ? <b style={{ color: sel.ovrDelta > 0 ? '#2EE6A0' : '#FF8A80' }}> · {sel.ovrDelta > 0 ? '+' : ''}{sel.ovrDelta} since signing</b> : null} · Value {sel.attrs?.v ?? '?'}M{sel.academy ? ' · Academy' : ''}</span>
+                <span className="tiny muted">Potential {sel.pot}{sel.ovrDelta ? <b style={{ color: sel.ovrDelta > 0 ? '#2EE6A0' : '#FF8A80' }}> · {sel.ovrDelta > 0 ? '+' : ''}{sel.ovrDelta} since signing</b> : null} · Value {sel.value ?? sel.attrs?.v ?? '?'}M{sel.academy ? ' · Academy' : ''}</span>
                 <div className="row tiny" style={{ gap: 6 }}><span className="muted">Fitness</span><FitBar v={sel.fitness} /><b>{sel.fitness}%</b></div>
               </div>
             </div>
@@ -97,9 +97,13 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
               <span className="tiny muted">Transfer market · {win.label}</span>
               {sel.listing ? (
                 <div className="row"><span className="small grow">Listed for <b>{Number(sel.listing.price).toFixed(1)}M</b></span><button className="ghost" onClick={unlist}><span>Remove</span></button></div>
-              ) : (
+              ) : null}
+              {sel.listing?.odds ? (
+                <span className="tiny" style={{ fontWeight: 800, color: sel.listing.odds.level === 'high' || sel.listing.odds.level === 'fair' ? 'var(--mint)' : sel.listing.odds.level === 'low' ? '#F2C14E' : 'var(--red)' }}>{sel.listing.odds.text}{sel.listing.odds.level === 'low' || sel.listing.odds.level === 'very low' ? ' Lower the price to sell faster.' : ''}</span>
+              ) : null}
+              {sel.listing ? null : (
                 <div className="row" style={{ gap: 6 }}>
-                  <input type="number" step="0.1" min="0.1" placeholder={`${sel.attrs?.v ?? 1}`} value={price} onChange={(e) => setPrice(e.target.value)} style={{ width: 90, height: 34 }} />
+                  <input type="number" step="0.1" min="0.1" placeholder={`${sel.value ?? sel.attrs?.v ?? 1}`} value={price} onChange={(e) => setPrice(e.target.value)} style={{ width: 90, height: 34 }} />
                   <span className="small muted">M</span>
                   <button className="cta small" disabled={!win.open || !price || sel.loan} onClick={list}><span>Sell</span></button>
                 </div>

@@ -101,14 +101,25 @@ export async function buyAbroad(uid: number, leagueId: number, abroadId: number)
 /** chance (0..1) that a listed player is bought today */
 export function saleChance(x: { price: number; v: number; age: number; ovr: number; pot: number; rating: number | null; fresh: boolean }, mood: number, deadline: boolean) {
   const ratio = x.price / Math.max(0.3, x.v);
-  const priceF = ratio <= 0.8 ? 2.2 : ratio <= 1 ? 1.6 : ratio <= 1.2 ? 1 : ratio <= 1.5 ? 0.45 : ratio <= 2 ? 0.15 : 0.04;
+  const priceF = ratio <= 0.8 ? 2.2 : ratio <= 1 ? 1.6 : ratio <= 1.25 ? 1.1 : ratio <= 1.5 ? 0.6 : ratio <= 2 ? 0.25 : 0.06;
   let appeal = 1;
   if (x.age <= 21) appeal += 0.5; else if (x.age <= 24) appeal += 0.25; else if (x.age >= 31) appeal -= 0.25;
   appeal += Math.max(0, x.pot - x.ovr) / 25;
   if (x.rating !== null) appeal += x.rating >= 7.2 ? 0.35 : x.rating < 6.3 ? -0.2 : 0;
   // deadline day: clubs abroad rush to get their deals done
-  const p = 0.22 * priceF * appeal * mood * (deadline ? 2.2 : 1) * (x.fresh && !deadline ? 0.75 : 1);
+  const p = 0.25 * priceF * appeal * mood * (deadline ? 2.2 : 1) * (x.fresh && !deadline ? 0.75 : 1);
   return Math.max(deadline ? 0.06 : 0.01, Math.min(deadline ? 0.8 : 0.55, p));
+}
+
+/** how likely a listing is to sell on an ordinary day, in words, so the manager knows when the price is too high */
+export function saleOdds(price: number, v: number, squad: number, open = true) {
+  if (!open) return { level: 'none', text: 'The transfer window is closed: nobody can buy him until it opens again.' };
+  if (squad <= MIN_SQUAD) return { level: 'none', text: `Nobody can buy him while you have only ${squad} players (minimum ${MIN_SQUAD}).` };
+  const ratio = price / Math.max(0.3, v);
+  const p = saleChance({ price, v, age: 26, ovr: 75, pot: 75, rating: null, fresh: false }, 1, false);
+  const level = p >= 0.3 ? 'high' : p >= 0.15 ? 'fair' : p >= 0.06 ? 'low' : 'very low';
+  const why = ratio > 1.25 ? ` You asked ${ratio.toFixed(1)}× his value (${v}M).` : '';
+  return { level, text: `Chance to sell each day: ${level}.${why}` };
 }
 
 export async function marketDay(l: Row, day: number, deadline: boolean) {
@@ -142,7 +153,8 @@ export async function marketDay(l: Row, day: number, deadline: boolean) {
     if (sales >= (deadline ? 8 : 4)) break;
     if (li.loan_from || li.squad <= MIN_SQUAD) continue;
     const fresh = Date.now() - new Date(li.created_at).getTime() < 20 * 3_600_000;
-    const p = saleChance({ price: Number(li.price), v: Number(li.v) || 1, age: li.age, ovr: li.ovr, pot: li.pot, rating: li.rating === null ? null : Number(li.rating), fresh }, mood, deadline);
+    // what he is worth now (training and age move it), the same value the manager sees
+    const p = saleChance({ price: Number(li.price), v: marketValue(li.ovr, li.age, li.pot), age: li.age, ovr: li.ovr, pot: li.pot, rating: li.rating === null ? null : Number(li.rating), fresh }, mood, deadline);
     if (r.next() >= p) continue;
     const price = Number(li.price);
     // an AI club of the league that needs him and can pay, otherwise a club from abroad

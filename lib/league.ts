@@ -578,6 +578,8 @@ export async function listPlayer(uid: number, leagueId: number, playerId: string
   const own = await one('SELECT loan_from FROM squad WHERE club_id=$1 AND player_id=$2', [club.id, playerId]);
   if (!own) fail(400, 'That player is not in your squad.');
   if (own.loan_from) fail(400, 'He is only here on loan.');
+  const n = Number((await one('SELECT COUNT(*)::int AS n FROM squad WHERE club_id=$1', [club.id]))?.n || 0);
+  if (n <= MIN_SQUAD) fail(400, `You have ${n} players: nobody can buy one while you are at the minimum of ${MIN_SQUAD}. Sign someone first.`);
   const pr = Math.round(Number(price) * 10) / 10;
   if (!(pr >= 0.1 && pr <= 500)) fail(400, 'Price must be between 0.1M and 500M.');
   await q(
