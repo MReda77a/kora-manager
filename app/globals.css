@@ -583,6 +583,20 @@ table.t tr.me td:first-child { box-shadow: inset 3px 0 0 var(--mint); }
 h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 
 /* the derby and cup themes, re-tuned for navy */
+.theme-derby { --mint: #F4C24E; --mintInk: #2A1A00; --green: #F4C24E; --line: rgba(255, 210, 110, 0.2);
+  background: radial-gradient(70% 60% at 50% 0%, rgba(255, 196, 70, 0.22), transparent 70%), linear-gradient(200deg, #1F1910 0%, #14100A 60%, #0A0806 100%); }
 .theme-derby .panel::before { background: linear-gradient(90deg, transparent, rgba(255, 210, 110, 0.8), transparent); }
+.theme-derby .panel { border-color: rgba(255, 210, 110, 0.22); background: linear-gradient(180deg, rgba(60, 45, 20, 0.55), rgba(20, 15, 8, 0.7)); }
+.theme-derby .panel.cut::after { border-color: rgba(255, 210, 110, 0.8); }
+.theme-derby .cta { background: linear-gradient(180deg, #FFD978, #E0A22E); color: #2A1A00; box-shadow: 0 6px 20px rgba(244, 194, 78, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45); }
+.theme-derby .cta.cyan { background: linear-gradient(180deg, #FFF0C2, #F4C24E); color: #2A1A00; }
+.theme-derby .ghost:hover { border-color: rgba(255, 210, 110, 0.6); }
+.theme-derby .seg.on, .theme-derby .chip.on { box-shadow: 0 0 14px rgba(255, 210, 110, 0.35); }
+.theme-derby .mc-top, .theme-derby .top { border-bottom-color: rgba(255, 210, 110, 0.35); }
+.theme-derby .mc-in { color: #F4C24E; }
+.theme-derby .mc-tac:hover, .theme-derby .mc-tac.on { box-shadow: inset 0 0 0 1px #F4C24E; background: rgba(244, 194, 78, 0.1); }
+.theme-derby .p2d-chance { border-color: rgba(244, 194, 78, 0.6); }
+.theme-derby .subtabs button.on { border-bottom-color: #F4C24E; text-shadow: 0 0 14px rgba(244, 194, 78, 0.4); }
+.theme-derby table.t tr.me td { background: rgba(244, 194, 78, 0.1); }
 .theme-cup .panel::before { background: linear-gradient(90deg, transparent, rgba(47, 230, 176, 0.8), transparent); }
 @media (prefers-reduced-motion: reduce) { .top::after, .mc-top::after { animation: none; } }

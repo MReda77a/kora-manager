@@ -126,8 +126,8 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
           {d.derby && (
             <div className="col" style={{ gap: 4 }}>
               <div className="row between"><span className="kicker">Tension</span><span className="lz" style={{ fontSize: 24, color: '#F2C14E' }}>{tension}%</span></div>
-              <div style={{ height: 12, background: 'repeating-linear-gradient(135deg, #E0A22E 0 10px, #2EE6A0 10px 20px)', width: `${tension}%`, transform: 'skewX(-20deg)' }} />
-              <div className="row wrap tiny" style={{ gap: 6, fontWeight: 800 }}><span className="tag" style={{ background: 'rgba(46, 230, 160,0.3)' }}><span>Cards ×1.5</span></span><span className="tag" style={{ background: 'rgba(242,193,78,0.3)' }}><span>Fans swing ×2</span></span><span className="tag"><span>Form is wilder</span></span></div>
+              <div style={{ height: 12, background: 'repeating-linear-gradient(135deg, #E0A22E 0 10px, var(--mint) 10px 20px)', width: `${tension}%`, transform: 'skewX(-20deg)' }} />
+              <div className="row wrap tiny" style={{ gap: 6, fontWeight: 800 }}><span className="tag" style={{ background: 'color-mix(in srgb, var(--mint) 30%, transparent)' }}><span>Cards ×1.5</span></span><span className="tag" style={{ background: 'rgba(242,193,78,0.3)' }}><span>Fans swing ×2</span></span><span className="tag"><span>Form is wilder</span></span></div>
             </div>
           )}
           {d.comments.length > 0 && (
@@ -699,7 +699,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
         <div className="row" style={{ justifyContent: 'flex-end', gap: 10, minWidth: 0 }}><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.home.name}</span><Crest c1={d.home.color1} c2={d.home.color2} size={40} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} /></div>
         <div className="col" style={{ alignItems: 'center', gap: 0 }}>
           <span className="lz" style={{ fontSize: 46, lineHeight: 1, animation: 'pop .6s both', whiteSpace: 'nowrap' }}>{hg} – {ag}</span>
-          <span className="tiny" style={{ color: '#2EE6A0', fontWeight: 900 }}>{so ? `${rep.winner === 0 ? d.home.name : d.away.name} win ${Math.max(...so.score)}–${Math.min(...so.score)} on penalties` : res ? `FULL TIME · ${res}` : 'FULL TIME'}</span>
+          <span className="tiny" style={{ color: 'var(--mint)', fontWeight: 900 }}>{so ? `${rep.winner === 0 ? d.home.name : d.away.name} win ${Math.max(...so.score)}–${Math.min(...so.score)} on penalties` : res ? `FULL TIME · ${res}` : 'FULL TIME'}</span>
         </div>
         <div className="row" style={{ gap: 10, minWidth: 0 }}><Crest c1={d.away.color1} c2={d.away.color2} size={40} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} /><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.away.name}</span></div>
         {skipped ? <span className="tag cyan simtag"><span>SIMULATED · YOU SKIPPED</span></span> : <span className="simtag"><KitPair d={d} size={26} /></span>}
@@ -710,7 +710,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
           <span className="kicker">What happened · <span style={{ color: 'var(--cyan)' }}>AST</span> = your assistant</span>
           {key.length === 0 && <span className="small muted">A quiet one.</span>}
           {key.map((e: Ev, i: number) => (
-            <div key={i} className="row small" style={{ gap: 8, fontWeight: 800, color: e.type === 'goal' ? (e.side === mine || mine < 0 ? '#2EE6A0' : '#FF8A80') : undefined }}>
+            <div key={i} className="row small" style={{ gap: 8, fontWeight: 800, color: e.type === 'goal' ? (e.side === mine || mine < 0 ? 'var(--mint)' : '#FF8A80') : undefined }}>
               <b style={{ width: 38, color: 'var(--cyan)' }}>{fmtMin(e.m)}</b>{icon(e)}<span className="grow ellipsis">{txt(e)} <span className="tiny muted">{e.side === 0 ? d.home.short : d.away.short}</span></span>
               {isAst(e) && (e.side === mine) && <span className="tag" style={{ height: 16, fontSize: 11, background: 'rgba(95, 211, 243,0.25)', color: '#5FD3F3' }}><span>AST</span></span>}
             </div>
@@ -732,8 +732,8 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
             <div key={l} className="col" style={{ gap: 2 }}>
               <div className="row tiny between" style={{ fontWeight: 900 }}><b>{f(a)}</b><span className="muted">{l}</span><b>{f(b)}</b></div>
               <div className="row" style={{ gap: 3 }}>
-                <div className="bar" style={{ direction: 'rtl' }}><i style={{ width: `${(a / Math.max(0.01, a + b)) * 100}%`, background: '#2EE6A0' }} /></div>
-                <div className="bar"><i style={{ width: `${(b / Math.max(0.01, a + b)) * 100}%`, background: '#1F9D55' }} /></div>
+                <div className="bar" style={{ direction: 'rtl' }}><i style={{ width: `${(a / Math.max(0.01, a + b)) * 100}%`, background: 'var(--mint)' }} /></div>
+                <div className="bar"><i style={{ width: `${(b / Math.max(0.01, a + b)) * 100}%`, background: 'color-mix(in srgb, var(--mint) 55%, #0A1626)' }} /></div>
               </div>
             </div>
           ))}
@@ -756,7 +756,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
               <div key={p.id} className="row small between" style={{ fontWeight: 800 }}><span className="ellipsis">{name(p.id)}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span><b style={{ color: p.r >= 7.5 ? '#2EE6A0' : p.r < 6 ? '#FF8A80' : undefined }}>{p.r.toFixed(1)}</b></div>
             ))}
           </div>
-          {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'rgba(46, 230, 160,0.12)', fontWeight: 800, color: '#2EE6A0' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}
+          {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'color-mix(in srgb, var(--mint) 12%, transparent)', fontWeight: 800, color: 'var(--mint)' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}
         </section>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>

@@ -304,7 +304,7 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
         <div className="p2d-chance">
           <span className="p2d-chance-ico">⚽</span>
           <span className="col" style={{ gap: 0 }}>
-            <b style={{ color: '#2EE6A0' }}>{chance.label}</b>
+            <b style={{ color: 'var(--mint)' }}>{chance.label}</b>
             <span>{team(chance.side).name}</span>
             <span className="muted">xG {chance.xg.toFixed(2)}</span>
           </span>
