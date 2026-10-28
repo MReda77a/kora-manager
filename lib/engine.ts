@@ -48,6 +48,8 @@ export type Report = {
   // the flow of play for the match screen: [minute, side, how far the move got (0 own half, 1 midfield,
   // 2 final third, 3 shot), index into shots or -1]. Logged only: it never changes the result.
   flow?: [number, 0 | 1, number, number][];
+  // how each side was set up over the match (start, then every live change), so the pitch can show the style
+  styles?: { m: number; side: 0 | 1; preset?: string; mentality: number; press: number; line: number; build: number; width: number; tempo: number }[];
 };
 
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
@@ -194,6 +196,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const penMul = [0.8, 1, 1.25][opts.strict ?? 1];
   const shotsList: Shot[] = [];
   const flow: [number, 0 | 1, number, number][] = [];
+  const styles: NonNullable<Report['styles']> = [];
+  const logStyle = (side: 0 | 1, t: Tactic) => styles.push({ m: minute, side, preset: t.preset, mentality: t.mentality, press: t.press, line: t.line, build: t.build, width: t.width, tempo: t.tempo });
   const reach = (side: 0 | 1, r: number) => {
     const f = flow[flow.length - 1];
     if (!f || f[1] !== side || f[0] !== minute || f[3] >= 0) flow.push([minute, side, r, -1]);
@@ -214,6 +218,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const ev: MatchEvent[] = [];
   const homeAdv = 1.5 + (home.homeBoost || 0);
   let minute = 0;
+  logStyle(0, S[0].tactic); logStyle(1, S[1].tactic);
   const T = (i: number) => S[i].tactic;
   const A = (i: number, k: string) => S[i].agg[k];
   const log = (type: string, side: 0 | 1, text: string, pid?: string, pid2?: string) => ev.push({ m: minute, type, side, text, pid, pid2 });
@@ -471,6 +476,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     }
     if (as.losing && minute >= 60 && diff < 0 && sd.tactic.mentality < 2 && minute % 5 === 0) {
       sd.tactic = { ...sd.tactic, mentality: 2 };
+      logStyle(side, sd.tactic);
       log('tactic', side, `${sd.s.name} go all out attack`);
       const d = sd.pitch.filter((o) => o.slot === 'DEF').sort((x, y) => x.p.ovr - y.p.ovr)[0];
       if (d) {
@@ -489,6 +495,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     }
     if (as.winning && minute >= 75 && diff > 0 && sd.tactic.mentality > 0) {
       sd.tactic = { ...sd.tactic, mentality: 0, line: Math.min(sd.tactic.line, 1) };
+      logStyle(side, sd.tactic);
       log('tactic', side, `${sd.s.name} sit back to protect the lead`);
     }
   };
@@ -500,6 +507,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       const { preset, plan, ...rest } = c.tactic;
       const before = sd.tactic.formation;
       sd.tactic = { ...sd.tactic, ...(preset && PRESETS[preset] ? stripDesc(PRESETS[preset]) : {}), ...rest, preset: preset || sd.tactic.preset };
+      logStyle(c.side, sd.tactic);
       if (sd.tactic.formation !== before && FORMATIONS[sd.tactic.formation]) {
         // re-seat the players on the pitch into the new shape, natural positions first
         const slots = [...FORMATIONS[sd.tactic.formation].slots];
@@ -697,7 +705,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     motm: motm ? motm.id : null,
     tactics: [home.tactic.preset, away.tactic.preset],
     lineups: [home, away].map((sd) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id), captain: sd.captain })),
-    shootout, winner, derby, shots: shotsList, weather, flow,
+    shootout, winner, derby, shots: shotsList, weather, flow, styles,
   };
 }
 
