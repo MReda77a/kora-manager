@@ -282,7 +282,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       }
     }
     // the crowd sings now and then; in a derby it hardly stops
-    const marks = d.derby ? [4, 28, 52, 76] : [18, 63];
+    const marks = d.derby ? [4, 20, 36, 52, 68, 82] : [12, 33, 58, 80];
     for (const k of marks) {
       if (gm >= k && gm < k + 6 && !chanted.current.has(k)) {
         chanted.current.add(k);

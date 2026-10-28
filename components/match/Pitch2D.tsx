@@ -27,7 +27,7 @@ const wave = (t: number) => 50 + Math.sin(t * 1.1) * 20 + Math.cos(t * 0.53) * 8
 // how far up the pitch (% from the attacking team's goal) a move gets
 const DEPTH = [26, 50, 72, 86];
 
-type Outcome = 'lost' | 'goal' | 'saved' | 'wide';
+type Outcome = 'lost' | 'kept' | 'goal' | 'saved' | 'wide';
 type Plan = {
   t0: number; t1: number; s: 0 | 1; r: number; sh: number; i: number;
   startX: number; targetX: number; // absolute % along the pitch (0 = home goal, 100 = away goal)
@@ -39,7 +39,11 @@ type Plan = {
 type Occ = { at: number; side: 0 | 1; out: string | null; inn: string | null }[];
 
 export function usePlan(rep: any, events: Ev[]) {
-  return useMemo(() => {
+  return useMemo(() => buildPlan(rep, events), [rep, events]);
+}
+
+export function buildPlan(rep: any, events: Ev[]) {
+  {
     const shots: Shot[] = rep.shots || [];
     const flow: Flow[] = rep.flow || [];
     const F = [0, 1].map((s) => FORMATIONS[rep.lineups?.[s]?.formation || '4-3-3'] || FORMATIONS['4-3-3']);
@@ -59,6 +63,30 @@ export function usePlan(rep: any, events: Ev[]) {
       }
       raw.push({ t0: A, t1: B, s: main[1], r: main[2], sh: main[3] });
     }
+    // possession that makes sense to the eye: a lone quiet minute of the other team between two minutes
+    // of ours is our ball all along (no ping-pong), quiet minutes of one team merge into one longer spell
+    // (up to three minutes), and the quiet minute before a shot becomes its build-up
+    for (let i = 1; i < raw.length - 1; i++) {
+      const a = raw[i - 1], b = raw[i], c = raw[i + 1];
+      if (b.sh < 0 && b.r <= 1 && a.s === c.s && b.s !== a.s && !(b.t0 < 45 && b.t1 > 45) && Math.abs(b.t0 - 45) > 0.01) b.s = a.s;
+    }
+    const spells: typeof raw = [];
+    for (const m of raw) {
+      const last = spells[spells.length - 1];
+      const joinable = last && last.s === m.s && Math.abs(last.t1 - m.t0) < 1e-6 && !(last.t1 <= 45.01 && m.t0 >= 45);
+      if (joinable && last.sh < 0 && m.sh < 0 && m.t1 - last.t0 <= 3) { last.t1 = m.t1; last.r = Math.max(last.r, m.r); continue; }
+      if (joinable && last.sh < 0 && m.sh >= 0 && last.t1 - last.t0 <= 1.01) { last.t1 = m.t1; last.sh = m.sh; last.r = Math.max(last.r, m.r); continue; }
+      spells.push({ ...m });
+    }
+    raw.length = 0; raw.push(...spells);
+    // a chance needs a build-up you can see: a one-minute attack that ends in a shot borrows time from
+    // the other team's spell before it (the shot itself stays on its minute)
+    for (let i = 1; i < raw.length; i++) {
+      const a = raw[i - 1], b = raw[i];
+      if (b.sh < 0 || a.s === b.s || b.t1 - b.t0 > 1.01 || (a.t1 <= 45.01 && b.t0 >= 45)) continue;
+      const give = Math.min(0.8, a.t1 - a.t0 - 0.6);
+      if (give > 0.05) { a.t1 -= give; b.t0 -= give; }
+    }
     const occAt = (side: 0 | 1, t: number) => {
       const ids = [...xi[side]];
       for (const c of changes) if (c.side === side && c.at <= t) { const k = ids.indexOf(c.out); if (k >= 0) ids[k] = c.inn; }
@@ -75,7 +103,8 @@ export function usePlan(rep: any, events: Ev[]) {
     raw.forEach((p, i) => {
       const s = p.s, o = (1 - s) as 0 | 1;
       const shot = p.sh >= 0 ? shots[p.sh] : null;
-      const out: Outcome = !shot ? 'lost' : shot.goal ? 'goal' : shot.on ? 'saved' : 'wide';
+      // a quiet spell only ends with the ball lost when the other team has the next move; otherwise we keep it
+      const out: Outcome = !shot ? (raw[i + 1] && raw[i + 1].s === s && !(p.t1 <= 45.01 && raw[i + 1].t0 >= 45) ? 'kept' : 'lost') : shot.goal ? 'goal' : shot.on ? 'saved' : 'wide';
       const prev = plans[i - 1];
       const ht = prev && p.t0 >= 45 && prev.t1 <= 45.01;
       let restart: Plan['restart'] = null;
@@ -104,8 +133,8 @@ export function usePlan(rep: any, events: Ev[]) {
       }
       const chain = [first];
       const want = depth(targetX) - 4;
-      // enough time on the ball for each pass to be followed (about 0.45 s each at normal speed)
-      const maxN = Math.max(2, Math.min(5, Math.floor(((p.t1 - p.t0) * 0.74 * 1.22) / 0.45) + 1)) - (shot ? 1 : 0);
+      // enough time on the ball for each pass to be followed: about a pass every 0.4 match minutes (1.3 s live)
+      const maxN = Math.max(2, Math.min(7, Math.floor(((p.t1 - p.t0) * 0.74) / 0.4) + 1)) - (shot ? 1 : 0);
       for (let n = 0; n < maxN - 1; n++) {
         const cur = chain[chain.length - 1];
         const curD = baseDepth(cur) + (Math.min(want, depth(startX)) - 50) * 0.5;
@@ -133,11 +162,11 @@ export function usePlan(rep: any, events: Ev[]) {
           })[0] ?? null;
       }
       plans.push({ ...p, i, startX, targetX, chain, out, win, restart });
-      endX = out === 'lost' ? targetX : out === 'goal' ? 50 : s === 0 ? 96 : 4;
-      endHolder = out === 'lost' && win !== null ? { side: o, k: win } : null;
+      endX = out === 'lost' || out === 'kept' ? targetX : out === 'goal' ? 50 : s === 0 ? 96 : 4;
+      endHolder = out === 'lost' && win !== null ? { side: o, k: win } : out === 'kept' ? { side: s, k: chain[chain.length - 1] } : null;
     });
     return { plans, F, occAt, shots };
-  }, [rep, events]);
+  }
 }
 
 export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: ReturnType<typeof usePlan>; mineSide: number }) {
@@ -149,7 +178,7 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
   const u = p ? c01((t - p.t0) / (p.t1 - p.t0)) : 0;
   const wy = wave(t);
   const team = (s: number) => (s === 0 ? d.home : d.away);
-  const chainEndOf = (q: typeof p) => (q ? (q.sh >= 0 ? 0.74 : q.out === 'lost' ? 0.72 : 0.8) : 1);
+  const chainEndOf = (q: typeof p) => (q ? (q.sh >= 0 ? 0.74 : q.out === 'lost' ? 0.72 : q.out === 'kept' ? 0.92 : 0.8) : 1);
   const phaseOf = (q: NonNullable<typeof p>, v: number) => lerp(q.startX, q.targetX, ease(c01(v / chainEndOf(q))));
 
   // where each player stands, given where the play is
@@ -193,6 +222,7 @@ export function Pitch2D({ d, t, plan, mineSide }: { d: any; t: number; plan: Ret
       return st;
     }
     const last = pos(s, slotAt(n - 1));
+    if (q.out === 'kept') { st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = 'Keeping the ball'; return st; }
     const w = c01((v - ce) / 0.1);
     if (q.out === 'lost') {
       const o = (1 - s) as 0 | 1;
