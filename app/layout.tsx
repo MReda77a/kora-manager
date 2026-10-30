@@ -2,11 +2,12 @@ import type { Metadata, Viewport } from 'next';
 import '@fontsource/bebas-neue/400.css';
 import './globals.css';
 import SwRegister from '../components/SwRegister.tsx';
+import Splash from '../components/Splash.tsx';
 
 export const metadata: Metadata = {
   title: 'Vamos!', description: 'Build your club, pick your tactics, beat your friends.',
   manifest: '/manifest.webmanifest',
-  icons: { icon: '/icons/icon-192.png?v=2', apple: '/icons/apple-touch-icon.png?v=2' },
+  icons: { icon: '/icons/icon-192.png?v=3', apple: '/icons/apple-touch-icon.png?v=3' },
   appleWebApp: { capable: true, title: 'Vamos!', statusBarStyle: 'black-translucent' },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#0A1626' };
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <div className="rotate">Turn your phone sideways for the best view</div>
         <SwRegister />
+        <Splash />
         {children}
       </body>
     </html>

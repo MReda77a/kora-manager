@@ -733,6 +733,9 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
     const t = setTimeout(() => { crowdBed(null); music(d.derby && res === 'WIN' ? 'derby' : 'menu'); }, skipped ? 0 : res === 'WIN' ? 12000 : 5000);
     return () => clearTimeout(t);
   }, []);
+  // a win gets the big VAMOS! (gold after a derby) for a few seconds; tap to close
+  const [vamos, setVamos] = useState(res === 'WIN');
+  useEffect(() => { if (!vamos) return; const t = setTimeout(() => setVamos(false), skipped ? 2200 : 3600); return () => clearTimeout(t); }, [vamos]);
   const motm = rep.players.find((p: any) => p.id === rep.motm);
   const name = (id?: string) => (id ? d.names[id]?.name || '' : '');
   const key = rep.events.filter((e: Ev) => ['goal', 'red', 'yellow', 'penmiss', 'injury', 'sub', 'tactic', 'var'].includes(e.type));
@@ -762,6 +765,16 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
   const so = rep.shootout;
   return (
     <div style={{ padding: '8px 14px 16px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', maxWidth: 1320, margin: '0 auto' }}>
+      {vamos && (
+        <div className={`vamos-win ${d.derby ? 'derby' : ''}`} onClick={() => setVamos(false)}>
+          {Array.from({ length: 36 }, (_, i) => <i key={i} className="vamos-conf" style={{ left: `${(i * 37) % 100}%`, background: (d.derby ? ['#F4C24E', '#fff', '#FFE48A'] : ['#2EE6A0', '#fff', '#5FD3F3'])[i % 3], animationDelay: `${(i % 9) * 0.12}s`, animationDuration: `${2.2 + (i % 5) * 0.35}s` }} />)}
+          {d.derby && <span className="vamos-chip">DERBY</span>}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={d.derby ? '/brand/vamos-word-gold.png' : '/brand/vamos-word.png'} alt="VAMOS!" className="vamos-word" />
+          <span className="lz vamos-score">{hg} – {ag}</span>
+          <span className="small" style={{ fontWeight: 800, color: 'var(--soft)' }}>{mine === 0 ? d.home.name : d.away.name} {d.derby ? 'win the derby against' : 'beat'} {mine === 0 ? d.away.name : d.home.name}</span>
+        </div>
+      )}
       <header className="ft-head" style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
         <Back d={d} />
         <div className="row" style={{ justifyContent: 'flex-end', gap: 10, minWidth: 0 }}><span className="lz ellipsis tname" style={{ fontSize: 22 }}>{d.home.name}</span><Crest c1={d.home.color1} c2={d.home.color2} size={40} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} /></div>

@@ -616,3 +616,29 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 .mc-tip { position: absolute; left: 8px; top: 8px; right: 8px; max-width: 460px; z-index: 5; display: flex; align-items: center; gap: 8px; padding: 6px 8px;
   border-radius: 12px; background: rgba(6, 14, 26, 0.92); border: 1px solid rgba(95, 211, 243, 0.45); animation: slidein .35s both; }
 .mc-tabbody .mc-mom { width: 100%; height: 30px; }
+
+/* Vamos! brand: the opening splash and the big VAMOS! after a win */
+.splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: radial-gradient(60% 80% at 50% 110%, rgba(46, 230, 160, 0.18), transparent 70%), radial-gradient(40% 60% at 8% -10%, rgba(95, 211, 243, 0.35), transparent 70%),
+    radial-gradient(40% 60% at 92% -10%, rgba(95, 211, 243, 0.35), transparent 70%), linear-gradient(#0D1D31, #060E1A);
+  transition: opacity .45s ease; overflow: hidden; }
+.splash.out { opacity: 0; pointer-events: none; }
+.splash-beam { position: absolute; top: -40px; width: 22vw; height: 120vh; background: linear-gradient(rgba(200, 250, 255, 0.2), transparent 70%); filter: blur(8px); animation: beamOn .6s ease both; }
+.splash-beam.l { left: 6vw; transform: rotate(18deg); } .splash-beam.r { right: 6vw; transform: rotate(-18deg); }
+@keyframes beamOn { from { opacity: 0; } to { opacity: 1; } }
+.splash-logo { width: min(150px, 34vh); height: min(150px, 34vh); border-radius: 22%; box-shadow: 0 0 40px rgba(46, 230, 160, 0.35), 0 10px 30px rgba(0, 0, 0, 0.6); animation: pop .6s both; }
+.splash-tag { font-family: var(--display); font-size: clamp(16px, 4vh, 24px); letter-spacing: 2px; color: var(--soft); text-align: center; padding: 0 16px; animation: slidein .5s .2s both; }
+.splash-bar { width: 200px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.splash-bar i { display: block; height: 100%; background: linear-gradient(90deg, #2EE6A0, #5FD3F3); animation: splashBar 1.2s ease-out both; }
+@keyframes splashBar { from { width: 0; } to { width: 100%; } }
+.vamos-win { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 16px; text-align: center; overflow: hidden;
+  background: radial-gradient(70% 70% at 50% 45%, rgba(46, 230, 160, 0.24), transparent 70%), rgba(6, 14, 26, 0.97); animation: fadein .3s both; }
+.vamos-win.derby { background: radial-gradient(70% 70% at 50% 45%, rgba(244, 194, 78, 0.3), transparent 70%), rgba(14, 10, 4, 0.95); }
+.vamos-word { width: min(520px, 80vw); max-height: 48vh; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6)); animation: vamosIn .7s cubic-bezier(.2, 1.5, .4, 1) both; }
+@keyframes vamosIn { from { transform: scale(.4) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.vamos-score { font-size: clamp(34px, 9vh, 56px); line-height: 1; animation: slidein .5s .35s both; }
+.vamos-chip { font-family: var(--display); font-size: 18px; letter-spacing: 1px; padding: 3px 12px; border-radius: 8px; background: #F4C24E; color: #2A1A00; }
+.vamos-conf { position: absolute; top: -20px; width: 8px; height: 13px; border-radius: 2px; animation: confFall linear infinite; }
+@keyframes confFall { from { transform: translateY(0) rotate(0); } to { transform: translateY(115vh) rotate(540deg); } }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .vamos-conf, .splash-bar i, .vamos-word, .splash-logo { animation: none; } }
