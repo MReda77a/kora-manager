@@ -7,7 +7,7 @@ import Splash from '../components/Splash.tsx';
 export const metadata: Metadata = {
   title: 'Vamos!', description: 'Build your club, pick your tactics, beat your friends.',
   manifest: '/manifest.webmanifest',
-  icons: { icon: '/icons/icon-192.png?v=3', apple: '/icons/apple-touch-icon.png?v=3' },
+  icons: { icon: '/icons/icon-192.png?v=4', apple: '/icons/apple-touch-icon.png?v=4' },
   appleWebApp: { capable: true, title: 'Vamos!', statusBarStyle: 'black-translucent' },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#0A1626' };
