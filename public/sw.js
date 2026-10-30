@@ -1,9 +1,9 @@
-// Kora Manager service worker: phone notifications. Pages always come fresh from the network.
+// Vamos! service worker: phone notifications. Pages always come fresh from the network.
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('push', (e) => {
-  let m = { title: 'Kora Manager', body: '', url: '/' };
+  let m = { title: 'Vamos!', body: '', url: '/' };
   try { m = { ...m, ...e.data.json() }; } catch {}
   e.waitUntil(self.registration.showNotification(m.title, {
     body: m.body, tag: m.tag, renotify: !!m.tag, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',

@@ -4,10 +4,10 @@ import './globals.css';
 import SwRegister from '../components/SwRegister.tsx';
 
 export const metadata: Metadata = {
-  title: 'Kora Manager', description: 'Build your club, pick your tactics, beat your friends.',
+  title: 'Vamos!', description: 'Build your club, pick your tactics, beat your friends.',
   manifest: '/manifest.webmanifest',
-  icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
-  appleWebApp: { capable: true, title: 'Kora', statusBarStyle: 'black-translucent' },
+  icons: { icon: '/icons/icon-192.png?v=2', apple: '/icons/apple-touch-icon.png?v=2' },
+  appleWebApp: { capable: true, title: 'Vamos!', statusBarStyle: 'black-translucent' },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#0A1626' };
 

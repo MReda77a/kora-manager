@@ -39,11 +39,8 @@ export default function Home() {
 
 function Logo({ size = 46 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <path d="M20 1l17 10v18L20 39 3 29V11z" fill="#2EE6A0" />
-      <path d="M20 5l13.5 8v14L20 35 6.5 27V13z" fill="#0A1626" />
-      <path d="M20 11a9 9 0 110 18 9 9 0 010-18zm0 4l-3.5 2.6 1.3 4.1h4.4l1.3-4.1z" fill="#F3EEFF" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/icons/logo-256.png" width={size} height={size} alt="" aria-hidden="true" style={{ borderRadius: size * 0.22, boxShadow: '0 6px 20px rgba(46, 230, 160, 0.25)', flex: 'none' }} />
   );
 }
 
@@ -68,8 +65,8 @@ function Auth({ onDone }: { onDone: () => void }) {
   return (
     <div style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', alignItems: 'center', gap: 20, padding: '20px 24px' }}>
       <div className="col rise" style={{ gap: 6 }}>
-        <div className="row"><Logo size={56} /><span className="lz" style={{ fontSize: 40, lineHeight: 1 }}>Kora Manager</span></div>
-        <p className="muted" style={{ margin: 0, fontSize: 15, maxWidth: 380 }}>Build your club from packs, set the tactics that beat your friends, and watch every match play out in two minutes.</p>
+        <div className="row"><Logo size={72} /><span className="lz" style={{ fontSize: 44, lineHeight: 1 }}>Vamos!</span></div>
+        <p className="muted" style={{ margin: 0, fontSize: 15, maxWidth: 380 }}>Build your club from packs, set the tactics that beat your friends, and watch every match play out live in five minutes.</p>
         <div className="row wrap" style={{ marginTop: 6 }}>
           <span className="tag pink"><span>8 leagues</span></span>
           <span className="tag"><span>Real tactics</span></span>
@@ -114,7 +111,7 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
   return (
     <div style={{ minHeight: '100dvh', padding: '10px 16px 20px' }}>
       <header className="row between" style={{ height: 52 }}>
-        <div className="row"><Logo size={36} /><span className="lz" style={{ fontSize: 24 }}>Kora Manager</span></div>
+        <div className="row"><Logo size={40} /><span className="lz" style={{ fontSize: 26 }}>Vamos!</span></div>
         <div className="row">
           <span className="muted small">Hi, <b style={{ color: '#E8F1FA' }}>{me.user!.name}</b></span>
           <SoundButton />
