@@ -26,14 +26,16 @@ function Listings({ lid, toast, reload }: TabProps) {
     .sort((a: any, b: any) => (sort === 'price' ? a.price - b.price : sort === 'age' ? a.age - b.age : b[sort] - a[sort]));
   return (
     <div className="col" style={{ gap: 8 }}>
-      <BackHead title="Transfer Market" tag={<MarketModes />} right={<div className="row" style={{ gap: 8, padding: '4px 14px', border: '1px solid #F2C14E', borderRadius: 10 }}><span className="tiny" style={{ fontWeight: 900, color: 'var(--muted)' }}>BUDGET</span><span className="lz" style={{ fontSize: 22, color: '#F2C14E' }}>{d.money.toFixed(1)}M</span></div>} />
-      <div className="row wrap" style={{ gap: 6 }}>
-        <span className="tag" style={{ background: d.window.open ? '#2EE6A0' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `WINDOW OPEN${d.window.closesAt ? ` · shuts in ${timeLeft(d.window.closesAt)}` : ` · ${d.window.label}`}` : d.window.label.toUpperCase()}</span></span>
-        <input placeholder="Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ width: 170, height: 30 }} />
-        {([['all', 'Everyone'], ['league', 'This league'], ['abroad', '🌍 Abroad']] as const).map(([k, t]) => <button key={k} className={`seg ${from === k ? 'on' : ''}`} onClick={() => setFrom(k)}><span>{t}</span></button>)}
-                {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
-        <span className="tiny muted" style={{ fontWeight: 900, marginLeft: 6 }}>SORT</span>
-        {(['ovr', 'pot', 'price', 'age'] as const).map((s) => <button key={s} className={`seg ${sort === s ? 'on' : ''}`} onClick={() => setSort(s)}><span>{s.toUpperCase()}</span></button>)}
+      <BackHead title="Transfer Market" tag={<MarketModes />} right={<>
+        <span className="tag" style={{ background: d.window.open ? '#2EE6A0' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `OPEN${d.window.closesAt ? ` · ${timeLeft(d.window.closesAt)}` : ''}` : d.window.label.toUpperCase()}</span></span>
+        <span className="lz" style={{ fontSize: 22, color: '#F2C14E' }} title="Your budget">{d.money.toFixed(1)}M</span>
+      </>} />
+      {/* one row of filters: search, position, where from, sort */}
+      <div className="row mk-filters" style={{ gap: 6 }}>
+        <input placeholder="🔍 Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ flex: '1 1 140px', minWidth: 110, maxWidth: 240, height: 32 }} aria-label="Search player" />
+        {['All', 'GK', 'DEF', 'MID', 'FWD'].map((p) => <button key={p} className={`seg ${pos === p ? 'on' : ''}`} onClick={() => setPos(p)}><span>{p}</span></button>)}
+        <select className="capsel" value={from} onChange={(e) => setFrom(e.target.value as any)} style={{ width: 'auto', flex: 'none' }} aria-label="Where from"><option value="all">Everyone</option><option value="league">This league</option><option value="abroad">🌍 Abroad</option></select>
+        <select className="capsel" value={sort} onChange={(e) => setSort(e.target.value as any)} style={{ width: 'auto', flex: 'none' }} aria-label="Sort by"><option value="ovr">Sort: rating</option><option value="pot">Sort: potential</option><option value="price">Sort: price</option><option value="age">Sort: age</option></select>
       </div>
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 2 }}>
@@ -41,7 +43,7 @@ function Listings({ lid, toast, reload }: TabProps) {
             <span style={{ width: 30 }}>OVR</span><span style={{ flex: '2 1 0', minWidth: 70 }}>PLAYER</span><span style={{ width: 36 }}>POS</span><span className="hide-sm" style={{ width: 30 }}>AGE</span><span className="hide-sm" style={{ width: 110 }}>SELLER</span><span className="hide-sm" style={{ width: 30 }}>POT</span><span style={{ width: 56, textAlign: 'right' }}>PRICE</span>
           </div>
           {rows.length === 0 && <div className="small muted" style={{ padding: 12 }}>No players here. Players from other managers, AI clubs and clubs abroad appear while the window is open. Sell your own from the Squad screen.</div>}
-          <div className="col" style={{ gap: 2, maxHeight: 300, overflowY: 'auto' }}>
+          <div className="col" style={{ gap: 2, maxHeight: 'max(260px, calc(100dvh - 190px))', overflowY: 'auto' }}>
             {rows.map((l: any) => (
               <button key={l.listingId} className={`row-item ${sel?.listingId === l.listingId ? 'sel' : ''}`} style={{ textAlign: 'left', fontWeight: 700, fontSize: 13 }} onClick={() => setSel(l)}>
                 <span className="lz" style={{ width: 30, fontSize: 18, color: l.ovr >= 85 ? '#F2C14E' : undefined }}>{l.ovr}</span>

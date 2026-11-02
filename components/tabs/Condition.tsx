@@ -22,7 +22,7 @@ export default function ConditionTab({ lid, go, reload, toast }: TabProps) {
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(170px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 0 }}>
           <div className="row tiny" style={{ color: 'var(--muted)', fontWeight: 900, padding: '0 8px 6px', gap: 8 }}>
-            <span className="grow" style={{ minWidth: 80 }}>PLAYER</span><span className="hide-sm" style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>OVR</span><span style={{ width: 76 }}>NOW</span><span style={{ width: 44 }}>MATCH</span><span style={{ width: 74 }}>STATUS</span>
+            <span className="grow" style={{ minWidth: 80 }}>PLAYER</span><span className="hide-sm" style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>OVR</span><span style={{ width: 76 }} title="Fitness right now">FIT NOW</span><span style={{ width: 44 }} title="Fitness he will have at kick-off">KICK-OFF</span><span style={{ width: 74 }}>STATUS</span>
           </div>
           <div className="col" style={{ gap: 2, maxHeight: 320, overflowY: 'auto' }}>
             {d.players.map((p: any) => (

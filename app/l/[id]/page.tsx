@@ -27,7 +27,7 @@ import LiveAlert from '../../../components/LiveAlert.tsx';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import WindowSplash from '../../../components/WindowSplash.tsx';
 import { crowdBed, music } from '../../../lib/sound.ts';
-import { SECTIONS, TABS, sectionOf, type Tab } from '../../../components/tabs/types.ts';
+import { GROUPS, SECTIONS, TABS, sectionOf, topTab, type Tab } from '../../../components/tabs/types.ts';
 
 export default function LeaguePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -82,7 +82,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           const on = sectionOf(tab).key === sec.key;
           const badge = sec.key === 'transfers' ? club.offers : sec.key === 'team' ? club.requests : 0;
           return (
-            <button key={sec.key} className={on ? 'on' : ''} onClick={() => go(lastIn[sec.key] && sec.tabs.includes(lastIn[sec.key]) ? lastIn[sec.key] : sec.tabs[0])} aria-current={on ? 'page' : undefined} style={{ position: 'relative' }}>
+            <button key={sec.key} className={on ? 'on' : ''} onClick={() => go(lastIn[sec.key] && sec.tabs.includes(topTab(lastIn[sec.key])) ? lastIn[sec.key] : sec.tabs[0])} aria-current={on ? 'page' : undefined} style={{ position: 'relative' }}>
               <Icon name={sec.icon} />
               <span>{sec.label}</span>
               {badge > 0 && <i style={{ position: 'absolute', top: 4, right: 10, minWidth: 16, height: 16, borderRadius: 8, background: '#2EE6A0', color: '#fff', fontSize: 11, fontStyle: 'normal', fontWeight: 900, display: 'grid', placeItems: 'center', padding: '0 4px' }}>{badge}</i>}
@@ -106,13 +106,16 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
         {sectionOf(tab).tabs.length > 1 && (
           <nav className="subtabs" aria-label={sectionOf(tab).label}>
             {sectionOf(tab).tabs.map((k) => (
-              <button key={k} className={tab === k ? 'on' : ''} onClick={() => go(k)} aria-current={tab === k ? 'page' : undefined}>
+              <button key={k} className={topTab(tab) === k ? 'on' : ''} onClick={() => go(k)} aria-current={topTab(tab) === k ? 'page' : undefined}>
                 <span>{TABS.find((x) => x[0] === k)![1]}</span>
               </button>
             ))}
           </nav>
         )}
         <div className="content" style={tab === 'home' ? undefined : { paddingTop: 8 }}>
+          {(() => { const g = GROUPS.find((x) => x.tabs.includes(tab)); return g ? (
+            <div className="row groupnav" role="tablist">{g.tabs.map((k, i) => <button key={k} role="tab" aria-selected={tab === k} className={`seg ${tab === k ? 'on' : ''}`} onClick={() => go(k)}><span>{g.labels[i]}</span></button>)}</div>
+          ) : null; })()}
           {tab === 'home' && <HomeTab {...props} />}
           {tab === 'lineup' && <LineupTab {...props} />}
           {tab === 'tactics' && <TacticsTab {...props} />}

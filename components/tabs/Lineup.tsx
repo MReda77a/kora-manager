@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api, shirt } from '../../lib/client.ts';
-import { FORMATIONS, LINE, PRESETS, chemGroup, lineChem, offPositionCost, pairKey, slotLabel, stripDesc, type Tactic, CHEM_START } from '../../lib/game.ts';
+import { FORMATIONS, LINE, PRESETS, ROLES, chemGroup, lineChem, offPositionCost, pairKey, roleName, slotLabel, stripDesc, type Tactic, CHEM_START } from '../../lib/game.ts';
+import TacticsTab from './Tactics.tsx';
 import { BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
@@ -52,8 +53,10 @@ export function Pitch({ children, style, sized }: { children: React.ReactNode; s
   );
 }
 
-export default function LineupTab({ lid, toast, go }: TabProps) {
-  const { d } = useSquad(lid);
+export default function LineupTab(props: TabProps) {
+  const { lid, toast, go } = props;
+  const [mode, setMode] = useState<'lineup' | 'style' | 'roles' | 'more'>('lineup');
+  const { d, load } = useSquad(lid);
   const [t, setT] = useState<Tactic | null>(null);
   const [xi, setXi] = useState<string[]>([]);
   const [sel, setSel] = useState<{ kind: 'slot' | 'bench'; v: number | string } | null>(null);
@@ -120,12 +123,9 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
   const opp = d.next ? (d.next.home_id === d.club.id ? d.next.away : d.next.home) : null;
   const hint = sel ? (sel.kind === 'slot' ? 'Tap another player to swap, or a bench player to bring him on' : 'Now tap the player on the pitch to replace') : 'Tap a player to move or replace him';
   return (
-    <div className="col" style={{ gap: 8, height: '100%' }}>
-      <BackHead title="Lineup" tag={opp ? <span className="tag pink"><span>vs {opp}</span></span> : undefined}
-        right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: 'var(--cyan)' }}>{strength}</span></>} />
-      <div className="split" style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
-        <section className="col" style={{ gap: 8, minWidth: 0 }}>
-          <Pitch sized>
+    <div className="matchplan">
+        <section className="col mp-left" style={{ gap: 6, minWidth: 0 }}>
+          <Pitch sized style={{ minHeight: 0 }}>
             {/* chemistry links between team-mates in the same line: green = they know each other, red = strangers */}
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} aria-hidden="true">
               {(['DEF', 'MID', 'FWD'] as const).flatMap((g) => {
@@ -151,6 +151,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
                   <b>{p ? p.ovr + (p.form || 0) - cost : '–'}</b>
                   <small>{p ? (wrong ? `${p.pos} · −${cost}` : lastName(p.name)) : label}</small>
                   {p && p.id === wearer && <span className={`arm ${p.id !== cap.c && cap.c ? 'v' : ''}`} aria-label="Captain">C</span>}
+                  {p && (() => { const r = roleName(d.club.roles?.[p.id]); return r && ROLES[r].pos.includes(label) ? <span className="pc-role">{ROLES[r].short}</span> : null; })()}
                 </button>
               );
             })}
@@ -173,9 +174,19 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
               );
             })}
           </div>
-          <div className="tiny muted">{hint}. A red card plays out of position and loses power (−8, or −30 in or out of goal).</div>
+          <div className="tiny muted mp-hint">{hint}. Red = out of position (−8, or −30 in or out of goal).</div>
         </section>
-        <section className="panel cut rise" style={{ gap: 9 }}>
+        <section className="panel cut rise mp-right" style={{ gap: 8 }}>
+          <div className="row mp-modes" role="tablist">
+            {([['lineup', 'Lineup'], ['style', 'Style'], ['roles', 'Roles'], ['more', 'More']] as const).map(([k, l]) => (
+              <button key={k} role="tab" aria-selected={mode === k} className={`seg ${mode === k ? 'on' : ''}`} onClick={async () => { if (dirty && k !== 'lineup') await save(); setMode(k); }}><span>{l}</span></button>
+            ))}
+          </div>
+          {mode !== 'lineup' ? <TacticsTab {...props} embedded={mode} onSaved={load} key={mode} /> : <>
+          <div className="row between tiny" style={{ fontWeight: 800 }}>
+            {opp ? <span className="ellipsis" style={{ color: 'var(--mint)' }}>vs {opp}</span> : <span />}
+            <span className="muted" style={{ whiteSpace: 'nowrap' }}>Strength <b className="lz" style={{ fontSize: 18, color: 'var(--cyan)' }}>{strength}</b></span>
+          </div>
           <div className="row between">
             <span className="tag"><span>Formation</span></span>
             <div className="row" style={{ gap: 8 }}>
@@ -185,19 +196,13 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
             </div>
           </div>
           <button className="ghost" style={{ borderColor: 'var(--mint)', color: 'var(--mint)', minHeight: 38 }} onClick={() => set(() => { setXi(autoXI(d.players, t.formation, d.nextDay)); setSel(null); toast.ok('Best player for every position is in'); })}><span>⚡ Best players</span></button>
-          <span className="tiny muted" style={{ fontWeight: 800 }}>Mentality</span>
-          <Seg opts={[[0, 'Defensive'], [1, 'Balanced'], [2, 'Attacking']]} value={t.mentality} onPick={(v) => set(() => setT({ ...t, mentality: v, preset: 'Custom' }))} />
-          <span className="tiny muted" style={{ fontWeight: 800 }}>Pressing</span>
-          <Seg opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => set(() => setT({ ...t, press: v, preset: 'Custom' }))} />
-          <span className="tiny muted" style={{ fontWeight: 800 }}>Passing</span>
-          <Seg opts={[[0, 'Short'], [1, 'Mixed'], [2, 'Long']]} value={t.build} onPick={(v) => set(() => setT({ ...t, build: v, preset: 'Custom' }))} />
           <span className="tiny muted" style={{ fontWeight: 800 }}>Captain ©</span>
           <div className="row" style={{ gap: 6 }}>
             {(['c', 'v'] as const).map((k) => (
               <label key={k} className="col grow" style={{ gap: 2, minWidth: 0 }}>
                 <span className="tiny muted">{k === 'c' ? 'Captain' : 'Vice'}</span>
                 <select className="capsel" value={cap[k] || ''} onChange={(e) => set(() => setCap((x) => { const n = { ...x, [k]: e.target.value || null }; if (n.c && n.c === n.v) n[k === 'c' ? 'v' : 'c'] = null; return n; }))} aria-label={k === 'c' ? 'Captain' : 'Vice-captain'}>
-                  <option value="">Auto (best leader)</option>
+                  <option value="">Auto</option>
                   {[...d.players].sort((a: any, b: any) => b.lead - a.lead).map((p: any) => <option key={p.id} value={p.id}>{lastName(p.name)} {stars(p.lead)}</option>)}
                 </select>
               </label>
@@ -220,10 +225,9 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
           })}
           <span className="tiny muted">Players who play together (league, cup or friendly) understand each other better. New signings start as strangers.</span
           >
-          <button className="ghost" style={{ marginTop: 'auto', borderColor: 'var(--cyan)', color: 'var(--cyan)' }} onClick={() => go('tactics')}><span>Advanced tactics</span></button>
-          <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty}><span>{dirty ? 'Save lineup' : 'Saved'}</span></button>
+          <div className="mp-savebar"><button className={`cta ${dirty ? 'shine' : ''}`} style={{ width: '100%' }} onClick={save} disabled={!dirty}><span>{dirty ? 'Save lineup' : 'Saved'}</span></button></div>
+          </>}
         </section>
-      </div>
     </div>
   );
 }

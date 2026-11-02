@@ -149,10 +149,11 @@ export function MiniCard({ p, selected, dim }: { p: P; selected?: boolean; dim?:
 export function BackHead({ title, sub, onBack, href, right, tag }: { title: string; sub?: React.ReactNode; onBack?: () => void; href?: string; right?: React.ReactNode; tag?: React.ReactNode }) {
   const arrow = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8F1FA" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>;
   return (
-    <header className="row between backhead" style={{ minHeight: 44, flex: 'none', gap: 12, flexWrap: 'wrap', rowGap: 6 }}>
+    <header className="row between backhead" style={{ minHeight: 36, flex: 'none', gap: 12, flexWrap: 'wrap', rowGap: 6 }}>
       <div className="row" style={{ gap: 12, minWidth: 0, flex: '1 1 auto' }}>
         {href ? <a className="back" href={href} aria-label="Back">{arrow}</a> : onBack ? <button className="back" onClick={onBack} aria-label="Back">{arrow}</button> : null}
-        <span className="lz" style={{ fontSize: 24, whiteSpace: 'nowrap', flex: 'none' }}>{title}</span>
+        {/* the tab bar already names the screen: the big title only shows on large screens */}
+        <span className="lz bh-title" style={{ fontSize: 24, whiteSpace: 'nowrap', flex: 'none' }}>{title}</span>
         {tag}
         {sub && <span className="small muted" style={{ fontWeight: 700, minWidth: 0 }}>{sub}</span>}
       </div>

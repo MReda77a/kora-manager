@@ -673,3 +673,25 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 .mgr-seen i { width: 8px; height: 8px; border-radius: 50%; background: #5D6E82; flex: none; }
 .mgr-seen.on { color: var(--soft); } .mgr-seen.on i { background: #2EE6A0; box-shadow: 0 0 8px #2EE6A0; }
 .mgr-seen.mid i { background: #F2C14E; }
+
+/* Match plan: the pitch with the whole XI fills the height of the screen, the plan panel beside it */
+.matchplan { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); gap: 10px; height: 100%; min-height: 0; }
+.matchplan .mp-left { min-height: 0; }
+.matchplan .mp-left > .field { flex: 1; min-height: 230px; }
+.matchplan .mp-right { min-height: 0; overflow-y: auto; }
+.mp-modes { gap: 4px; flex-wrap: wrap; }
+.mp-modes .seg { flex: 1; min-height: 32px; }
+.mp-savebar { position: sticky; bottom: -8px; margin-top: auto; padding: 10px 0 8px; background: linear-gradient(transparent, #0E1B2D 10px); z-index: 2; }
+.pc-role { position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 900; color: var(--mint); background: #06121F; padding: 0 4px; border-radius: 4px; line-height: 12px; white-space: nowrap; }
+.groupnav { gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+@media (max-height: 520px) { .mp-hint { display: none; } }
+@media (orientation: portrait) and (max-width: 640px) {
+  .matchplan { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .matchplan .mp-left > .field { min-height: 420px; }
+}
+
+/* the screen title repeats the tab name: hidden on phones and small screens */
+@media (max-height: 700px), (max-width: 900px) { .backhead .bh-title { display: none; } .backhead { min-height: 0 !important; } }
+.mk-filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+.mk-filters .seg { flex: none; }
+@media (max-height: 520px) { .matchplan .bench { height: 36px; } .matchplan .bench b { font-size: 15px; } }

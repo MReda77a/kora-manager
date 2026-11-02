@@ -14,7 +14,7 @@ const ASSIST = [
   ['injured', 'Replace injured players', 'Like for like from the bench'],
 ] as const;
 
-export default function TacticsTab({ lid, toast, go }: TabProps) {
+export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabProps & { embedded?: 'style' | 'roles' | 'more'; onSaved?: () => void }) {
   const { d } = useSquad(lid);
   const [scout, setScout] = useState<any>(null);
   const [plans, setPlans] = useState<Record<string, Tactic | null>>({});
@@ -25,7 +25,10 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
   const setT = (x: Tactic) => setPlans((ps) => ({ ...ps, [plan]: x }));
   const [pens, setPens] = useState<string[]>([]);
   const [as, setAs] = useState<Record<string, boolean>>({});
-  const [panel, setPanel] = useState<'in' | 'out' | 'plans' | 'pens' | 'assistant' | 'roles' | 'setpieces' | 'fit'>('plans');
+  const [panel, setPanel] = useState<'in' | 'out' | 'plans' | 'pens' | 'assistant' | 'roles' | 'setpieces' | 'fit'>(embedded === 'roles' ? 'roles' : embedded === 'more' ? 'setpieces' : 'plans');
+  // inside the Match plan: Style, Roles or More show only their own panels, without the pitch
+  const PANELS = ([['plans', 'Style'], ['fit', 'Squad fit'], ['in', 'In possession'], ['out', 'Out of possession'], ['roles', 'Roles'], ['setpieces', 'Set pieces'], ['pens', 'Penalties'], ['assistant', 'Assistant']] as const)
+    .filter(([k]) => !embedded || (embedded === 'style' ? ['plans', 'fit', 'in', 'out'] : embedded === 'roles' ? ['roles'] : ['setpieces', 'pens', 'assistant']).includes(k));
   const [dirty, setDirty] = useState(false);
   useEffect(() => { api(`/api/leagues/${lid}/scout`).then(setScout).catch(() => {}); }, [lid]);
   useEffect(() => {
@@ -65,7 +68,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
         tactic: plans.A, plans: { B: plans.B, C: plans.C }, pens, assistant: as, roles, setpieces: sp,
         ...(reshaped ? { lineup: autoXI(d.players, plans.A!.formation, d.nextDay) } : {}),
       });
-      setDirty(false); toast.ok('Tactics saved for the next match');
+      setDirty(false); toast.ok('Tactics saved for the next match'); onSaved?.();
     } catch (e: any) { toast.bad(e.message); }
   };
   const lineX = [22, 30, 40][t.line];
@@ -81,15 +84,15 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
   const takers = xiPlayers.filter((p: any) => p.pos !== 'GK').sort((a: any, b: any) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure));
   return (
     <div className="col" style={{ gap: 8 }}>
-      <BackHead title="Tactics" onBack={() => go('lineup')} tag={<PlanTabs plan={plan} plans={plans} setPlan={setPlan} />}
+      {embedded ? (embedded === 'style' && <div className="row wrap" style={{ gap: 6 }}><PlanTabs plan={plan} plans={plans} setPlan={setPlan} /><span className="tiny muted" style={{ fontWeight: 800 }}>Suits squad <b style={{ color: fitColor(fitNow.score) }}>{fitNow.score}%</b> · Familiarity <b>{fam}</b></span></div>) : <BackHead title="Tactics" onBack={() => go('lineup')} tag={<PlanTabs plan={plan} plans={plans} setPlan={setPlan} />}
         right={<>
           <span className="tag pink"><span>{t.preset}</span></span>
           <button className="row tiny" onClick={() => setPanel('fit' as any)} title="How well this plan suits your players" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Suits squad</span><div style={{ width: 60 }}><Bar v={fitNow.score} color={fitColor(fitNow.score)} /></div><b style={{ color: fitColor(fitNow.score) }}>{fitNow.score}%</b></button>
           <span className="row tiny" title="Familiarity grows each match you play this shape" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Familiarity</span><div style={{ width: 70 }}><Bar v={fam} color={fam >= 80 ? '#2EE6A0' : fam >= 60 ? 'var(--cyan)' : '#F2C14E'} /></div><b>{fam}</b></span>
           {scout?.opponent ? <span className="tag"><span>vs {scout.opponent.name}</span></span> : null}
-        </>} />
-      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(280px, 1.05fr)', gap: 12 }}>
-        <Pitch style={{ minHeight: 250 }}>
+        </>} />}
+      <div className="split" style={embedded ? { display: 'block' } : { display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(280px, 1.05fr)', gap: 12 }}>
+        {!embedded && <Pitch style={{ minHeight: 250 }}>
           <div style={{ position: 'absolute', top: 8, bottom: 8, left: `${lineX}%`, borderLeft: '2px dashed color-mix(in srgb, var(--cyan) 80%, transparent)' }} />
           <span className="tiny" style={{ position: 'absolute', top: 10, left: `calc(${lineX}% + 4px)`, color: 'var(--cyan)', fontWeight: 900 }}>DEF LINE</span>
           {F.xy.map(([x, y], i) => {
@@ -102,13 +105,13 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
               </div>
             );
           })}
-        </Pitch>
-        <section className="panel cut" style={{ gap: 8 }}>
-          <div className="row wrap" style={{ gap: 4 }}>
-            {([['plans', 'Style'], ['fit', 'Squad fit'], ['in', 'In possession'], ['out', 'Out of possession'], ['roles', 'Roles'], ['setpieces', 'Set pieces'], ['pens', 'Penalties'], ['assistant', 'Assistant']] as const).map(([k, l]) => (
+        </Pitch>}
+        <section className={embedded ? 'col' : 'panel cut'} style={{ gap: 8 }}>
+          {PANELS.length > 1 && <div className="row wrap" style={{ gap: 4 }}>
+            {PANELS.map(([k, l]) => (
               <button key={k} className={`seg ${panel === k ? 'on' : ''}`} onClick={() => setPanel(k)}><span>{l}</span></button>
             ))}
-          </div>
+          </div>}
           {panel === 'plans' && (
             <div className="col" style={{ gap: 5 }}>
               <div className="row wrap" style={{ gap: 4 }}>
@@ -193,7 +196,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
                       <span className="tiny" style={{ width: 30, color: 'var(--cyan)', fontWeight: 900 }}>{lab}</span>
                       <span className="grow ellipsis" style={{ minWidth: 60 }}>{lastName(p.name)}</span>
                       <select value={cur} onChange={(e) => change(() => setRoles({ ...roles, [p.id]: e.target.value }))} style={{ width: 'clamp(120px, 46%, 180px)', height: 30 }} aria-label={`Role for ${p.name}`}>
-                        <option value="">Auto (assistant picks)</option>
+                        <option value="">Auto</option>
                         {opts.map((k) => <option key={k} value={k}>{k} · {roleFit(k, p.attrs)}</option>)}
                       </select>
                       <b className="tiny" style={{ width: 26, textAlign: 'right', color: fc(fit) }}>{fit || '–'}</b>
@@ -259,13 +262,13 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
           </div>
         </section>
       </div>
-      <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-        <div className="panel grow" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '8px 12px', minWidth: 240, flexBasis: 300 }}>
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap', ...(embedded ? { position: 'sticky', bottom: -8, paddingTop: 10, paddingBottom: 8, background: 'linear-gradient(transparent, #0E1B2D 10px)' } : {}) }}>
+        {!embedded && <div className="panel grow" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '8px 12px', minWidth: 240, flexBasis: 300 }}>
           <span className="tag" style={{ background: 'var(--cyan)', color: '#06121F' }}><span>SCOUT</span></span>
           <span className="small" style={{ fontWeight: 700 }}>{scoutLine(scout)}</span>
           <button className="ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => go('analyst')}><span>Full analyst report →</span></button>
-        </div>
-        <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty} style={{ minWidth: 150 }}><span>{dirty ? 'Save tactic' : 'Saved'}</span></button>
+        </div>}
+        <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty} style={{ minWidth: 150, flex: embedded ? 1 : undefined }}><span>{dirty ? 'Save tactic' : 'Saved'}</span></button>
       </div>
     </div>
   );
