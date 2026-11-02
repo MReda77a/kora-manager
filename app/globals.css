@@ -662,7 +662,7 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 .derby-ui table.t tr.me td:first-child { box-shadow: inset 3px 0 0 #F4C24E; }
 
 /* managers list */
-.mgr-row { display: grid; grid-template-columns: 30px minmax(150px, 1fr) 56px 50px 70px 112px 120px; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; text-align: left; min-width: 600px; width: 100%; }
+.mgr-row { display: grid; grid-template-columns: 30px minmax(140px, 1fr) 140px 50px 56px 112px 120px; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; text-align: left; min-width: 600px; width: 100%; }
 .mgr-row:not(.mgr-head):hover { background: rgba(255, 255, 255, 0.04); }
 .mgr-row.me { background: color-mix(in srgb, var(--mint) 10%, transparent); box-shadow: inset 3px 0 0 var(--mint); }
 .mgr-head { font-weight: 900; letter-spacing: 0.5px; min-height: 26px; }

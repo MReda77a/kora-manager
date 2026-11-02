@@ -4,6 +4,7 @@ import { fail } from './errors.ts';
 import { CLUB_TYPES, LINE, leadership, type ClubTypeKey } from './game.ts';
 import { getLeague, pub, squadOf, standings } from './league.ts';
 import { nextDay } from './club.ts';
+import { movers } from './career.ts';
 
 export async function transfersView(leagueId: number) {
   const rows = await q(
@@ -72,14 +73,25 @@ export async function clubView(leagueId: number, clubId: number) {
 
 /** every manager in the league: most goals first, with their club, place and when they last opened the game */
 export async function managersView(leagueId: number) {
-  const l = await one('SELECT divisions FROM leagues WHERE id=$1', [leagueId]);
+  const l = await one('SELECT divisions, max_clubs FROM leagues WHERE id=$1', [leagueId]);
+  const types = new Map((await q('SELECT id, club_type, board FROM clubs WHERE league_id=$1 AND user_id IS NOT NULL', [leagueId])).map((c) => [c.id, c]));
   const rows: any[] = [];
   for (let div = 1; div <= (l?.divisions || 1); div++) {
     const table = await standings(leagueId, div);
-    table.forEach((t: any, i: number) => { if (t.user_id) rows.push({ clubId: t.id, club: t.name, short: t.short, color1: t.color1, color2: t.color2, shape: t.shape, emblem: t.emblem, uid: t.user_id, division: div, pos: i + 1, p: t.p, w: t.w, d: t.d, l: t.l, gf: t.gf, ga: t.ga, pts: t.pts, form: t.form }); });
+    table.forEach((t: any, i: number) => {
+      if (!t.user_id) return;
+      const c = types.get(t.id);
+      // the board's target: a place for the club type in the top flight, promotion below it
+      const target = div > 1 ? movers(l?.max_clubs || table.length) : CLUB_TYPES[(c?.club_type || 'fan') as ClubTypeKey].targetPos(table.length);
+      const pos = i + 1;
+      const status = !t.p ? 'WAITING' : pos <= target ? 'ON TRACK' : pos <= target + 2 ? 'AT RISK' : 'BEHIND';
+      rows.push({ clubId: t.id, club: t.name, short: t.short, color1: t.color1, color2: t.color2, shape: t.shape, emblem: t.emblem, uid: t.user_id, division: div, pos, p: t.p, w: t.w, d: t.d, l: t.l, gf: t.gf, ga: t.ga, pts: t.pts, form: t.form,
+        target, gap: target - pos, status, board: c?.board ?? 60, type: CLUB_TYPES[(c?.club_type || 'fan') as ClubTypeKey].name });
+    });
   }
   const users = await q('SELECT id, username, last_seen FROM users WHERE id IN (SELECT jsonb_array_elements_text($1::jsonb)::int)', [JSON.stringify(rows.map((r) => r.uid))]);
   const by = new Map(users.map((u) => [u.id, u]));
+  // ranked by how well each manager meets his board's target (places ahead of it), then board confidence
   return rows.map((r) => ({ ...r, manager: by.get(r.uid)?.username ?? '?', lastSeen: by.get(r.uid)?.last_seen ?? null }))
-    .sort((a, b) => b.gf - a.gf || (b.gf - b.ga) - (a.gf - a.ga) || b.pts - a.pts);
+    .sort((a, b) => b.gap - a.gap || b.board - a.board || b.pts - a.pts);
 }
