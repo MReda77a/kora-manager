@@ -6,6 +6,7 @@ import {
   CLUB_TYPES, CORNER_ROUTINES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK, STAFF_PRICES, STAFF_ROLES,
   shortName, type ClubTypeKey, type PackKey, type Tactic,
   windowFromDays, assignShirts,
+  fitNow,
 } from './game.ts';
 import { wakeTimer } from './wake.ts';
 import { transferStmt } from './history.ts';
@@ -317,7 +318,7 @@ export function pub(p: Row) {
 // Players with this league's changes applied: trained skills, new positions and form.
 export async function squadOf(clubId: number, day = 0) {
   const rows = await q(
-    `SELECT p.*, s.fitness, s.out_until, s.out_reason, s.pos_override, s.boost, s.form_mod, s.form_until, s.form_note,
+    `SELECT p.*, s.fitness, s.fit_at, (SELECT COALESCE(MAX(level), 0) FROM staff st WHERE st.club_id=s.club_id AND st.role='physio') AS physio, s.out_until, s.out_reason, s.pos_override, s.boost, s.form_mod, s.form_until, s.form_note,
        s.morale, s.ovr_delta, s.age_add, s.loan_from, s.request, s.talk_day, s.promise_day, s.shirt
      FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1`,
     [clubId],
@@ -329,6 +330,7 @@ export async function squadOf(clubId: number, day = 0) {
     const by = new Map(fix.map((x) => [x.id, x.n]));
     for (const r of rows) if (by.has(r.id)) r.shirt = by.get(r.id);
   }
+  for (const r of rows) r.fitness = fitNow(Number(r.fitness), r.fit_at, Number(r.physio) || 0);
   return rows.map((p) => applyMods(p, day)).sort(byPosition);
 }
 
@@ -617,7 +619,7 @@ export async function buy(uid: number, leagueId: number, listingId: number) {
     fail(400, 'Not enough money.');
   }
   await q('UPDATE clubs SET money = money + $1, sales = sales + $1 WHERE id=$2', [li.price, li.seller_id]);
-  await q(`UPDATE squad SET club_id=$1, fitness=100 WHERE league_id=$2 AND player_id=$3`, [club.id, leagueId, li.player_id]);
+  await q(`UPDATE squad SET club_id=$1, fitness=100, fit_at=now() WHERE league_id=$2 AND player_id=$3`, [club.id, leagueId, li.player_id]);
   await q(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [leagueId, li.player_id]);
   const p = await one('SELECT name FROM players WHERE id=$1', [li.player_id]);
   await news(leagueId, club.id, 'transfer', `${club.name} sign ${p?.name} for ${Number(li.price).toFixed(1)}M.`);

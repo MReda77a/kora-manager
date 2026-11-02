@@ -7,7 +7,7 @@
 import { batch, counter, q, one, writes, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, LIVE_TOTAL, minuteAt, PAPER_NAMES, PRESETS, SPONSORS,
+  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, LIVE_TOTAL, minuteAt, recoveryPerDay, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic, bestLeader, leadership,
   windowFromDays, WINDOW_DAYS,
 } from './game.ts';
@@ -366,10 +366,11 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
   const day = f.day as number;
   const players = await squadOf(club.id, day);
   const lv = await staffLevels(club.id);
-  // recovery since this club's last match: about 22% a day, more with a good physio
+  // recovery: real time since the last game (squadOf), and never less than a full day's rest per match day
   const prev = await lastDayPlayed(club.id, day);
   const gap = prev == null ? 3 : Math.max(1, day - prev);
-  for (const p of players) p.fitness = Math.min(100, (p.fitness ?? 100) + gap * (25 + lv.physio * 3));
+  const stored = new Map((await q('SELECT player_id, fitness FROM squad WHERE club_id=$1', [club.id])).map((r) => [r.player_id, Number(r.fitness)]));
+  for (const p of players) p.fitness = Math.max(p.fitness, Math.min(100, (stored.get(p.id) ?? 100) + gap * recoveryPerDay(lv.physio)));
   let tactic: Tactic = club.tactic && club.tactic.formation ? club.tactic : DEFAULT_TACTIC;
   if (!club.user_id) {
     // the bot's real plan is chosen at kick-off, once both line-ups are known (planBot)
@@ -594,7 +595,7 @@ async function finalizeFixture(f: Row) {
     return { id: p.id, fit: Math.round(ln && ln.mins > 0 ? ln.fitEnd : p.fitness), out, reason };
   }));
   await q(
-    `UPDATE squad s SET fitness=x.fit,
+    `UPDATE squad s SET fitness=x.fit, fit_at=now(),
        out_until = CASE WHEN x.out > 0 THEN x.out ELSE s.out_until END,
        out_reason = CASE WHEN x.out > 0 THEN x.reason ELSE s.out_reason END
      FROM jsonb_to_recordset($1::jsonb) AS x(id text, fit int, out int, reason text)

@@ -167,7 +167,7 @@ export async function marketDay(l: Row, day: number, deadline: boolean) {
     w.add('DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false', [l.id, li.pid]);
     if (bot) {
       w.add('UPDATE clubs SET money=money-$1 WHERE id=$2', [price, bot.id]);
-      w.add('UPDATE squad SET club_id=$1, fitness=100 WHERE league_id=$2 AND player_id=$3', [bot.id, l.id, li.pid]);
+      w.add('UPDATE squad SET club_id=$1, fitness=100, fit_at=now() WHERE league_id=$2 AND player_id=$3', [bot.id, l.id, li.pid]);
       bot.money -= price; bot.sq.push({ pos: li.pos, ovr: li.ovr });
     } else {
       w.add('DELETE FROM squad WHERE league_id=$1 AND player_id=$2', [l.id, li.pid]); // he leaves the league

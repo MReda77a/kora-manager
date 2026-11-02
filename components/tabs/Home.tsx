@@ -254,23 +254,26 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
   const homeMine = f.home_id === club.id;
   const accent = derby ? '#F2C14E' : cup ? '#2FE6B0' : '#2EE6A0';
   return (
-    <section className="panel cut rise" style={{ padding: 10, gap: 8, background: derby ? 'linear-gradient(160deg, rgba(242,193,78,0.22), rgba(242,193,78,0.05))' : cup ? 'linear-gradient(160deg, rgba(47,230,176,0.16), rgba(230,238,242,0.04))' : undefined }}>
+    <section className={`panel cut rise ${derby ? 'derby-card' : ''}`} style={{ padding: 10, gap: 8, background: derby ? 'radial-gradient(90% 70% at 50% 0%, rgba(255,200,70,0.35), transparent 70%), linear-gradient(160deg, #3A2C12, #1A130A)' : cup ? 'linear-gradient(160deg, rgba(47,230,176,0.16), rgba(230,238,242,0.04))' : undefined }}>
       <div className="row between">
         <span className="tag" style={{ background: accent, color: derby || cup ? '#06121F' : '#fff' }}><span>{live ? 'LIVE NOW' : 'Next match'}</span></span>
-        <span className="tiny" style={{ fontWeight: 900, color: accent }}>{derby ? 'DERBY' : cup ? 'CUP' : `MATCHDAY ${f.matchday}`}</span>
+        <span className={derby ? 'lz' : 'tiny'} style={{ fontWeight: 900, color: accent, fontSize: derby ? 20 : undefined, letterSpacing: derby ? 1.5 : undefined }}>{derby ? '🔥 DERBY' : cup ? 'CUP' : `MATCHDAY ${f.matchday}`}</span>
       </div>
       <a href={`/m/${f.id}`} style={{ position: 'relative', flex: 1, minHeight: 150, overflow: 'hidden', display: 'block', color: 'inherit' }}>
-        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(65deg, ${f.hc} 0 49.5%, transparent 49.5% 50.5%, #E6E1F7 50.5% 100%)` }} />
+        {/* each half in its club's colour, darkened so names stay readable; gold edges in a derby */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 10, overflow: 'hidden', border: derby ? '2px solid #F4C24E' : '1px solid var(--line)',
+          background: `linear-gradient(65deg, color-mix(in srgb, ${f.hc} 55%, #0A1626) 0 49.4%, ${derby ? '#F4C24E' : 'rgba(255,255,255,0.25)'} 49.4% 50.6%, color-mix(in srgb, ${f.ac} 55%, #0A1626) 50.6% 100%)` }} />
+        {derby && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 80% at 50% 50%, rgba(255,210,110,0.25), transparent 70%)' }} />}
         <div style={{ position: 'relative', height: '100%', minHeight: 150, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
           <div className="col" style={{ alignItems: 'center', gap: 2, color: '#fff' }}>
-            <Crest c1="#fff" c2={f.hc} shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={50} />
+            <Crest c1={f.hc} c2="#fff" shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={50} />
             <span className="lz ellipsis" style={{ fontSize: 16, maxWidth: 120, textAlign: 'center' }}>{f.home}</span>
             {homeMine && <span className="tiny" style={{ fontWeight: 900 }}>YOU</span>}
           </div>
-          <span style={{ width: 54, height: 54, transform: 'rotate(45deg)', background: '#06121F', border: `2px solid ${derby ? '#F2C14E' : '#5FD3F3'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 10px rgba(95, 211, 243,0.35)' }}>
+          <span style={{ width: 54, height: 54, transform: 'rotate(45deg)', background: '#06121F', border: `2px solid ${derby ? '#F2C14E' : '#5FD3F3'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: derby ? '0 0 18px rgba(244,194,78,0.6)' : '0 0 10px rgba(95, 211, 243,0.35)' }}>
             <span className="lz" style={{ transform: 'rotate(-45deg)', fontSize: 21 }}>VS</span>
           </span>
-          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#0F2238' }}>
+          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#fff' }}>
             <Crest c1={f.ac} c2="#fff" shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={50} />
             <span className="lz ellipsis" style={{ fontSize: 16, maxWidth: 120, textAlign: 'center' }}>{f.away}</span>
             {!homeMine && <span className="tiny" style={{ fontWeight: 900 }}>YOU</span>}
@@ -279,7 +282,7 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
       </a>
       <div className="row between" style={{ gap: 8 }}>
         {live ? <span className="lz" style={{ fontSize: 24, color: 'var(--red)', animation: 'pulse 1.2s infinite' }}>● LIVE</span> : <span className="lz" style={{ fontSize: 28, whiteSpace: 'nowrap' }}>{cd.main}{cd.sec && <span style={{ color: '#5FD3F3', fontSize: 20 }}>:{cd.sec}</span>}</span>}
-        {live ? <a className="cta shine" href={`/m/${f.id}`}><span>Watch live</span></a> : <button className="cta shine" onClick={() => go('lineup')}><span>Set lineup</span></button>}
+        {live ? <a className={`cta shine ${derby ? 'gold' : ''}`} href={`/m/${f.id}`}><span>Watch live</span></a> : <button className={`cta shine ${derby ? 'gold' : ''}`} onClick={() => go('lineup')}><span>Set lineup</span></button>}
       </div>
     </section>
   );

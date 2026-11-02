@@ -642,3 +642,9 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 @keyframes confFall { from { transform: translateY(0) rotate(0); } to { transform: translateY(115vh) rotate(540deg); } }
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .vamos-conf, .splash-bar i, .vamos-word, .splash-logo { animation: none; } }
+
+/* the derby on the home screen: a gold card */
+.derby-card { border-color: rgba(244, 194, 78, 0.55) !important; box-shadow: 0 0 28px rgba(244, 194, 78, 0.22); }
+.derby-card::before { background: linear-gradient(90deg, transparent, rgba(255, 210, 110, 0.9), transparent) !important; }
+.derby-card.cut::after { border-color: rgba(255, 210, 110, 0.9) !important; }
+.cta.gold { background: linear-gradient(180deg, #FFD978, #E0A22E); color: #2A1A00; box-shadow: 0 6px 20px rgba(244, 194, 78, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45); }

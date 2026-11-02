@@ -6,21 +6,37 @@ import { BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
 // Best XI for a formation. `keep` holds players already chosen per slot ('' = empty slot to fill).
+// Every player is scored for every open position: his rating, how fresh he is, and how well he fits the
+// spot (his own position best, the same line next, out of position last); the best pairs go first.
 export function autoXI(players: any[], formation: string, nextDay: number, keep: string[] = []) {
-  const slots = FORMATIONS[formation].slots;
+  const F = FORMATIONS[formation], slots = F.slots;
+  const labels = slots.map((s, i) => slotLabel(s, F.xy[i][0], F.xy[i][1]));
   const avail = players.filter((p) => !(p.outUntil >= nextDay));
   const ids = new Set(players.map((p) => p.id));
   const xi: string[] = slots.map((_, i) => (keep[i] && ids.has(keep[i]) ? keep[i] : ''));
   const used = new Set<string>(xi.filter(Boolean));
-  const score = (p: any) => (p.ovr + (p.form || 0)) * (0.6 + 0.4 * Math.min(100, p.fitness + 22) / 100);
-  for (const strict of [true, false]) {
-    slots.forEach((s, i) => {
-      if (xi[i]) return;
-      const best = avail.filter((p) => !used.has(p.id) && (!strict || (LINE[p.pos] || 'MID') === s)).sort((a, b) => score(b) - score(a))[0];
-      if (best) { used.add(best.id); xi[i] = best.id; }
-    });
-  }
+  const fit = (p: any) => 0.55 + 0.45 * Math.min(100, p.fitness ?? 100) / 100;
+  const fitFor = (p: any, i: number) => {
+    const line = p.pos === 'GK' ? 'GK' : LINE[p.pos] || 'MID';
+    if (p.pos === labels[i]) return 3;
+    if (line === slots[i]) return 0;
+    return -offPositionCost(line, slots[i]) * 1.5;
+  };
+  const pairs: [number, number, any][] = [];
+  slots.forEach((_, i) => { if (!xi[i]) for (const p of avail) if (!used.has(p.id)) pairs.push([(p.ovr + (p.form || 0)) * fit(p) + fitFor(p, i), i, p]); });
+  pairs.sort((a, b) => b[0] - a[0]);
+  for (const [, i, p] of pairs) if (!xi[i] && !used.has(p.id)) { xi[i] = p.id; used.add(p.id); }
   return xi;
+}
+
+// The highest-rated XI: the best keeper and the ten best outfield players who can play, whatever their
+// position; then each one goes to the spot in the formation that suits him best.
+export function topXI(players: any[], formation: string, nextDay: number) {
+  const avail = players.filter((p) => !(p.outUntil >= nextDay));
+  const r = (p: any) => p.ovr + (p.form || 0);
+  const gk = avail.filter((p) => p.pos === 'GK').sort((a, b) => r(b) - r(a))[0];
+  const field = avail.filter((p) => p.pos !== 'GK').sort((a, b) => r(b) - r(a)).slice(0, gk ? 10 : 11);
+  return autoXI([...(gk ? [gk] : []), ...field], formation, nextDay);
 }
 
 // formations sit in the left three quarters of the pitch: use its whole length on screen
@@ -178,6 +194,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
               <button onClick={() => setF(1)} aria-label="Next formation" style={{ width: 30, height: 30, border: '1px solid rgba(255,255,255,0.25)', fontSize: 16 }}>›</button>
             </div>
           </div>
+          <button className="ghost" style={{ borderColor: 'var(--mint)', color: 'var(--mint)', minHeight: 38 }} onClick={() => set(() => { setXi(topXI(d.players, t.formation, d.nextDay)); setSel(null); toast.ok('Your 11 highest-rated players are in'); })}><span>⚡ Best players</span></button>
           <span className="tiny muted" style={{ fontWeight: 800 }}>Mentality</span>
           <Seg opts={[[0, 'Defensive'], [1, 'Balanced'], [2, 'Attacking']]} value={t.mentality} onPick={(v) => set(() => setT({ ...t, mentality: v, preset: 'Custom' }))} />
           <span className="tiny muted" style={{ fontWeight: 800 }}>Pressing</span>

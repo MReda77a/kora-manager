@@ -177,6 +177,13 @@ export function shortName(name: string) {
 // Transfer windows: open in pre-season, then for WINDOW_DAYS days at the start of each round of
 // the league - the first round (everyone plays everyone once) and the second round (the return games).
 export const WINDOW_DAYS = 5;
+/** fitness a player gets back per day of rest (a better physio speeds it up) */
+export const recoveryPerDay = (physio: number) => 40 + physio * 5;
+/** fitness now: what he had after his last game or session, plus the rest since then (real time) */
+export function fitNow(stored: number, fitAt: string | Date | null | undefined, physio: number, now = Date.now()) {
+  const hours = fitAt ? Math.max(0, (now - new Date(fitAt).getTime()) / 3_600_000) : 24;
+  return Math.min(100, (stored ?? 100) + (recoveryPerDay(physio) * hours) / 24);
+}
 export type WindowInfo = {
   open: boolean; label: string; round: 0 | 1 | 2;
   phase: 'pre' | 'open1' | 'between' | 'open2' | 'after' | 'over';

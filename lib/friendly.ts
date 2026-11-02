@@ -56,7 +56,7 @@ export async function playFriendly(uid: number, leagueId: number, oppId: number)
     return { id: p.id, fit: Math.max(20, fit), out };
   });
   await q(
-    `UPDATE squad s SET fitness=x.fit,
+    `UPDATE squad s SET fitness=x.fit, fit_at=now(),
        out_until = CASE WHEN x.out > 0 THEN GREATEST(s.out_until, x.out) ELSE s.out_until END,
        out_reason = CASE WHEN x.out > 0 THEN 'Injured (friendly)' ELSE s.out_reason END
      FROM jsonb_to_recordset($1::jsonb) AS x(id text, fit int, out int) WHERE s.club_id=$2 AND s.player_id=x.id`,

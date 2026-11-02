@@ -3,7 +3,7 @@
 import { notifyEach } from './push.ts';
 import { q, one, type Row, writes } from './db.ts';
 import { fail } from './errors.ts';
-import { CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey } from './game.ts';
+import { recoveryPerDay, CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey } from './game.ts';
 import { getLeague, myClub, news, squadOf, standings } from './league.ts';
 import { inboxOf } from './people.ts';
 import { movers } from './career.ts';
@@ -133,10 +133,10 @@ export async function conditionView(uid: number, leagueId: number) {
   );
   return {
     day, staff: await staffList(club.id), levels: lv,
-    recoveryPerDay: 25 + lv.physio * 3,
+    recoveryPerDay: recoveryPerDay(lv.physio),
     next: next ? { id: next.id, opponent: next.home_id === club.id ? next.away : next.home, home: next.home_id === club.id, kickoff: next.kickoff_at, comp: next.comp } : null,
     players: players.map((p) => ({
-      id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), expected: Math.min(100, Math.round(p.fitness + gap * (25 + lv.physio * 3))),
+      id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, fitness: Math.round(p.fitness), expected: Math.min(100, Math.round(p.fitness + Math.max(0, (next ? (new Date(next.kickoff_at).getTime() - Date.now()) / 86_400_000 : gap)) * recoveryPerDay(lv.physio))),
       out: (p.out_until ?? 0) >= day ? { reason: p.out_reason, days: p.out_until - day + 1 } : null,
       form: p.form, formNote: p.form ? p.form_note : null, injuryProne: p.attrs.InjuryProne ?? 30,
     })),

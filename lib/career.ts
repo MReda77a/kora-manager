@@ -279,7 +279,7 @@ async function rollClubs(l: Row) {
     return { id: c.id, prize: Math.round(prize * 100) / 100 };
   });
   w.add(`UPDATE clubs c SET money=c.money+x.prize, coins=c.coins+300, sponsor=NULL, board=60 FROM jsonb_to_recordset($1::jsonb) AS x(id int, prize numeric) WHERE c.id=x.id`, [JSON.stringify(prizes)]);
-  w.add(`UPDATE squad SET fitness=100, out_until=0, out_reason=NULL, form_mod=0, form_until=0, form_note=NULL,
+  w.add(`UPDATE squad SET fitness=100, fit_at=now(), out_until=0, out_reason=NULL, form_mod=0, form_until=0, form_note=NULL,
            morale=70 + (morale-70)/2, promise_day=0, talk_day=0 WHERE league_id=$1`, [l.id]);
   for (const t of ['comments', 'listings']) w.add(`DELETE FROM ${t} WHERE league_id=$1`, [l.id]);
   w.add(`UPDATE offers SET status='expired', updated_at=now() WHERE league_id=$1 AND status IN ('pending','countered')`, [l.id]);

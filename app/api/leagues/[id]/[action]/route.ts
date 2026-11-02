@@ -57,7 +57,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
       extra = {
         squadSize: sq.length, gks: sq.filter((p) => p.nat_pos === 'GK').length,
         strength: Math.round(xiFit.reduce((a, p) => a + p.ovr, 0) / Math.max(1, xiFit.length)),
-        fitness: Math.round(xiFit.reduce((a, p) => a + Math.min(100, p.fitness + 22), 0) / Math.max(1, xiFit.length)),
+        fitness: Math.round(xiFit.reduce((a, p) => a + p.fitness, 0) / Math.max(1, xiFit.length)),
         morale: Math.round(sq.reduce((a, p) => a + (p.morale ?? 70), 0) / Math.max(1, sq.length)),
         unhappy: sq.filter((p) => (p.morale ?? 70) < 40).length,
         requests: sq.filter((p) => p.request).length,

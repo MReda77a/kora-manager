@@ -144,7 +144,7 @@ async function complete(o: Row, price: number) {
     fail(400, 'This offer was already answered.');
   }
   const move = async (pid: string, to: number, loanFrom: number | null) => {
-    await q(`UPDATE squad SET club_id=$3, loan_from=$4, fitness=100, morale=GREATEST(morale, 75), request=false, promise_day=0 WHERE league_id=$1 AND player_id=$2`, [o.league_id, pid, to, loanFrom]);
+    await q(`UPDATE squad SET club_id=$3, loan_from=$4, fitness=100, fit_at=now(), morale=GREATEST(morale, 75), request=false, promise_day=0 WHERE league_id=$1 AND player_id=$2`, [o.league_id, pid, to, loanFrom]);
     await q('DELETE FROM listings WHERE league_id=$1 AND player_id=$2', [o.league_id, pid]);
     await q('DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false', [o.league_id, pid]);
     // take him out of the old club's saved line-up and penalty order
@@ -311,7 +311,7 @@ export async function botShopping(l: Row, day: number) {
     const w = writes();
     w.add('UPDATE clubs SET money=money-$1 WHERE id=$2', [pick.price, b.id]);
     w.add('UPDATE clubs SET money=money+$1, sales=sales+$1 WHERE id=$2', [pick.price, pick.seller_id]);
-    w.add(`UPDATE squad SET club_id=$1, fitness=100, loan_from=NULL WHERE league_id=$2 AND player_id=$3`, [b.id, l.id, pick.player_id]);
+    w.add(`UPDATE squad SET club_id=$1, fitness=100, fit_at=now(), loan_from=NULL WHERE league_id=$2 AND player_id=$3`, [b.id, l.id, pick.player_id]);
     w.add(`DELETE FROM training WHERE league_id=$1 AND player_id=$2 AND done=false`, [l.id, pick.player_id]);
     w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'transfer',$3)`, [l.id, b.id, `${b.name} sign ${pick.name} from ${pick.seller} for ${Number(pick.price).toFixed(1)}M.`]);
     { const t = transferStmt({ league: l.id, player: pick.player_id, name: pick.name, from: pick.seller_id, fromName: pick.seller, to: b.id, toName: b.name, fee: Number(pick.price), kind: 'buy' }); w.add(t.text, t.params); }
