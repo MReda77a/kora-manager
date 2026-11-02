@@ -3,12 +3,19 @@ import { getSession, type Session } from './auth.ts';
 
 import { HttpError, fail } from './errors.ts';
 import { migrate } from './migrate.ts';
-import { counter } from './db.ts';
+import { counter, q } from './db.ts';
 export { HttpError, fail };
 
+// when each manager last opened the game (written at most every few minutes per server instance)
+const seen = new Map<number, number>();
 export async function requireUser(): Promise<Session> {
   const s = await getSession();
   if (!s) fail(401, 'Please log in first.');
+  const now = Date.now();
+  if ((seen.get(s.uid) ?? 0) < now - 3 * 60_000) {
+    seen.set(s.uid, now);
+    try { await q('UPDATE users SET last_seen=now() WHERE id=$1', [s.uid]); } catch {}
+  }
   return s;
 }
 

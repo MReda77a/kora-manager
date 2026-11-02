@@ -133,6 +133,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
   if (action === 'today') return TD.todayView(s.uid, lid);
   if (action === 'press') return PR.pressView(s.uid, lid);
   if (action === 'transfers') { mustClub(); return V.transfersView(lid); }
+  if (action === 'managers') { mustClub(); return V.managersView(lid); }
   if (action === 'clubview') { mustClub(); return V.clubView(lid, Number(new URL(req.url).searchParams.get('club'))); }
   if (action === 'friendly') return FR.friendlyView(s.uid, lid);
   if (action === 'analyst') return A.analystReport(s.uid, lid, new URL(req.url).searchParams.get('refresh') === '1');
@@ -203,6 +204,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'nextseason': return S.nextSeason(s.uid, lid);
     case 'analyst': return A.upgradeAnalyst(s.uid, lid);
     case 'press': return PR.pressAnswer(s.uid, lid, b);
+    case 'resign': return L.resign(s.uid, lid, String(b.confirm || ''));
     case 'friendly': return FR.playFriendly(s.uid, lid, Number(b.opponentId));
     case 'hire': return L.hireStaff(s.uid, lid, String(b.role), Number(b.level));
     case 'tutorial': await q('UPDATE users SET tutorial_done=true WHERE id=$1', [s.uid]); return { ok: true };

@@ -74,7 +74,38 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
           </div>
         </section>
       </div>
+      <Resign lid={lid} club={c.name} toast={toast} />
     </div>
+  );
+}
+
+// leaving the league: the club carries on with an AI manager; asks for the club name to be typed first
+function Resign({ lid, club, toast }: { lid: number; club: string; toast: TabProps['toast'] }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    try { await api(`/api/leagues/${lid}/resign`, { confirm: typed }); window.location.href = '/'; }
+    catch (e: any) { toast.bad(e.message); setBusy(false); }
+  };
+  return (
+    <section className="panel" style={{ gap: 8, borderColor: 'rgba(255, 92, 108, 0.35)' }}>
+      <div className="row between wrap" style={{ gap: 8 }}>
+        <div className="col" style={{ gap: 2, minWidth: 0 }}>
+          <b>Resign from this league</b>
+          <span className="tiny muted">{club} carries on with an AI manager, with its players and money. You lose the club and the league leaves your list. This cannot be undone.</span>
+        </div>
+        {!open && <button className="ghost" style={{ borderColor: 'rgba(255, 92, 108, 0.6)', color: '#FF8A80' }} onClick={() => setOpen(true)}><span>Resign</span></button>}
+      </div>
+      {open && (
+        <div className="row wrap" style={{ gap: 6 }}>
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={`Type "${club}" to confirm`} style={{ flex: '1 1 200px', height: 38 }} aria-label="Type your club name to confirm" />
+          <button className="cta" style={{ background: 'linear-gradient(180deg, #FF7A86, #E0465A)', color: '#fff' }} disabled={busy || typed.trim().toLowerCase() !== club.trim().toLowerCase()} onClick={go}><span>{busy ? 'Resigning…' : 'Resign for good'}</span></button>
+          <button className="seg" onClick={() => { setOpen(false); setTyped(''); }}><span>Cancel</span></button>
+        </div>
+      )}
+    </section>
   );
 }
 

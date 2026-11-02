@@ -630,3 +630,26 @@ export async function buy(uid: number, leagueId: number, listingId: number) {
   }
   return { ok: true };
 }
+
+/** a manager leaves the league: his club carries on as an AI club with its players and money, his open
+ *  offers and listings go, and the league drops off his list. If he ran the league, the longest-serving
+ *  manager left takes it over. */
+export async function resign(uid: number, leagueId: number, confirmName: string) {
+  const l = await getLeague(leagueId);
+  const club = await myClub(uid, leagueId);
+  if (String(confirmName || '').trim().toLowerCase() !== String(club.name).trim().toLowerCase()) fail(400, 'Type your club name exactly to confirm.');
+  const live = await one(`SELECT id FROM fixtures WHERE league_id=$1 AND status IN ('live','playing','finalizing') AND (home_id=$2 OR away_id=$2)`, [leagueId, club.id]);
+  if (live) fail(400, 'Your match is being played right now. Resign after it ends.');
+  const user = await one('SELECT username FROM users WHERE id=$1', [uid]);
+  const w = writes();
+  w.add('UPDATE clubs SET user_id=NULL, captain=NULL, vice=NULL WHERE id=$1', [club.id]);
+  w.add(`UPDATE offers SET status='expired', note='The manager resigned.', updated_at=now() WHERE (from_club=$1 OR to_club=$1) AND status IN ('pending','countered')`, [club.id]);
+  w.add('DELETE FROM listings WHERE seller_id=$1', [club.id]);
+  w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'board',$3)`, [leagueId, club.id, `👋 ${user?.username ?? 'The manager'} has resigned from ${club.name}. The club carries on under an AI manager.`]);
+  if (l.owner_id === uid) {
+    const next = await one('SELECT user_id FROM clubs WHERE league_id=$1 AND user_id IS NOT NULL AND user_id<>$2 ORDER BY id LIMIT 1', [leagueId, uid]);
+    if (next) w.add('UPDATE leagues SET owner_id=$2 WHERE id=$1', [leagueId, next.user_id]);
+  }
+  await w.flush();
+  return { ok: true };
+}

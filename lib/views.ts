@@ -69,3 +69,17 @@ export async function clubView(leagueId: number, clubId: number) {
     players: list,
   };
 }
+
+/** every manager in the league: most goals first, with their club, place and when they last opened the game */
+export async function managersView(leagueId: number) {
+  const l = await one('SELECT divisions FROM leagues WHERE id=$1', [leagueId]);
+  const rows: any[] = [];
+  for (let div = 1; div <= (l?.divisions || 1); div++) {
+    const table = await standings(leagueId, div);
+    table.forEach((t: any, i: number) => { if (t.user_id) rows.push({ clubId: t.id, club: t.name, short: t.short, color1: t.color1, color2: t.color2, shape: t.shape, emblem: t.emblem, uid: t.user_id, division: div, pos: i + 1, p: t.p, w: t.w, d: t.d, l: t.l, gf: t.gf, ga: t.ga, pts: t.pts, form: t.form }); });
+  }
+  const users = await q('SELECT id, username, last_seen FROM users WHERE id IN (SELECT jsonb_array_elements_text($1::jsonb)::int)', [JSON.stringify(rows.map((r) => r.uid))]);
+  const by = new Map(users.map((u) => [u.id, u]));
+  return rows.map((r) => ({ ...r, manager: by.get(r.uid)?.username ?? '?', lastSeen: by.get(r.uid)?.last_seen ?? null }))
+    .sort((a, b) => b.gf - a.gf || (b.gf - b.ga) - (a.gf - a.ga) || b.pts - a.pts);
+}
