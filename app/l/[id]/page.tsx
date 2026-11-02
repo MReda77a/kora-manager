@@ -21,6 +21,7 @@ import AnalystTab from '../../../components/tabs/Analyst.tsx';
 import PressTab from '../../../components/tabs/Press.tsx';
 import DealsTab from '../../../components/tabs/Deals.tsx';
 import ManagersTab from '../../../components/tabs/Managers.tsx';
+import { SocialTab, TvTab } from '../../../components/tabs/Media.tsx';
 import FriendlyTab from '../../../components/tabs/Friendly.tsx';
 import Tutorial from '../../../components/Tutorial.tsx';
 import LiveAlert from '../../../components/LiveAlert.tsx';
@@ -123,6 +124,8 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'press' && <PressTab {...props} />}
           {tab === 'deals' && <DealsTab {...props} />}
           {tab === 'managers' && <ManagersTab {...props} />}
+          {tab === 'tv' && <TvTab {...props} />}
+          {tab === 'social' && <SocialTab {...props} />}
           {tab === 'friendly' && <FriendlyTab {...props} />}
           {tab === 'players' && <PlayersTab {...props} />}
           {tab === 'training' && <TrainingTab {...props} />}

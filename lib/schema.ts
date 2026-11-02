@@ -366,6 +366,25 @@ CREATE TABLE IF NOT EXISTS pressers (
 );
 CREATE INDEX IF NOT EXISTS pressers_club ON pressers (club_id);
 -- every transfer in a league, for the transfer history
+CREATE TABLE IF NOT EXISTS media_fx (
+  league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  club_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  day INT NOT NULL,
+  kind TEXT NOT NULL,
+  PRIMARY KEY (club_id, day, kind)
+);
+CREATE TABLE IF NOT EXISTS media_replies (
+  id SERIAL PRIMARY KEY,
+  league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  club_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  day INT NOT NULL,
+  choice TEXT NOT NULL,
+  line TEXT,
+  settled BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (club_id, day)
+);
+
 CREATE TABLE IF NOT EXISTS transfers (
   id SERIAL PRIMARY KEY,
   league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,

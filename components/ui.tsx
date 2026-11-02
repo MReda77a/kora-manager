@@ -110,6 +110,7 @@ const ICONS: Record<string, string> = {
   office: 'M4 21V7l8-4 8 4v14M9 21v-6h6v6M9 10h.01M15 10h.01',
   cup: 'M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8 21h8M10 17h4',
   paper: 'M5 4h12v16H7a2 2 0 01-2-2zM17 8h2v10a2 2 0 01-2 2M8 8h6M8 12h6M8 16h4',
+  tv: 'M3 7h18v12H3zM8 3l4 4 4-4M7 15h4',
   awards: 'M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19l1-5.8L3.5 9.2l5.9-.9z',
   players: 'M9 7a3 3 0 106 0 3 3 0 00-6 0M5 21v-2a5 5 0 015-5h4a5 5 0 015 5v2',
   history: 'M3 12a9 9 0 103-6.7M3 4v4h4M12 7v5l3 2',
