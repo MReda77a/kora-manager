@@ -132,7 +132,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
   return (
     <div className="col" style={{ gap: 8, height: '100%' }}>
       <BackHead title="Lineup" tag={opp ? <span className="tag pink"><span>vs {opp}</span></span> : undefined}
-        right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: '#5FD3F3' }}>{strength}</span></>} />
+        right={<><span className="small muted" style={{ fontWeight: 700 }}>Team strength</span><span className="lz" style={{ fontSize: 24, color: 'var(--cyan)' }}>{strength}</span></>} />
       <div className="split" style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="col" style={{ gap: 8, minWidth: 0 }}>
           <Pitch sized>
@@ -230,7 +230,7 @@ export default function LineupTab({ lid, toast, go }: TabProps) {
           })}
           <span className="tiny muted">Players who play together (league, cup or friendly) understand each other better. New signings start as strangers.</span
           >
-          <button className="ghost" style={{ marginTop: 'auto', borderColor: '#5FD3F3', color: '#5FD3F3' }} onClick={() => go('tactics')}><span>Advanced tactics</span></button>
+          <button className="ghost" style={{ marginTop: 'auto', borderColor: 'var(--cyan)', color: 'var(--cyan)' }} onClick={() => go('tactics')}><span>Advanced tactics</span></button>
           <button className={`cta ${dirty ? 'shine' : ''}`} onClick={save} disabled={!dirty}><span>{dirty ? 'Save lineup' : 'Saved'}</span></button>
         </section>
       </div>

@@ -15,7 +15,7 @@ const KEYS: Record<string, string[]> = {
 
 import { TRAITS } from '../../lib/game.ts';
 
-const mood = (m: number) => (m >= 85 ? ['😁', '#2EE6A0', 'Delighted'] : m >= 65 ? ['🙂', '#5FD3F3', 'Content'] : m >= 40 ? ['😐', '#F2C14E', 'Restless'] : m >= 25 ? ['😠', '#FF8A80', 'Unhappy'] : ['🤬', 'var(--red)', 'Furious']);
+const mood = (m: number) => (m >= 85 ? ['😁', '#2EE6A0', 'Delighted'] : m >= 65 ? ['🙂', 'var(--cyan)', 'Content'] : m >= 40 ? ['😐', '#F2C14E', 'Restless'] : m >= 25 ? ['😠', '#FF8A80', 'Unhappy'] : ['🤬', 'var(--red)', 'Furious']);
 
 export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
   const { d, load } = useSquad(lid);
@@ -50,8 +50,8 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
                   {ps.map((p: any) => {
                     const out = p.outUntil >= d.nextDay;
                     return (
-                      <button key={p.id} className="col" style={{ gap: 3, padding: 2, outline: sel?.id === p.id ? '2px solid #5FD3F3' : 'none', outlineOffset: 1, background: sel?.id === p.id ? 'rgba(95, 211, 243,0.12)' : undefined }} onClick={() => setSel(p)}>
-                        <PlayerCard p={{ ...p, ovr: p.ovr + (p.form || 0) }} badge={p.request ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>WANTS OUT</span> : p.loan ? <span style={{ background: 'var(--muted)', color: '#06121F', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>LOAN</span> : out ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.outReason === 'Suspended' ? 'SUS' : 'INJ'}</span> : p.form > 0 ? <span style={{ background: '#2EE6A0', color: '#0E3020', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>+{p.form}</span> : p.form < 0 ? <span style={{ background: '#FF8A80', color: '#3A0A12', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.form}</span> : p.listing ? <span style={{ background: '#5FD3F3', color: '#04202B', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>SALE</span> : null} />
+                      <button key={p.id} className="col" style={{ gap: 3, padding: 2, outline: sel?.id === p.id ? '2px solid #5FD3F3' : 'none', outlineOffset: 1, background: sel?.id === p.id ? 'color-mix(in srgb, var(--cyan) 12%, transparent)' : undefined }} onClick={() => setSel(p)}>
+                        <PlayerCard p={{ ...p, ovr: p.ovr + (p.form || 0) }} badge={p.request ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>WANTS OUT</span> : p.loan ? <span style={{ background: 'var(--muted)', color: '#06121F', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>LOAN</span> : out ? <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.outReason === 'Suspended' ? 'SUS' : 'INJ'}</span> : p.form > 0 ? <span style={{ background: '#2EE6A0', color: '#0E3020', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>+{p.form}</span> : p.form < 0 ? <span style={{ background: '#FF8A80', color: '#3A0A12', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>{p.form}</span> : p.listing ? <span style={{ background: 'var(--cyan)', color: '#04202B', fontSize: 11, fontWeight: 900, padding: '1px 4px' }}>SALE</span> : null} />
                         <div className="row" style={{ gap: 3 }}><FitBar v={p.fitness} /><span title={`Morale ${p.morale}`} style={{ fontSize: 11, lineHeight: 1 }}>{mood(p.morale)[0]}</span></div>
                       </button>
                     );
@@ -89,7 +89,7 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
             {sel.formNote && <div className="small" style={{ color: sel.form > 0 ? '#2EE6A0' : '#FF8A80', fontWeight: 800 }}>{sel.formNote}: {sel.form > 0 ? '+' : ''}{sel.form} rating for now</div>}
             <div className="col" style={{ gap: 4 }}>
               {KEYS[LINE[sel.pos] || 'MID'].map((k) => (
-                <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 82 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} color={(sel.attrs?.[k] ?? 0) >= 85 ? '#2EE6A0' : (sel.attrs?.[k] ?? 0) >= 70 ? '#5FD3F3' : 'var(--muted)'} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
+                <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 82 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} color={(sel.attrs?.[k] ?? 0) >= 85 ? '#2EE6A0' : (sel.attrs?.[k] ?? 0) >= 70 ? 'var(--cyan)' : 'var(--muted)'} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
               ))}
             </div>
             {sel.stats && <div className="tiny muted">{sel.stats.apps} apps · {sel.stats.goals} goals · {sel.stats.assists} assists · avg {(Number(sel.stats.rating_sum) / Math.max(1, sel.stats.apps)).toFixed(1)}</div>}

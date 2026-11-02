@@ -167,7 +167,7 @@ export function Ring({ v, size = 64, color = '#2EE6A0', track = 'rgba(255,255,25
     <div className="ring" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth="6" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0, Math.min(1, v / 100)))} transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: 'stroke-dashoffset .8s' }} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="6" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0, Math.min(1, v / 100)))} transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ stroke: color, transition: 'stroke-dashoffset .8s' }} />
       </svg>
       <span style={{ fontSize: font }}>{label ?? Math.round(v)}</span>
     </div>
@@ -184,7 +184,7 @@ export function Seg<T extends string | number>({ opts, value, onPick, small }: {
   );
 }
 
-export function Bar({ v, color = '#5FD3F3', h = 6, max = 100 }: { v: number; color?: string; h?: number; max?: number }) {
+export function Bar({ v, color = 'var(--cyan)', h = 6, max = 100 }: { v: number; color?: string; h?: number; max?: number }) {
   return <div className="bar" style={{ height: h }}><i style={{ width: `${Math.max(2, Math.min(100, (v / max) * 100))}%`, background: color }} /></div>;
 }
 

@@ -111,11 +111,11 @@ export function LeadersTab({ lid, d: ov }: TabProps) {
           {rows.map((r, i) => {
             const mine = r.club_id === ov.club.id;
             return (
-              <div key={r.player_id} className="row small" style={{ gap: 10, padding: '5px 10px', background: mine ? 'rgba(95, 211, 243,0.14)' : undefined, fontWeight: 800 }}>
+              <div key={r.player_id} className="row small" style={{ gap: 10, padding: '5px 10px', background: mine ? 'color-mix(in srgb, var(--cyan) 14%, transparent)' : undefined, fontWeight: 800 }}>
                 <span className="lz" style={{ width: 22, fontSize: 18, color: i === 0 ? '#F2C14E' : i === 2 ? '#EE7650' : 'var(--muted)' }}>{i + 1}</span>
-                <span className="grow col" style={{ minWidth: 0, gap: 0 }}><span className="ellipsis">{r.name} {mine && <span className="tiny" style={{ color: '#5FD3F3' }}>YOURS</span>}</span><span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{r.club}</span></span>
+                <span className="grow col" style={{ minWidth: 0, gap: 0 }}><span className="ellipsis">{r.name} {mine && <span className="tiny" style={{ color: 'var(--cyan)' }}>YOURS</span>}</span><span className="tiny muted ellipsis" style={{ fontWeight: 700 }}>{r.club}</span></span>
                 <span className="tiny ellipsis hide-sm" style={{ width: 130, color: 'var(--soft)' }}><i style={{ display: 'inline-block', width: 8, height: 8, background: r.color1, transform: 'rotate(45deg)', marginRight: 6 }} />{r.club}</span>
-                <div className="hide-sm" style={{ width: 150 }}><div className="bar" style={{ height: 8 }}><i style={{ width: `${(val(r) / max) * 100}%`, background: i === 0 ? '#F2C14E' : mine ? '#2EE6A0' : '#5FD3F3' }} /></div></div>
+                <div className="hide-sm" style={{ width: 150 }}><div className="bar" style={{ height: 8 }}><i style={{ width: `${(val(r) / max) * 100}%`, background: i === 0 ? '#F2C14E' : mine ? '#2EE6A0' : 'var(--cyan)' }} /></div></div>
                 <span className="lz" style={{ width: 40, textAlign: 'right', fontSize: 20 }}>{val(r)}</span>
               </div>
             );

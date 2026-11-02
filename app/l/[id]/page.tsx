@@ -61,6 +61,9 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
     document.querySelector('.content')?.scrollTo({ top: 0 });
   };
 
+  // the whole game turns gold while your next match is a derby
+  const nextFx = d?.fixtures?.find((f: any) => f.status !== 'done');
+  const derbyNext = !!(nextFx && nextFx.ht === 'fan' && nextFx.at === 'fan' && nextFx.hu && nextFx.au);
   if (err) return <div className="pad col" style={{ gap: 10 }}><div className="err">{err}</div><div className="row" style={{ gap: 8 }}><button className="cta" onClick={() => { setErr(''); load(); }}><span>Try again</span></button><a className="ghost" href="/"><span>Back</span></a></div></div>;
   if (!d) return <Spinner />;
   const { league, club } = d;
@@ -71,7 +74,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
   const lid = league.id;
   const props = { lid, d, reload: load, toast, go };
   return (
-    <div className="shell">
+    <div className={`shell ${derbyNext ? 'theme-derby derby-ui' : ''}`}>
       <nav className="rail" aria-label="Sections">
         <a href="/" aria-label="All leagues"><Icon name="back" /><span>Leagues</span></a>
         {SECTIONS.map((sec) => {

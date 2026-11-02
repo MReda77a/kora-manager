@@ -37,12 +37,12 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
           <section className="panel cut rise" style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <div className="col" style={{ alignItems: 'center', gap: 4 }}>
               <span className="tag"><span>Team</span></span>
-              <Ring v={club.strength} size={84} label={club.strength} font={30} color="#2EE6A0" />
+              <Ring v={club.strength} size={84} label={club.strength} font={30} color="var(--mint)" />
             </div>
             <div className="col grow" style={{ gap: 10 }}>
-              <Stat label="Morale" v={club.morale} color="#5FD3F3" />
-              <Stat label="Fitness" v={club.fitness} color="#5FD3F3" />
-              <Stat label="Fans" v={Math.round(Math.min(100, (club.fans / club.capacity) * 100))} color="#2EE6A0" note={`${(club.fans / 1000).toFixed(1)}k`} />
+              <Stat label="Morale" v={club.morale} color="var(--cyan)" />
+              <Stat label="Fitness" v={club.fitness} color="var(--cyan)" />
+              <Stat label="Fans" v={Math.round(Math.min(100, (club.fans / club.capacity) * 100))} color="var(--mint)" note={`${(club.fans / 1000).toFixed(1)}k`} />
             </div>
           </section>
           <section className="panel cut rise" style={{ gap: 4, animationDelay: '.08s' }}>
@@ -51,7 +51,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
               const i = table.indexOf(t) + 1;
               const me = t.id === club.id;
               return (
-                <div key={t.id} className="row" style={{ height: 30, padding: '0 10px', fontWeight: 800, fontSize: 13, borderRadius: 8, background: me ? 'linear-gradient(90deg, rgba(95, 211, 243,0.32), rgba(95, 211, 243,0.1))' : undefined }}>
+                <div key={t.id} className="row" style={{ height: 30, padding: '0 10px', fontWeight: 800, fontSize: 13, borderRadius: 8, background: me ? 'linear-gradient(90deg, color-mix(in srgb, var(--cyan) 32%, transparent), color-mix(in srgb, var(--cyan) 10%, transparent))' : undefined }}>
                   <span style={{ width: 22, color: me ? '#fff' : 'var(--muted)' }}>{i}</span>
                   <span className="grow ellipsis" >{t.name}</span>
                   <span>{t.pts}</span>
@@ -67,7 +67,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
               <div style={{ position: 'relative' }}><div className="ovr" style={{ fontSize: 30 }}>{star.ovr}</div><div className="pos">{star.pos}</div></div>
               <div style={{ marginTop: 'auto', position: 'relative', background: 'rgba(9, 26, 47, 0.72)', color: '#E8F1FA', margin: '0 -12px -10px', padding: '6px 8px 14px', textAlign: 'center' }}>
                 <div style={{ fontWeight: 900, fontSize: 14 }} className="ellipsis">{star.name}</div>
-                <div className="tiny" style={{ color: '#5FD3F3', fontWeight: 900 }}>Goals {star.goals} · Assists {star.assists}</div>
+                <div className="tiny" style={{ color: 'var(--cyan)', fontWeight: 900 }}>Goals {star.goals} · Assists {star.assists}</div>
               </div>
             </button>
           )}
@@ -88,7 +88,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
       <div className="ticker" style={{ marginTop: 'auto' }}>
         <span className="lbl">BREAKING</span>
         <div className="run" key={news.length}>
-          {news.slice(0, 10).map((n: any, i: number) => <span key={i} className="row" style={{ gap: 10 }}><i style={{ width: 8, height: 8, background: '#5FD3F3', transform: 'rotate(45deg)', display: 'inline-block' }} />{n.text}</span>)}
+          {news.slice(0, 10).map((n: any, i: number) => <span key={i} className="row" style={{ gap: 10 }}><i style={{ width: 8, height: 8, background: 'var(--cyan)', transform: 'rotate(45deg)', display: 'inline-block' }} />{n.text}</span>)}
         </div>
       </div>
       <style>{`@media (max-width: 760px){ .home-grid{ grid-template-columns: 1fr 1fr !important; } } @media (max-width: 480px){ .home-grid{ grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
@@ -149,7 +149,7 @@ function Today({ lid, go, stamp }: { lid: number; go: TabProps['go']; stamp: unk
         {s && (
           <button className="row small" style={{ gap: 8, fontWeight: 800 }} onClick={() => setOpen(!open)} aria-expanded={open}>
             <span className="muted">Match strength</span>
-            <b className="lz" style={{ fontSize: 20, color: '#5FD3F3' }}>{s.me.total}</b>
+            <b className="lz" style={{ fontSize: 20, color: 'var(--cyan)' }}>{s.me.total}</b>
             <span className="muted">vs</span>
             <b className="lz" style={{ fontSize: 20 }}>{s.them.total}</b>
             <span className="tiny" style={{ color: diff > 0.5 ? '#2EE6A0' : diff < -0.5 ? '#FF8A80' : '#9FB3C9' }}>{diff > 0 ? `+${diff}` : diff} {open ? '▲' : '▼'}</span>
@@ -270,7 +270,7 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
             <span className="lz ellipsis" style={{ fontSize: 16, maxWidth: 120, textAlign: 'center' }}>{f.home}</span>
             {homeMine && <span className="tiny" style={{ fontWeight: 900 }}>YOU</span>}
           </div>
-          <span style={{ width: 54, height: 54, transform: 'rotate(45deg)', background: '#06121F', border: `2px solid ${derby ? '#F2C14E' : '#5FD3F3'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: derby ? '0 0 18px rgba(244,194,78,0.6)' : '0 0 10px rgba(95, 211, 243,0.35)' }}>
+          <span style={{ width: 54, height: 54, transform: 'rotate(45deg)', background: '#06121F', border: `2px solid ${derby ? '#F2C14E' : 'var(--cyan)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: derby ? '0 0 18px rgba(244,194,78,0.6)' : '0 0 10px color-mix(in srgb, var(--cyan) 35%, transparent)' }}>
             <span className="lz" style={{ transform: 'rotate(-45deg)', fontSize: 21 }}>VS</span>
           </span>
           <div className="col" style={{ alignItems: 'center', gap: 2, color: '#fff' }}>
@@ -281,7 +281,7 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
         </div>
       </a>
       <div className="row between" style={{ gap: 8 }}>
-        {live ? <span className="lz" style={{ fontSize: 24, color: 'var(--red)', animation: 'pulse 1.2s infinite' }}>● LIVE</span> : <span className="lz" style={{ fontSize: 28, whiteSpace: 'nowrap' }}>{cd.main}{cd.sec && <span style={{ color: '#5FD3F3', fontSize: 20 }}>:{cd.sec}</span>}</span>}
+        {live ? <span className="lz" style={{ fontSize: 24, color: 'var(--red)', animation: 'pulse 1.2s infinite' }}>● LIVE</span> : <span className="lz" style={{ fontSize: 28, whiteSpace: 'nowrap' }}>{cd.main}{cd.sec && <span style={{ color: 'var(--cyan)', fontSize: 20 }}>:{cd.sec}</span>}</span>}
         {live ? <a className={`cta shine ${derby ? 'gold' : ''}`} href={`/m/${f.id}`}><span>Watch live</span></a> : <button className={`cta shine ${derby ? 'gold' : ''}`} onClick={() => go('lineup')}><span>Set lineup</span></button>}
       </div>
     </section>
@@ -331,7 +331,7 @@ function SetupHome({ lid, d, reload, toast, go }: TabProps) {
       </section>
       <section className="panel cut rise" style={{ animationDelay: '.06s' }}>
         <div className="row between"><span className="tag cyan"><span>Invite friends</span></span><span className="tiny muted">{clubs.length}/{league.maxClubs} clubs</span></div>
-        <div className="lz" style={{ fontSize: 36, letterSpacing: 6, color: '#5FD3F3' }}>{league.code}</div>
+        <div className="lz" style={{ fontSize: 36, letterSpacing: 6, color: 'var(--cyan)' }}>{league.code}</div>
         <div className="small muted">Send this code. Empty places become {['easy', 'normal', 'hard'][league.aiLevel]} AI clubs with {league.poolName.replace(' League', '')} names when the season starts.</div>
         <div className="col" style={{ gap: 4, maxHeight: 150, overflow: 'auto' }}>
           {clubs.map((c) => (

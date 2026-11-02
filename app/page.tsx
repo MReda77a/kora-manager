@@ -130,8 +130,8 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
           <div className="row between"><span className="lz" style={{ fontSize: 22 }}>Global manager ranking</span><span className="small muted">Your reputation: <b style={{ color: '#F2C14E' }}>{(me.user as any).reputation ?? 0}</b></span></div>
           <div className="tiny muted" style={{ marginBottom: 6 }}>Win +3 · draw +1 · title +50 · cup +30 · promotion +30 · Manager of the Season +20 · relegation −20</div>
           {((me as any).ranking || []).map((r: any, i: number) => (
-            <div key={r.username} className="row small" style={{ gap: 10, padding: '5px 10px', fontWeight: 800, background: r.username === me.user!.name ? 'rgba(95, 211, 243,0.14)' : i % 2 ? 'rgba(255,255,255,0.03)' : undefined }}>
-              <span className="lz" style={{ width: 26, fontSize: 18, color: i === 0 ? '#F2C14E' : i < 3 ? '#5FD3F3' : 'var(--muted)' }}>{i + 1}</span>
+            <div key={r.username} className="row small" style={{ gap: 10, padding: '5px 10px', fontWeight: 800, background: r.username === me.user!.name ? 'color-mix(in srgb, var(--cyan) 14%, transparent)' : i % 2 ? 'rgba(255,255,255,0.03)' : undefined }}>
+              <span className="lz" style={{ width: 26, fontSize: 18, color: i === 0 ? '#F2C14E' : i < 3 ? 'var(--cyan)' : 'var(--muted)' }}>{i + 1}</span>
               <span className="grow ellipsis">{r.username}</span>
               <span className="tiny muted">{r.titles} 🏆</span>
               <b className="lz" style={{ width: 54, textAlign: 'right', fontSize: 18 }}>{r.reputation}</b>

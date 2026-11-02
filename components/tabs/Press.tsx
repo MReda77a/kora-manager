@@ -10,10 +10,10 @@ import { BackHead, Crest, Spinner } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
 const OUTLETS = [
-  { name: 'Kora Daily', color: '#2EE6A0' }, { name: 'The Touchline', color: '#5FD3F3' }, { name: 'Matchday Times', color: '#F2C14E' },
+  { name: 'Kora Daily', color: '#2EE6A0' }, { name: 'The Touchline', color: 'var(--cyan)' }, { name: 'Matchday Times', color: '#F2C14E' },
   { name: 'Goal Line Radio', color: '#2EE6A0' }, { name: 'The Back Page', color: '#A9C8F0' }, { name: 'Pitchside TV', color: '#FF8A65' },
 ];
-const TONE_COLOR: Record<string, string> = { calm: '#5FD3F3', humble: '#A9C8F0', bold: '#F2C14E', fiery: '#FF6B7A', witty: '#2EE6A0', mind: '#B9A6FF' };
+const TONE_COLOR: Record<string, string> = { calm: 'var(--cyan)', humble: '#A9C8F0', bold: '#F2C14E', fiery: '#FF6B7A', witty: '#2EE6A0', mind: '#B9A6FF' };
 
 export default function PressTab({ lid, d, go, toast }: TabProps) {
   const [v, setV] = useState<any>(null);

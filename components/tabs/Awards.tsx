@@ -63,12 +63,12 @@ export default function AwardsTab({ lid }: TabProps) {
               </Pitch>
               {pick && (
                 <aside className="panel cut" style={{ gap: 6 }}>
-                  <div className="row" style={{ gap: 10 }}><span className="lz" style={{ fontSize: 40, color: '#5FD3F3', lineHeight: 1 }}>{pick.r.toFixed(1)}</span><div className="col" style={{ gap: 0 }}><b className="lz" style={{ fontSize: 20 }}>{pick.name}</b><span className="tiny muted">{pick.pos} · {pick.club}</span></div></div>
+                  <div className="row" style={{ gap: 10 }}><span className="lz" style={{ fontSize: 40, color: 'var(--cyan)', lineHeight: 1 }}>{pick.r.toFixed(1)}</span><div className="col" style={{ gap: 0 }}><b className="lz" style={{ fontSize: 20 }}>{pick.name}</b><span className="tiny muted">{pick.pos} · {pick.club}</span></div></div>
                   {pick.id === t.totw.star && <b className="small">Star of the week.</b>}
                   <div className="row between small"><span>Goals</span><b>{pick.g}</b></div>
                   <div className="row between small"><span>Assists</span><b>{pick.a}</b></div>
-                  <div className="small" style={{ padding: '6px 10px', background: 'rgba(95, 211, 243,0.12)' }}><b style={{ color: '#2EE6A0' }}>Effect:</b> “In form”: +2 rating for the next 2 days.</div>
-                  <div className="small" style={{ padding: '6px 10px', background: 'rgba(95, 211, 243,0.14)' }}><b style={{ color: '#5FD3F3' }}>Your club:</b> {team.filter((p: any) => p.clubId === d.myClub).length} players picked.</div>
+                  <div className="small" style={{ padding: '6px 10px', background: 'color-mix(in srgb, var(--cyan) 12%, transparent)' }}><b style={{ color: '#2EE6A0' }}>Effect:</b> “In form”: +2 rating for the next 2 days.</div>
+                  <div className="small" style={{ padding: '6px 10px', background: 'color-mix(in srgb, var(--cyan) 14%, transparent)' }}><b style={{ color: 'var(--cyan)' }}>Your club:</b> {team.filter((p: any) => p.clubId === d.myClub).length} players picked.</div>
                   <span className="tiny muted">Picked automatically: the best match rating in each position. Ratings count goals, assists, saves, clean sheets and the team result.</span>
                 </aside>
               )}
@@ -98,7 +98,7 @@ export default function AwardsTab({ lid }: TabProps) {
                     </div>
                   );
                 })}
-                {potmShown && Array.from({ length: 26 }).map((_, i) => <span key={i} className="conf" style={{ left: `${(i * 37) % 100}%`, background: ['#FFE48A', '#2EE6A0', '#5FD3F3', '#E8F1FA', '#2EE6A0'][i % 5], animationDelay: `${(i * 0.06) % 0.8}s` }} />)}
+                {potmShown && Array.from({ length: 26 }).map((_, i) => <span key={i} className="conf" style={{ left: `${(i * 37) % 100}%`, background: ['#FFE48A', '#2EE6A0', 'var(--cyan)', '#E8F1FA', '#2EE6A0'][i % 5], animationDelay: `${(i * 0.06) % 0.8}s` }} />)}
               </div>
               {!potmShown && <button className="cta gold shine" onClick={() => setPotmShown(true)} style={{ minWidth: 220 }}><span>Reveal the winner</span></button>}
             </div>

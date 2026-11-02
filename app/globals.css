@@ -648,3 +648,15 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 .derby-card::before { background: linear-gradient(90deg, transparent, rgba(255, 210, 110, 0.9), transparent) !important; }
 .derby-card.cut::after { border-color: rgba(255, 210, 110, 0.9) !important; }
 .cta.gold { background: linear-gradient(180deg, #FFD978, #E0A22E); color: #2A1A00; box-shadow: 0 6px 20px rgba(244, 194, 78, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45); }
+
+/* derby week: the whole league screen goes gold */
+.derby-ui { --sel: #F4C24E; --selInk: #2A1A00; --cyan: #FFD978; }
+.derby-ui .rail { background: linear-gradient(180deg, #1F1810, #0E0A06); border-right-color: rgba(255, 210, 110, 0.25); }
+.derby-ui .rail .on { color: #F4C24E; background: rgba(244, 194, 78, 0.14); box-shadow: inset 0 0 0 1px rgba(244, 194, 78, 0.55), 0 0 18px rgba(244, 194, 78, 0.2); }
+.derby-ui .top { background: linear-gradient(180deg, rgba(60, 45, 20, 0.6), transparent); }
+.derby-ui .coin { border-color: rgba(255, 210, 110, 0.35); }
+.derby-ui .tag:not(.gold):not(.pink) { background: rgba(244, 194, 78, 0.16); color: #FFE48A; }
+.derby-ui .seg.on, .derby-ui .chip.on { background: #F4C24E; color: #2A1A00; }
+.derby-ui .ghost { border-color: rgba(255, 210, 110, 0.35); }
+.derby-ui .ticker .lbl, .derby-ui .tag.green { background: #F4C24E; color: #2A1A00; }
+.derby-ui table.t tr.me td:first-child { box-shadow: inset 3px 0 0 #F4C24E; }

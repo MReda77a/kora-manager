@@ -27,7 +27,7 @@ export function ClubSheet({ lid, clubId, myId, onClose }: { lid: number; clubId:
               <Crest c1={c.color1} c2={c.color2} shape={c.shape} emblem={c.human ? c.emblem : -1} short={c.short} size={44} />
               <div className="col grow" style={{ gap: 2, minWidth: 0 }}>
                 <span className="lz ellipsis" style={{ fontSize: 22 }}>{c.name}{c.id === myId ? ' (you)' : ''}</span>
-                <span className="tiny muted ellipsis">{c.human ? <>Manager <b style={{ color: '#5FD3F3' }}>{c.manager}</b></> : 'AI club'} · {c.type}{c.pos ? ` · ${c.pos}${['st', 'nd', 'rd'][c.pos - 1] || 'th'} with ${c.row.pts} pts` : ''} · {c.stadium}</span>
+                <span className="tiny muted ellipsis">{c.human ? <>Manager <b style={{ color: 'var(--cyan)' }}>{c.manager}</b></> : 'AI club'} · {c.type}{c.pos ? ` · ${c.pos}${['st', 'nd', 'rd'][c.pos - 1] || 'th'} with ${c.row.pts} pts` : ''} · {c.stadium}</span>
               </div>
               <button className="press-x" onClick={onClose} aria-label="Close">✕</button>
             </header>

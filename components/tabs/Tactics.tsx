@@ -77,7 +77,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
   const fitXi = saved.map((id, i) => { const p: any = byId.get(id); return p ? { pos: p.pos, slot: F.slots[i], ovr: p.ovr, a: p.attrs || {} } : null; }).filter(Boolean) as any[];
   const fitNow = tacticFit(fitXi, t);
   const fitOf = (n: string) => tacticFit(fitXi.map((p) => ({ ...p })), stripDesc(PRESETS[n])).score;
-  const fitColor = (v: number) => (v >= 65 ? '#2EE6A0' : v >= 45 ? '#5FD3F3' : '#FF8A80');
+  const fitColor = (v: number) => (v >= 65 ? '#2EE6A0' : v >= 45 ? 'var(--cyan)' : '#FF8A80');
   const takers = xiPlayers.filter((p: any) => p.pos !== 'GK').sort((a: any, b: any) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure));
   return (
     <div className="col" style={{ gap: 8 }}>
@@ -85,13 +85,13 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
         right={<>
           <span className="tag pink"><span>{t.preset}</span></span>
           <button className="row tiny" onClick={() => setPanel('fit' as any)} title="How well this plan suits your players" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Suits squad</span><div style={{ width: 60 }}><Bar v={fitNow.score} color={fitColor(fitNow.score)} /></div><b style={{ color: fitColor(fitNow.score) }}>{fitNow.score}%</b></button>
-          <span className="row tiny" title="Familiarity grows each match you play this shape" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Familiarity</span><div style={{ width: 70 }}><Bar v={fam} color={fam >= 80 ? '#2EE6A0' : fam >= 60 ? '#5FD3F3' : '#F2C14E'} /></div><b>{fam}</b></span>
+          <span className="row tiny" title="Familiarity grows each match you play this shape" style={{ gap: 6, fontWeight: 800 }}><span className="muted">Familiarity</span><div style={{ width: 70 }}><Bar v={fam} color={fam >= 80 ? '#2EE6A0' : fam >= 60 ? 'var(--cyan)' : '#F2C14E'} /></div><b>{fam}</b></span>
           {scout?.opponent ? <span className="tag"><span>vs {scout.opponent.name}</span></span> : null}
         </>} />
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(280px, 1.05fr)', gap: 12 }}>
         <Pitch style={{ minHeight: 250 }}>
-          <div style={{ position: 'absolute', top: 8, bottom: 8, left: `${lineX}%`, borderLeft: '2px dashed rgba(95, 211, 243,0.8)' }} />
-          <span className="tiny" style={{ position: 'absolute', top: 10, left: `calc(${lineX}% + 4px)`, color: '#5FD3F3', fontWeight: 900 }}>DEF LINE</span>
+          <div style={{ position: 'absolute', top: 8, bottom: 8, left: `${lineX}%`, borderLeft: '2px dashed color-mix(in srgb, var(--cyan) 80%, transparent)' }} />
+          <span className="tiny" style={{ position: 'absolute', top: 10, left: `calc(${lineX}% + 4px)`, color: 'var(--cyan)', fontWeight: 900 }}>DEF LINE</span>
           {F.xy.map(([x, y], i) => {
             const p: any = byId.get(saved[i]);
             const push = i === 0 ? 0 : (t.mentality - 1) * 4 + (F.slots[i] === 'DEF' ? (t.line - 1) * 4 : 0);
@@ -179,13 +179,13 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
                 const fit = cur ? Math.round(ROLES[cur].keys.reduce((a: number, k: string) => a + (p.attrs[k] ?? 60), 0) / ROLES[cur].keys.length) : 0;
                 return (
                   <div key={p.id} className="row small" style={{ gap: 8, fontWeight: 700 }}>
-                    <span className="tiny" style={{ width: 30, color: '#5FD3F3', fontWeight: 900 }}>{slot}</span>
+                    <span className="tiny" style={{ width: 30, color: 'var(--cyan)', fontWeight: 900 }}>{slot}</span>
                     <span className="grow ellipsis" style={{ minWidth: 60 }}>{lastName(p.name)}</span>
                     <select value={cur} onChange={(e) => change(() => setRoles({ ...roles, [p.id]: e.target.value }))} style={{ width: 'clamp(104px, 40%, 140px)', height: 30 }} title={cur ? ROLES[cur].desc : ''}>
                       <option value="">Auto (assistant)</option>
                       {opts.map(([k]) => <option key={k} value={k}>{k}</option>)}
                     </select>
-                    <b className="tiny" style={{ width: 26, textAlign: 'right', color: fit >= 80 ? '#2EE6A0' : fit >= 70 ? '#5FD3F3' : fit ? '#F2C14E' : 'var(--dim)' }}>{fit || '–'}</b>
+                    <b className="tiny" style={{ width: 26, textAlign: 'right', color: fit >= 80 ? '#2EE6A0' : fit >= 70 ? 'var(--cyan)' : fit ? '#F2C14E' : 'var(--dim)' }}>{fit || '–'}</b>
                   </div>
                 );
               })}
@@ -219,8 +219,8 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
                   <button key={p.id} className={`row-item ${n >= 0 ? 'sel' : ''}`} style={{ textAlign: 'left', minHeight: 30 }} onClick={() => change(() => setPens(n >= 0 ? pens.filter((x) => x !== p.id) : pens.length < 5 ? [...pens, p.id] : pens))}>
                     <span style={{ width: 22, height: 22, display: 'grid', placeItems: 'center', background: n >= 0 ? '#2EE6A0' : 'rgba(255,255,255,0.1)', clipPath: 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)', fontWeight: 900, fontSize: 12 }}>{n >= 0 ? n + 1 : ''}</span>
                     <b className="grow ellipsis">{p.name} <span className="tiny muted">{p.pos}</span></b>
-                    <div style={{ width: 70 }}><Bar v={skill} color={skill >= 80 ? '#2EE6A0' : skill >= 70 ? '#5FD3F3' : '#F2C14E'} /></div>
-                    <b style={{ width: 24, textAlign: 'right', color: skill >= 80 ? '#2EE6A0' : skill >= 70 ? '#5FD3F3' : '#F2C14E' }}>{skill}</b>
+                    <div style={{ width: 70 }}><Bar v={skill} color={skill >= 80 ? '#2EE6A0' : skill >= 70 ? 'var(--cyan)' : '#F2C14E'} /></div>
+                    <b style={{ width: 24, textAlign: 'right', color: skill >= 80 ? '#2EE6A0' : skill >= 70 ? 'var(--cyan)' : '#F2C14E' }}>{skill}</b>
                   </button>
                 );
               })}
@@ -242,13 +242,13 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
           <div className="row wrap" style={{ gap: 6, marginTop: 'auto' }}>
             <span className="tag" style={{ background: 'rgba(46, 230, 160,0.25)' }}><span>Stamina drain: {stamina}</span></span>
             <span className="tag" style={{ background: 'rgba(242,193,78,0.22)', color: '#F2C14E' }}><span>Space behind: {space}</span></span>
-            <span className="tag" style={{ background: 'rgba(95, 211, 243,0.18)', color: '#5FD3F3' }}><span>Card risk: {cards}</span></span>
+            <span className="tag" style={{ background: 'color-mix(in srgb, var(--cyan) 18%, transparent)', color: 'var(--cyan)' }}><span>Card risk: {cards}</span></span>
           </div>
         </section>
       </div>
       <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
         <div className="panel grow" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: '8px 12px', minWidth: 240, flexBasis: 300 }}>
-          <span className="tag" style={{ background: '#5FD3F3', color: '#06121F' }}><span>SCOUT</span></span>
+          <span className="tag" style={{ background: 'var(--cyan)', color: '#06121F' }}><span>SCOUT</span></span>
           <span className="small" style={{ fontWeight: 700 }}>{scoutLine(scout)}</span>
           <button className="ghost small" style={{ alignSelf: 'flex-start' }} onClick={() => go('analyst')}><span>Full analyst report →</span></button>
         </div>

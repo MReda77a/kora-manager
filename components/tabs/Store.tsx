@@ -65,7 +65,7 @@ export default function StoreTab({ lid, d: ov, reload, toast }: TabProps) {
         <aside className="panel cut" style={{ gap: 6 }}>
           <div className="row between"><span className="kicker">Your squad</span><span className="lz" style={{ fontSize: 22 }}>{ps.length} / 16</span></div>
           <div className="row" style={{ gap: 4 }}>
-            {[['90+', ps.filter((p: any) => p.ovr >= 90).length, '#F2C14E'], ['80-89', ps.filter((p: any) => p.ovr >= 80 && p.ovr < 90).length, '#5FD3F3'], ['Best XI', ps.length >= 11 ? Math.round(ps.map((p: any) => p.ovr).sort((a: number, b: number) => b - a).slice(0, 11).reduce((a: number, b: number) => a + b, 0) / 11) : '—', '#E8F1FA']].map(([l, v, c]) => (
+            {[['90+', ps.filter((p: any) => p.ovr >= 90).length, '#F2C14E'], ['80-89', ps.filter((p: any) => p.ovr >= 80 && p.ovr < 90).length, 'var(--cyan)'], ['Best XI', ps.length >= 11 ? Math.round(ps.map((p: any) => p.ovr).sort((a: number, b: number) => b - a).slice(0, 11).reduce((a: number, b: number) => a + b, 0) / 11) : '—', '#E8F1FA']].map(([l, v, c]) => (
               <div key={String(l)} className="col grow" style={{ alignItems: 'center', gap: 0, padding: 6, background: 'rgba(255,255,255,0.06)' }}><span className="lz" style={{ fontSize: 20, color: String(c) }}>{v}</span><span className="tiny muted" style={{ fontWeight: 800 }}>{l}</span></div>
             ))}
           </div>

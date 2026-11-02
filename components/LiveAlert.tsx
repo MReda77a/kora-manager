@@ -45,7 +45,7 @@ export default function LiveAlert({ live, club }: { live: any[]; club: any }) {
           <a className="ghost" href={`/m/${f.id}?skip=1`} onClick={dismiss}><span>Skip to result</span></a>
         </div>
         {'Notification' in globalThis && typeof Notification !== 'undefined' && Notification.permission === 'default' && (
-          <button className="tiny" style={{ color: '#5FD3F3', fontWeight: 800 }} onClick={() => Notification.requestPermission()}>Turn on kick-off notifications</button>
+          <button className="tiny" style={{ color: 'var(--cyan)', fontWeight: 800 }} onClick={() => Notification.requestPermission()}>Turn on kick-off notifications</button>
         )}
         <button className="tiny muted" onClick={dismiss}>Later</button>
       </div>

@@ -20,7 +20,7 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
   const fanPct = Math.round(Math.min(100, (c.fans / c.capacity) * 100));
   return (
     <div className="col" style={{ gap: 8 }}>
-      <BackHead title="Club Office" tag={<span className="tag" style={{ background: 'rgba(46, 230, 160,0.3)', color: '#5FD3F3' }}><span>{c.typeName.toUpperCase()}</span></span>}
+      <BackHead title="Club Office" tag={<span className="tag" style={{ background: 'rgba(46, 230, 160,0.3)', color: 'var(--cyan)' }}><span>{c.typeName.toUpperCase()}</span></span>}
         sub={ov.club.pos ? `${ov.club.pos}${['', 'st', 'nd', 'rd'][ov.club.pos] || 'th'} place` : 'Pre-season'}
         right={<><span className="tiny muted" style={{ fontWeight: 900, letterSpacing: 1 }}>PROJECTED GRADE</span><span className="lz" style={{ fontSize: 28, color: '#2EE6A0' }}>{d.grade}</span></>} />
       <div className="split3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>

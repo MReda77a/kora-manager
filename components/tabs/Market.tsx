@@ -50,7 +50,7 @@ function Listings({ lid, toast, reload }: TabProps) {
                 <span className="hide-sm" style={{ width: 30 }}>{l.age}</span>
                 <span style={{ width: 110 }} className="ellipsis muted hide-sm">{l.seller}{l.bot ? ' (AI)' : ''}</span>
                 <span className="hide-sm" style={{ width: 30 }}>{l.pot}</span>
-                <b style={{ width: 56, textAlign: 'right', color: '#5FD3F3' }}>{l.price.toFixed(1)}M</b>
+                <b style={{ width: 56, textAlign: 'right', color: 'var(--cyan)' }}>{l.price.toFixed(1)}M</b>
               </button>
             ))}
           </div>
@@ -58,11 +58,11 @@ function Listings({ lid, toast, reload }: TabProps) {
         <aside className="panel cut" style={{ gap: 8 }}>
           {sel ? (
             <>
-              <div className="row" style={{ gap: 10 }}><div style={{ width: 66 }}><PlayerCard p={sel} /></div><div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.nat}</span>{sel.abroad && <span className="tiny" style={{ color: '#5FD3F3', fontWeight: 800 }}>🌍 From a club abroad</span>}<span className="tiny muted">Seller: {sel.seller}</span></div></div>
+              <div className="row" style={{ gap: 10 }}><div style={{ width: 66 }}><PlayerCard p={sel} /></div><div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.nat}</span>{sel.abroad && <span className="tiny" style={{ color: 'var(--cyan)', fontWeight: 800 }}>🌍 From a club abroad</span>}<span className="tiny muted">Seller: {sel.seller}</span></div></div>
               {['Pace', 'Passing', 'Finishing', 'Tackling', 'Stamina'].map((k) => (
                 <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 62 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
               ))}
-              <div className="row between"><span className="lz" style={{ fontSize: 26, color: '#5FD3F3' }}>{sel.price.toFixed(1)}M</span><span className="tiny muted">value ≈ {sel.attrs?.v}M</span></div>
+              <div className="row between"><span className="lz" style={{ fontSize: 26, color: 'var(--cyan)' }}>{sel.price.toFixed(1)}M</span><span className="tiny muted">value ≈ {sel.attrs?.v}M</span></div>
               {sel.sellerId === d.myClub ? <span className="tag"><span>Your listing</span></span> : <button className="cta" disabled={!d.window.open || d.money < sel.price} onClick={() => buy(sel)}><span>{d.money < sel.price ? 'Not enough money' : 'Buy now'}</span></button>}
             </>
           ) : <span className="small muted">Pick a player to see details.</span>}
@@ -151,7 +151,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
                 <span style={{ width: 36 }} className="muted">{p.pos}</span>
                 <span className="hide-sm" style={{ width: 28 }}>{p.age}</span>
                 <span style={{ flex: '1.4 1 0', minWidth: 0, maxWidth: 140 }} className="ellipsis muted"><i style={{ display: 'inline-block', width: 7, height: 7, background: p.color1, transform: 'rotate(45deg)', marginRight: 5 }} />{p.club}{p.human ? '' : ' (AI)'}</span>
-                <b style={{ width: 48, textAlign: 'right', color: '#5FD3F3' }}>{p.v.toFixed(1)}M</b>
+                <b style={{ width: 48, textAlign: 'right', color: 'var(--cyan)' }}>{p.v.toFixed(1)}M</b>
               </button>
             ))}
           </div>
@@ -181,7 +181,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
   );
 }
 
-const STATUS_COLOR: Record<string, string> = { pending: '#F2C14E', countered: '#5FD3F3', accepted: '#2EE6A0', rejected: 'var(--red)', withdrawn: 'var(--dim)', expired: 'var(--dim)' };
+const STATUS_COLOR: Record<string, string> = { pending: '#F2C14E', countered: 'var(--cyan)', accepted: '#2EE6A0', rejected: 'var(--red)', withdrawn: 'var(--dim)', expired: 'var(--dim)' };
 
 function OffersInbox({ lid, toast, reload }: TabProps) {
   const [d, setD] = useState<any>(null);

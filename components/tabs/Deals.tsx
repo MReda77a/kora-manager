@@ -7,7 +7,7 @@ import { ClubSheet } from '../ClubSheet.tsx';
 import type { TabProps } from './types.ts';
 
 const KIND: Record<string, { label: string; color: string }> = {
-  buy: { label: 'Transfer', color: '#5FD3F3' }, loan: { label: 'Loan', color: '#A9C8F0' }, swap: { label: 'Swap', color: '#F2C14E' },
+  buy: { label: 'Transfer', color: 'var(--cyan)' }, loan: { label: 'Loan', color: '#A9C8F0' }, swap: { label: 'Swap', color: '#F2C14E' },
   abroad: { label: 'From abroad', color: '#2EE6A0' }, 'sold abroad': { label: 'Sold abroad', color: '#FF8A65' },
 };
 const money = (v: number) => (v <= 0 ? '–' : v >= 10 ? `${Math.round(v)}M` : `${v.toFixed(1)}M`);
@@ -27,7 +27,7 @@ export default function DealsTab({ lid, d }: TabProps) {
   const club = (c: any) => (
     <button className="row deal-club" onClick={() => c.id && setOpen(c.id)} disabled={!c.id} style={{ gap: 5, minWidth: 0 }}>
       <i style={{ width: 8, height: 8, flex: 'none', background: c.color || '#8FA6BF', borderRadius: c.id ? 0 : '50%' }} />
-      <span className="ellipsis" style={{ fontWeight: c.human ? 900 : 700, color: c.id === me ? '#5FD3F3' : undefined }}>{c.name}</span>
+      <span className="ellipsis" style={{ fontWeight: c.human ? 900 : 700, color: c.id === me ? 'var(--cyan)' : undefined }}>{c.name}</span>
     </button>
   );
   return (

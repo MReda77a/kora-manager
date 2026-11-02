@@ -53,7 +53,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
                   <span style={{ width: 36 }} className="muted">{x.line}</span>
                   <b style={{ width: 24, color: diff >= 2 ? '#2EE6A0' : undefined }}>{x.mine}</b>
                   <div className="grow" style={{ display: 'flex', height: 8, background: 'rgba(255,255,255,0.08)' }}>
-                    <i style={{ width: `${(x.mine / (x.mine + x.theirs || 1)) * 100}%`, background: diff >= 0 ? '#5FD3F3' : 'rgba(95, 211, 243,0.45)' }} />
+                    <i style={{ width: `${(x.mine / (x.mine + x.theirs || 1)) * 100}%`, background: diff >= 0 ? 'var(--cyan)' : 'color-mix(in srgb, var(--cyan) 45%, transparent)' }} />
                     <i style={{ flex: 1, background: diff < 0 ? '#FF8A80' : 'rgba(255,138,128,0.45)' }} />
                   </div>
                   <b style={{ width: 24, textAlign: 'right', color: diff <= -2 ? '#FF8A80' : undefined }}>{x.theirs}</b>
@@ -108,7 +108,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
             ))}
           </div>
           <span className="small" style={{ fontWeight: 800 }}><b style={{ color: '#FF8A80' }}>Avoid:</b> {r.avoid}{r.myLast && r.myLast === r.avoid ? ' (you played it last time, and they are ready for it)' : ''}</span>
-          {r.tip && <span className="small" style={{ fontWeight: 700, color: '#5FD3F3' }}>💡 {r.tip}</span>}
+          {r.tip && <span className="small" style={{ fontWeight: 700, color: 'var(--cyan)' }}>💡 {r.tip}</span>}
           {(r.style || []).map((t: string, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}>{t}</span>)}
           {!numbers && <span className="tiny muted">A part-time analyst only gives a rough guess and can be wrong. A Match analyst plays the game through hundreds of times first.</span>}
           <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
