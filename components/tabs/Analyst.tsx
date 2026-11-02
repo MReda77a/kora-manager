@@ -67,6 +67,12 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
               {r.weak.map((t: string, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}>✓ {t}</span>)}
             </div>
           )}
+          {r.roles?.length > 0 && (
+            <div className="col" style={{ gap: 3 }}>
+              <span className="kicker">Their roles</span>
+              {r.roles.map((x: any, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}>{x.name} · <b style={{ color: 'var(--cyan)' }}>{x.role}</b>{x.tip ? <span className="muted"> → {x.tip}</span> : null}</span>)}
+            </div>
+          )}
           {r.danger.length > 0 && (
             <div className="col" style={{ gap: 4 }}>
               <span className="tiny" style={{ color: '#FF8A80', fontWeight: 900 }}>WATCH OUT</span>

@@ -5,7 +5,7 @@
 // opponent nearest to it, a shot flies at goal from where the engine took it and the real scorer
 // scores. Each move starts exactly where the previous one ended, so nothing jumps.
 import { useMemo, useRef } from 'react';
-import { FORMATIONS, PRESETS } from '../../lib/game.ts';
+import { FORMATIONS, PRESETS, ROLES } from '../../lib/game.ts';
 import { shirt } from '../../lib/client.ts';
 import { lastName } from '../ui.tsx';
 
@@ -19,6 +19,8 @@ export const tm = (m: number) => (m <= 90 ? m : 90 + (m - 90) * 0.08);
 // a little before the kick that ends the move on the event's minute
 export const evAt = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45 : e.type === 'penalty' ? Math.max(0, tm(e.m) - 1.3) : e.type === 'freekick' ? Math.max(0, tm(e.m) - 0.75) : tm(e.m));
 
+// how much more often the ball is played to a man in this role
+const PASS_TO: Record<string, number> = { Playmaker: 6, 'Deep-lying playmaker': 5, Regista: 6, 'False 9': 4, 'Ball carrier': 3, 'Target man': 3, 'Wide winger': 2, Overlap: 2, 'Wing back': 2, 'Early crosser': 2 };
 const L = 105, W = 68; // pitch size in metres: the SVG works in these units
 const hash = (n: number) => { let x = (n * 2654435761) >>> 0; x ^= x >>> 13; x = Math.imul(x, 1274126177) >>> 0; return (x ^ (x >>> 16)) >>> 0; };
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
@@ -137,13 +139,12 @@ export function buildPlan(rep: any, events: Ev[]) {
       if (!idx.length) continue;
       let end = a;
       for (const i of idx) { const m = raw[i]; m.t0 = end; m.t1 = Math.max(m.t1, m.t0 + needOf(i)); end = m.t1; }
-      let lim = b;
-      for (const i of [...idx].reverse()) { const m = raw[i]; m.t1 = Math.min(m.t1, lim); if (m.t1 - m.t0 < needOf(i)) m.t0 = Math.max(a, m.t1 - needOf(i)); lim = m.t0; }
-      end = a;
-      for (const i of idx) { const m = raw[i]; m.t0 = Math.max(m.t0, end); if (m.t1 < m.t0 + 0.2) m.t1 = Math.min(b, m.t0 + 0.2); end = m.t1; }
+      // too much happened for the half: every move gives up time in proportion, so none is squashed
+      if (end > b) { const f = (b - a) / (end - a); for (const i of idx) { raw[i].t0 = a + (raw[i].t0 - a) * f; raw[i].t1 = a + (raw[i].t1 - a) * f; } }
       for (let j = 0; j < idx.length - 1; j++) raw[idx[j]].t1 = raw[idx[j + 1]].t0;
       raw[idx[idx.length - 1]].t1 = Math.max(raw[idx[idx.length - 1]].t1, b); // the half's last move runs to its whistle
     }
+    const roleIn = (side: 0 | 1, id: string | null | undefined) => (id ? rep.lineups?.[side]?.roles?.[id] || '' : '');
     const occAt = (side: 0 | 1, t: number) => {
       const ids = [...xi[side]];
       for (const c of changes) if (c.side === side && c.at <= t) { const k = ids.indexOf(c.out); if (k >= 0) ids[k] = c.inn; }
@@ -223,7 +224,9 @@ export function buildPlan(rep: any, events: Ev[]) {
         const score = (k: number) => Math.abs(eff(k) - goalD) + Math.abs(yOf(k) - yOf(cur)) * 0.35 + (hash(i * 31 + n * 7 + k) % 10) * 0.9
           + (sty.build === 0 ? Math.hypot(baseDepth(k) - baseDepth(cur), yOf(k) - yOf(cur)) * 0.25 : 0) // short passes to the nearest men
           - ((sty.build === 2 || counter) && slots[k] === 'FWD' && goalD > 55 ? 8 : 0) // go long to the strikers
-          + (sty.width === 2 ? (50 - Math.abs(yOf(k) - 50)) * 0.12 : sty.width === 0 ? Math.abs(yOf(k) - 50) * 0.12 : 0); // wide or through the middle
+          + (sty.width === 2 ? (50 - Math.abs(yOf(k) - 50)) * 0.12 : sty.width === 0 ? Math.abs(yOf(k) - 50) * 0.12 : 0) // wide or through the middle
+          - (PASS_TO[roleIn(s, ids[k])] ?? 0) // play goes through playmakers, crossers and the target man
+          - (roleIn(s, ids[cur]) === 'Long passer' && slots[k] === 'FWD' ? 10 : 0); // the long passer looks for the strikers
         chain.push(pool.sort((a, b) => score(a) - score(b))[0]);
       }
       if (shot) {
@@ -276,13 +279,28 @@ export function buildPlan(rep: any, events: Ev[]) {
       }
       return evAt(e);
     };
-    return { plans, F, occAt, shots, styleAt, timeOf };
+    return { plans, F, occAt, shots, styleAt, timeOf, roleIn };
   }
 }
 
 export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t: number; plan: ReturnType<typeof usePlan>; mineSide: number; seen?: Ev[]; fitOf?: (id: string) => number | null }) {
-  const { plans, F, occAt, shots, styleAt, timeOf } = plan;
-  const sty = [styleAt(0, t), styleAt(1, t)];
+  const { plans, F, occAt, shots, styleAt, timeOf, roleIn } = plan;
+  const idsNow = [occAt(0, t), occAt(1, t)];
+  const roleAt = (side: 0 | 1, k: number) => roleIn(side, idsNow[side][k]);
+  // which flank a full-back bombs forward on (for the flank cover)
+  const overlapY = [0, 1].map((side) => { const k = F[side].slots.findIndex((s2: string, kk: number) => s2 === 'DEF' && ['Overlap', 'Wing back'].includes(roleAt(side as 0 | 1, kk))); return k >= 0 ? F[side].xy[k][1] : null; });
+  // a change of set-up is walked into over about 2 seconds, never snapped
+  const styleSmooth = (side: 0 | 1) => {
+    const now = styleAt(side, t), before = styleAt(side, t - 0.6);
+    if (now === before) return now;
+    let tc = t;
+    for (let x = t - 0.6; x <= t; x += 0.05) if (styleAt(side, x) === now) { tc = x; break; }
+    const w = c01((t - tc) / 0.6);
+    const mix: any = { ...now };
+    for (const k of ['mentality', 'press', 'line', 'build', 'width', 'tempo'] as const) mix[k] = lerp((before as any)[k], (now as any)[k], w);
+    return mix as typeof now;
+  };
+  const sty = [styleSmooth(0), styleSmooth(1)];
   // the move now
   let k = -1;
   { let lo = 0, hi = plans.length - 1; while (lo <= hi) { const mid = (lo + hi) >> 1; if (plans[mid].t1 <= t) lo = mid + 1; else hi = mid - 1; } k = plans[lo] && plans[lo].t0 <= t ? lo : -1; }
@@ -311,9 +329,45 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       if (att !== side) depth += (st.press - 1) * 3.5 * c01((ballD - 35) / 40);
       if (att !== side && st.press === 0 && st.mentality === 0) depth = 12 + (depth - 12) * 0.8;
     }
+    // the role shows in how he moves: in possession (a) and out of it
+    const role = roleAt(side, k), a = att === side, hot = c01((ballD - 45) / 35);
+    let yPull = 0, yTo = 50; // pull him toward yTo (seen from his own team, like fy) by yPull (0..1)
+    const wyOwn = side === 0 ? wy : 100 - wy;
+    const edge = fy < 50 ? 6 : 94;
+    switch (role) {
+      case 'Sweeper keeper': depth += a ? 9 : 4; break;
+      case 'Shot stopper': depth -= 1; break;
+      case 'Overlap': if (a) { depth += 15 * hot + 4; yPull = 0.5; yTo = edge; } break;
+      case 'Wing back': depth += a ? 17 * hot + 5 : 2; yPull = 0.6; yTo = edge; break;
+      case 'Inverted': if (a) { depth += F[side].slots[k] === 'DEF' ? 7 : 4; yPull = F[side].slots[k] === 'DEF' ? 0.55 : 0.4; } break;
+      case 'Stopper': if (!a) depth += 5; break;
+      case 'Sweeper': depth -= 5; break;
+      case 'Supporting CDM': if (a) { depth += 12; yPull = 0.4; } break;
+      case '2nd striker': if (F[side].slots[k] === 'DEF') { if (a) depth += 22 * c01((ballD - 75) / 15); } else if (a) { depth += 9 * hot; yPull = 0.4; } break;
+      case 'Anchor': depth -= (ballD - 50) * 0.22; yPull = 0.5; break;
+      case 'Marker': if (!a) { yPull = 0.3; yTo = wyOwn; depth -= 3; } break;
+      case 'Deep-lying playmaker': if (a) { depth -= 9 * (1 - hot); yPull = 0.6; } break;
+      case 'Flank cover': yPull = 0.5; yTo = overlapY[side] != null ? (overlapY[side]! < 50 ? 18 : 82) : edge < 50 ? 18 : 82; break;
+      case 'Regista': if (a) { yPull = 0.35; yTo = wyOwn; depth += 2; } break;
+      case 'Box to box': depth += a ? 9 * hot : -5; break;
+      case 'Ball carrier': if (a) depth += 5; break;
+      case 'Playmaker': if (a) { yPull = 0.4; depth += 3; } break;
+      case 'Long shooter': if (a) depth += 6 * hot; break;
+      case 'Supporting wing': if (a) { yPull = 0.45; yTo = edge; } break;
+      case 'Drift wide': if (a) { yPull = 0.6; yTo = fy <= 50 ? 12 : 88; } break;
+      case 'Early crosser': if (a) { depth -= 4; yPull = 0.6; yTo = edge; } break;
+      case 'Inside winger': if (a) { yPull = 0.45; depth += 4 * hot; } break;
+      case 'Wide winger': if (a) { yPull = 0.75; yTo = edge; } break;
+      case 'Shadow striker': if (a) { yPull = 0.5; depth += 9 * hot; } break;
+      case 'Line breaker': depth += a ? 10 * hot + 3 : 6; break;
+      case 'Poacher': depth += a ? 6 : 4; yPull = 0.5; break;
+      case 'Target man': if (a) { yPull = 0.6; depth += 4; } break;
+      case 'False 9': if (a) depth -= 14; break;
+    }
     depth = Math.max(3, Math.min(97, depth + Math.sin(t * 0.9 + k * 1.9 + side) * 1.6 + Math.sin(t * 2.3 + k) * 0.5));
     const spread = att === side ? 0.82 + st.width * 0.12 : 0.86 - (st.press === 0 ? 0.08 : 0);
-    const fy2 = 50 + (fy - 50) * spread;
+    let fy2 = 50 + (fy - 50) * spread;
+    if (yPull) fy2 = lerp(fy2, yTo, yPull);
     const y0 = side === 0 ? fy2 : 100 - fy2;
     const y = y0 + (wy - y0) * (F[side].slots[k] === 'GK' ? 0.12 : 0.24) + Math.cos(t * 0.8 + k * 2.3) * 1.8;
     const x = side === 0 ? depth : 100 - depth;
@@ -339,7 +393,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     const goalX = q.s === 0 ? L : 0;
     const spot: [number, number] | null = q.spot ? (q.kind === 'penalty' ? [q.s === 0 ? L - 11 : 11, W / 2] : toPitch(q.spot)) : null;
     // set piece: everyone else clears the box for a penalty; for a free kick three men form the wall
-    const setW = sp0 ? ease(c01((v - sp0) / 0.12)) : 0;
+    const setW = sp0 ? ease(c01((v - sp0 + 0.05) / 0.3)) : 0;
     const wallK = q.kind === 'free kick' && spot ? F[1 - q.s].slots.map((sl, k) => k).filter((k) => F[1 - q.s].slots[k] !== 'GK')
       .sort((a, b) => Math.hypot(...(base((1 - q.s) as 0 | 1, a).map((x, j) => x - spot[j]) as [number, number])) - Math.hypot(...(base((1 - q.s) as 0 | 1, b).map((x, j) => x - spot[j]) as [number, number]))).slice(0, 3) : [];
     const own = (side: 0 | 1, k: number): [number, number] => {
@@ -382,9 +436,14 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     const prevQ = blend && q.i > 0 ? plans[q.i - 1] : null;
     if (!prevQ) return own;
     const dur = Math.max(0.01, q.t1 - q.t0);
-    const bw = ease(c01(vRaw / Math.min(0.7, Math.max((q.pre || 0) * dur, 0.4) / dur)));
+    // a long way back (after an attack at the other end) takes longer to run than a few steps
+    const was0 = posQ(prevQ, 1, false), own0 = own;
+    let far = 0;
+    for (const sd of [0, 1] as const) for (let kk = 0; kk < F[sd].xy.length; kk++) { const p0 = was0(sd, kk), p1 = own0(sd, kk); far = Math.max(far, Math.hypot(p0[0] - p1[0], p0[1] - p1[1])); }
+    const need = Math.max((q.pre || 0) * dur, 0.4, far / 25); // about 7.5 m a second at most
+    const bw = ease(c01(vRaw / Math.min(0.85, need / dur)));
     if (bw >= 1) return own;
-    const was = posQ(prevQ, 1, false);
+    const was = was0;
     return (side, k) => { const a = was(side, k), b = own(side, k); return [lerp(a[0], b[0], bw), lerp(a[1], b[1], bw)]; };
   };
   // the defending side closes the ball down: the nearer a man is to the ball, the harder he presses
@@ -540,7 +599,8 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
   const ink = (hex: string) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt((hex || '#000000').slice(i, i + 2), 16) || 0); return r * 0.299 + g * 0.587 + b * 0.114 > 150 ? '#151018' : '#fff'; };
   const holderId = holder ? ids[holder.side][holder.k] : null;
   const holderPos = holder ? pos(holder.side, holder.k) : null;
-  const hName = holderId ? lastName(d.names[holderId]?.name || '') : '';
+  const hRole = holderId && holder ? roleIn(holder.side, holderId) : '';
+  const hName = holderId ? `${lastName(d.names[holderId]?.name || '')}${hRole ? ` · ${ROLES[hRole]?.short || hRole}` : ''}` : '';
   const hNum = holderId ? d.names[holderId]?.num ?? '' : '';
   const capOf = (side: number) => d.report.lineups?.[side]?.captain;
   const arrow = (a: { from: [number, number]; to: [number, number]; side: 0 | 1 }, key: string, op = 1) => (

@@ -4,7 +4,7 @@
 // about what the other side will do. Level 1 is free; levels 2 and 3 cost club money.
 import { q, one, type Row } from './db.ts';
 import { aiPlan, counterShare, nearestPreset, simulate, type ESide } from './engine.ts';
-import { conditionsFor, FORMATIONS, LINE, PRESETS, stripDesc, tacticFit, type Tactic } from './game.ts';
+import { conditionsFor, FORMATIONS, LINE, PRESETS, stripDesc, tacticFit, type Tactic , roleName } from './game.ts';
 import { getLeague, myClub, standings } from './league.ts';
 import { fail } from './errors.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -158,6 +158,17 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
   else if (level >= 2 && likely[0]?.plan === 'Tiki-taka') styleTips.push('😠 They pass short: getting stuck in can break up their play (watch the cards).');
   if (myTrap - theirRuns >= 3) styleTips.push(`🚩 Your defenders read the game better than their forwards (${myTrap} vs ${theirRuns})${runners ? ', and they like to run in behind' : ''}: an offside trap could catch them.`);
   else if (theirRuns - myTrap >= 3) styleTips.push(`🚩 Their forwards time their runs well (${theirRuns} vs your back line's ${myTrap}): an offside trap is risky.`);
+  // their roles (from level 2): what their key men will do, and how to deal with it
+  const COUNTER_TIP: Record<string, string> = {
+    'Target man': 'a Stopper at centre-back wins his headers', 'Line breaker': 'a Sweeper behind the line stops his runs', Poacher: 'a Marker in midfield cuts his service',
+    Playmaker: 'a Marker can follow him', Regista: 'press high: he gets caught on the ball', 'Wide winger': 'a Flank cover or a Stopper full-back on that side',
+    Overlap: 'a winger who stays high pins him back', 'Wing back': 'attack the space behind him', 'False 9': 'an Anchor in front of the defence picks him up',
+    'Long shooter': 'a Sweeper keeper is riskier against him', 'Inside winger': 'an Inverted full-back closes the middle',
+  };
+  const roleList = level >= 2 ? Object.entries(them.roles || {}).map(([id, r]) => {
+    const p = them.xi.find((x) => x.id === id); const rn = roleName(r);
+    return p && rn ? { name: p.name, role: rn, tip: COUNTER_TIP[rn] || null } : null;
+  }).filter(Boolean).slice(0, 6) : [];
   const gap = best.score - second.score;
   const confidence = level === 1 ? 'Low' : level === 2 ? (gap > 0.15 ? 'Medium' : 'Low') : gap > 0.12 ? 'High' : 'Medium';
   const main = likely[0]?.plan;
@@ -170,7 +181,7 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
     plans: (level === 1 ? results.slice(0, 3) : results).map((x) => ({ plan: x.plan, win: x.win, draw: x.draw, loss: x.loss })),
     best: best.plan, avoid: worst.plan, confidence,
     tip: chase ? `If you need a goal late on, switch to ${chase}: it is the best answer to ${main}.` : null,
-    style: styleTips,
+    style: styleTips, roles: roleList,
     myLast: myHistory[0] || null,
     made: new Date().toISOString(),
   };

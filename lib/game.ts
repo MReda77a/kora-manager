@@ -234,20 +234,55 @@ export function matchKits(home: any, away: any): [Kit, Kit] {
 }
 
 // ---------------------------------------------------------------- player roles
-export const ROLES: Record<string, { line: 'GK' | 'DEF' | 'MID' | 'FWD'; desc: string; keys: string[] }> = {
-  'Shot stopper': { line: 'GK', desc: 'Stays on his line. Better saves.', keys: ['Reflexes', 'Handling'] },
-  'Sweeper keeper': { line: 'GK', desc: 'Rushes out behind a high line.', keys: ['OneOnOne', 'Distribution'] },
-  Stopper: { line: 'DEF', desc: 'Steps out, wins duels and headers.', keys: ['Tackling', 'Strength'] },
-  'Ball-playing': { line: 'DEF', desc: 'Starts attacks from the back.', keys: ['Passing', 'Vision'] },
-  'Wing-back': { line: 'DEF', desc: 'Bombs forward and crosses.', keys: ['Pace', 'Crossing'] },
-  Anchor: { line: 'MID', desc: 'Sits in front of the defence.', keys: ['Tackling', 'Marking'] },
-  'Box-to-box': { line: 'MID', desc: 'Covers every blade of grass.', keys: ['Stamina', 'WorkRate'] },
-  Playmaker: { line: 'MID', desc: 'Dictates play, splits defences.', keys: ['Passing', 'Vision'] },
-  Poacher: { line: 'FWD', desc: 'Lives in the box. Finishes chances.', keys: ['Finishing', 'Positioning'] },
-  'Target man': { line: 'FWD', desc: 'Wins headers, holds the ball up.', keys: ['Heading', 'Strength'] },
-  'False 9': { line: 'FWD', desc: 'Drops deep to link play.', keys: ['Passing', 'Dribbling'] },
-  'Inside forward': { line: 'FWD', desc: 'Cuts in and shoots.', keys: ['Dribbling', 'LongShots'] },
+// Player roles: what a player does in his position. Each one changes the match engine (with a cost),
+// how he moves on the live pitch, and how often he scores or sets up goals. How well it works depends on
+// his attributes in `keys` (see roleFit). `pos` are the positions it can be given in (slotLabel names).
+export type RoleDef = { pos: string[]; short: string; desc: string; minus: string; keys: string[] };
+export const ROLES: Record<string, RoleDef> = {
+  'Shot stopper': { pos: ['GK'], short: 'SS', desc: 'Stays on his line: better saves.', minus: 'Exposed behind a high line.', keys: ['Reflexes', 'Handling'] },
+  'Sweeper keeper': { pos: ['GK'], short: 'SK', desc: 'Sweeps up behind the defence and starts attacks.', minus: 'Lobbed more often.', keys: ['OneOnOne', 'Distribution'] },
+  Overlap: { pos: ['LB', 'RB'], short: 'OVL', desc: 'Runs past his winger: more crosses.', minus: 'Leaves space behind him.', keys: ['Pace', 'Stamina', 'Crossing'] },
+  Inverted: { pos: ['LB', 'RB', 'LM', 'RM'], short: 'INV', desc: 'Full-back: tucks into midfield to keep the ball. Wide midfielder: cuts in to shoot.', minus: 'Fewer crosses down that side.', keys: ['Passing', 'Dribbling', 'Vision'] },
+  Stopper: { pos: ['LB', 'RB', 'CB'], short: 'STP', desc: 'Steps out to win duels and headers.', minus: 'Slower to recover when beaten.', keys: ['Tackling', 'Strength', 'Marking'] },
+  'Wing back': { pos: ['LB', 'RB', 'LM', 'RM'], short: 'WB', desc: 'Covers the whole flank: crosses and cover.', minus: 'Tires fast; space behind.', keys: ['Pace', 'Stamina', 'Crossing'] },
+  Sweeper: { pos: ['CB'], short: 'SW', desc: 'Covers behind the line: stops through balls.', minus: 'Offside trap works less.', keys: ['Pace', 'Positioning', 'Decisions'] },
+  'Long passer': { pos: ['CB'], short: 'LP', desc: 'Hits long balls to the forwards: more counters.', minus: 'Gives the ball away more.', keys: ['Passing', 'Vision'] },
+  'Supporting CDM': { pos: ['CB'], short: 'SCD', desc: 'Steps into midfield to help keep the ball.', minus: 'Space behind if it is lost.', keys: ['Passing', 'Tackling'] },
+  '2nd striker': { pos: ['CB', 'CAM'], short: '2ST', desc: 'Defender: attacks corners and set pieces. CAM: gets into the box to score.', minus: 'Leaves gaps behind him.', keys: ['Finishing', 'Heading', 'Positioning'] },
+  Anchor: { pos: ['DM', 'CM'], short: 'ANC', desc: 'Sits in front of the defence and shields it.', minus: 'Adds little going forward.', keys: ['Tackling', 'Positioning', 'Marking'] },
+  Marker: { pos: ['DM'], short: 'MRK', desc: 'Man-marks their danger man: their finishing drops.', minus: 'Gets dragged out of shape.', keys: ['Marking', 'Stamina', 'Tackling'] },
+  'Deep-lying playmaker': { pos: ['DM'], short: 'DLP', desc: 'Drops between the centre-backs and starts every move.', minus: 'Softer in the tackle.', keys: ['Passing', 'Vision', 'Composure'] },
+  'Flank cover': { pos: ['DM'], short: 'FC', desc: 'Covers for an attacking full-back on his side.', minus: 'Leaves the middle thinner.', keys: ['Pace', 'Tackling', 'Positioning'] },
+  Regista: { pos: ['DM'], short: 'REG', desc: 'Free role: long balls and through balls from deep.', minus: 'Gets caught when pressed.', keys: ['Vision', 'Passing', 'Composure'] },
+  'Box to box': { pos: ['CM'], short: 'B2B', desc: 'Helps at both ends.', minus: 'Tires faster.', keys: ['Stamina', 'WorkRate', 'Tackling'] },
+  'Ball carrier': { pos: ['CM'], short: 'BC', desc: 'Drives forward with the ball and sets the tempo.', minus: 'Loses the ball more.', keys: ['Dribbling', 'Pace', 'FirstTouch'] },
+  Playmaker: { pos: ['CM', 'CAM'], short: 'PM', desc: 'Splits defences: more through balls and assists.', minus: 'Does little defending.', keys: ['Passing', 'Vision'] },
+  'Long shooter': { pos: ['CM', 'CAM'], short: 'LS', desc: 'Shoots from outside the box.', minus: 'Wastes some attacks.', keys: ['LongShots', 'Composure'] },
+  'Supporting wing': { pos: ['CM'], short: 'SWG', desc: 'Helps out on the flank: crosses and cover.', minus: 'Midfield thinner in the middle.', keys: ['Crossing', 'Stamina'] },
+  'Drift wide': { pos: ['CAM', 'ST'], short: 'DW', desc: 'Drifts to the wing to cross and overload it.', minus: 'Fewer bodies in the box.', keys: ['Dribbling', 'Crossing', 'Pace'] },
+  'Early crosser': { pos: ['LM', 'RM'], short: 'EC', desc: 'Crosses early from deep: great with a target man.', minus: 'Weak if nobody wins headers.', keys: ['Crossing', 'Vision'] },
+  'Inside winger': { pos: ['LW', 'RW'], short: 'IW', desc: 'Cuts inside to shoot.', minus: 'Fewer crosses.', keys: ['Dribbling', 'Finishing', 'LongShots'] },
+  'Wide winger': { pos: ['LW', 'RW'], short: 'WW', desc: 'Stays wide, beats his man, crosses.', minus: 'Scores less himself.', keys: ['Pace', 'Crossing', 'Dribbling'] },
+  'Shadow striker': { pos: ['LW', 'RW'], short: 'SHD', desc: 'Runs into the box beside the striker.', minus: 'Does not track back.', keys: ['Finishing', 'Positioning', 'Pace'] },
+  'Line breaker': { pos: ['LW', 'RW', 'ST'], short: 'LB', desc: 'Runs in behind the defence: deadly on the break.', minus: 'Caught offside more.', keys: ['Pace', 'Positioning', 'Decisions'] },
+  Poacher: { pos: ['ST'], short: 'POA', desc: 'Lives in the box and finishes chances.', minus: 'Does not link play.', keys: ['Finishing', 'Positioning'] },
+  'Target man': { pos: ['ST'], short: 'TM', desc: 'Wins headers and holds the ball up.', minus: 'Slow: fewer counters.', keys: ['Heading', 'Strength', 'Jumping'] },
+  'False 9': { pos: ['ST'], short: 'F9', desc: 'Drops deep to link play and opens space for the wingers.', minus: 'Scores less himself.', keys: ['Passing', 'Dribbling', 'Vision'] },
 };
+/** older role names saved by clubs, and what they are now */
+export const ROLE_ALIASES: Record<string, string> = { 'Ball-playing': 'Long passer', 'Wing-back': 'Wing back', 'Box-to-box': 'Box to box', 'Inside forward': 'Inside winger' };
+export const roleName = (r: string | null | undefined) => (r ? (ROLES[r] ? r : ROLE_ALIASES[r] && ROLES[ROLE_ALIASES[r]] ? ROLE_ALIASES[r] : null) : null);
+const LABEL_LINE: Record<string, 'GK' | 'DEF' | 'MID' | 'FWD'> = { GK: 'GK', LB: 'DEF', RB: 'DEF', CB: 'DEF', DM: 'MID', CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID', LW: 'FWD', RW: 'FWD', ST: 'FWD' };
+/** can this role be played from this line (GK/DEF/MID/FWD)? */
+export const roleLine = (r: string) => [...new Set(ROLES[r]?.pos.map((p) => LABEL_LINE[p]) || [])];
+/** how well a player suits a role, 0..99, from the attributes it needs */
+export function roleFit(r: string, attrs: Record<string, number>) {
+  const def = ROLES[r];
+  if (!def) return 0;
+  return Math.round(def.keys.reduce((t, k) => t + (attrs[k] ?? 60), 0) / def.keys.length);
+}
+/** the roles that fit a position label (LB, CM...) */
+export const rolesFor = (label: string) => Object.keys(ROLES).filter((r) => ROLES[r].pos.includes(label));
 export const CORNER_ROUTINES: Record<string, string> = { near: 'Near post', far: 'Far post', short: 'Short' };
 
 // ---------------------------------------------------------------- personalities

@@ -3,7 +3,7 @@
 // Every step is a duel between one side's tactic and players and the other side's.
 // Ported from the Python prototype that was balanced over 50,000+ simulated matches.
 import { rng as makeRng, type Rng } from './rng.ts';
-import { FORMATIONS, LINE, PRESETS, ROLES, stripDesc, tacticFit, type Tactic } from './game.ts';
+import { FORMATIONS, LINE, PRESETS, ROLES, roleFit, roleLine, roleName, stripDesc, tacticFit, type Tactic } from './game.ts';
 
 export type EPlayer = {
   id: string; name: string; pos: string; ovr: number; fitness: number;
@@ -39,7 +39,7 @@ export type Report = {
   players: PlayerLine[];
   motm: string | null;
   tactics: [string, string];
-  lineups: { formation: string; preset: string; xi: string[]; bench: string[]; captain?: string }[];
+  lineups: { formation: string; preset: string; xi: string[]; bench: string[]; captain?: string; roles?: Record<string, string>; fits?: Record<string, number> }[];
   shootout?: Shootout;
   winner?: 0 | 1;
   derby?: boolean;
@@ -59,6 +59,11 @@ export const FIT_WEIGHT = 2.6;
 export const MAX_GOALS = 6;
 
 type OnPitch = { p: EPlayer; slot: 'GK' | 'DEF' | 'MID' | 'FWD'; tired: number; yc: number; on: number; line: PlayerLine };
+
+const NO_FLAGS = { through: 0, crossB: 0, longshot: 0, holdup: 0, sweeper: 0, anchor: 0, exposed: 0, counterQ: 0, wingCover: 0, setPiece: 0, mark: 0, keep: 0, prog: 0, lose: 0, tire: 0, longshot2: 0, offside: 0, lobbed: 0, pressed: 0, waste: 0 };
+// how much more (or less) each role scores and sets up goals than his position alone would
+const ROLE_GOALS: Record<string, number> = { Poacher: 1.7, 'Shadow striker': 1.5, '2nd striker': 1.5, 'Inside winger': 1.4, Inverted: 1.2, 'Line breaker': 1.35, 'Long shooter': 1.25, 'False 9': 0.7, 'Drift wide': 0.8, 'Wide winger': 0.8, 'Target man': 1.15 };
+const ROLE_ASSISTS: Record<string, number> = { Playmaker: 1.6, 'Deep-lying playmaker': 1.3, Regista: 1.4, 'Wide winger': 1.5, 'Early crosser': 1.5, Overlap: 1.4, 'Wing back': 1.4, 'False 9': 1.5, 'Drift wide': 1.3, 'Ball carrier': 1.2, 'Supporting wing': 1.25 };
 
 class Side {
   s: ESide;
@@ -87,7 +92,9 @@ class Side {
   weather = 'clear';
   fit = 0;
   fitKey = '';
-  flags: Record<string, number> = { through: 0, crossB: 0, longshot: 0, holdup: 0, sweeper: 0, anchor: 0 };
+  flags: Record<string, number> = { ...NO_FLAGS };
+  roleOf = new Map<string, string>(); // player id -> role he plays now (fits his slot)
+  roleEff = new Map<string, number>();
   val(o: OnPitch, attr: string) {
     let v = (o.p.a[attr] ?? o.p.ovr) + (o.p.mod || 0);
     const natural = LINE[o.p.pos] || 'MID';
@@ -114,26 +121,56 @@ class Side {
       trap: avg(D.length ? D : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Marking')) / 3, base) - avg(D, (o) => o.tired, 0) * 8,
       runs: avg(F.length ? F : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Pace')) / 3, base),
     };
-    // roles: each player in a role that fits his slot adds a small, attribute-scaled edge
-    this.flags = { through: 0, crossB: 0, longshot: 0, holdup: 0, sweeper: 0, anchor: 0 };
+    // roles: each player in a role that fits his slot changes how the team plays (see ROLES), scaled by
+    // how well his attributes suit it; every role has a cost too
+    this.flags = { ...NO_FLAGS };
+    this.roleOf.clear(); this.roleEff.clear();
+    let target = 0;
+    for (const o of all) { const r = roleName(this.s.roles?.[o.p.id]); if (r === 'Target man' && roleLine(r).includes(o.slot)) target = 1; }
     for (const o of all) {
-      const role = this.s.roles?.[o.p.id];
-      const def = role ? ROLES[role] : null;
-      if (!def || def.line !== o.slot) continue;
-      const eff = Math.max(0.6, Math.min(1.2, def.keys.reduce((t, k) => t + (o.p.a[k] ?? 60), 0) / def.keys.length / 80)) * 0.75;
-      const A = this.agg, F = this.flags;
-      if (role === 'Shot stopper') A.keeper += 2.5 * eff;
-      else if (role === 'Sweeper keeper') { A.keeper += 0.5; F.sweeper += eff; }
-      else if (role === 'Stopper') { A.tackling += 1.2 * eff; A.aerial_def += 1.2 * eff; A.pace_def -= 0.6; }
-      else if (role === 'Ball-playing') A.passing += 1.2 * eff;
-      else if (role === 'Wing-back') { F.crossB += 0.006 * eff; A.pace_def -= 0.5; }
-      else if (role === 'Anchor') { A.tackling += 1.5 * eff; F.anchor += eff; }
-      else if (role === 'Box-to-box') { A.tackling += 0.6 * eff; A.passing += 0.6 * eff; }
-      else if (role === 'Playmaker') { A.passing += 1.8 * eff; F.through += 0.006 * eff; }
-      else if (role === 'Poacher') A.finishing += 2 * eff;
-      else if (role === 'Target man') { A.aerial_att += 3 * eff; F.holdup += 0.1 * eff; }
-      else if (role === 'False 9') { A.passing += 1 * eff; A.finishing -= 0.5; F.through += 0.004 * eff; }
-      else if (role === 'Inside forward') { A.finishing += 0.8 * eff; F.longshot += 0.006 * eff; }
+      const role = roleName(this.s.roles?.[o.p.id]);
+      if (!role || !roleLine(role).includes(o.slot)) continue;
+      const e = Math.max(0.6, Math.min(1.2, roleFit(role, o.p.a) / 80)) * 0.75;
+      this.roleOf.set(o.p.id, role); this.roleEff.set(o.p.id, e);
+      const A = this.agg, F = this.flags, d = o.slot === 'DEF', m = o.slot === 'MID';
+      switch (role) {
+        case 'Shot stopper': A.keeper += 2.5 * e; F.exposed += 0.004; break;
+        case 'Sweeper keeper': A.keeper += 0.5; F.sweeper += e; A.passing += 0.5 * e; F.lobbed += 0.006; break;
+        case 'Overlap': F.crossB += 0.007 * e; F.exposed += 0.006; A.pace_def -= 0.4; break;
+        case 'Inverted':
+          if (d) { A.passing += 1.0 * e; F.keep += 0.035 * e; F.crossB -= 0.002; }
+          else { A.finishing += 1.0 * e; F.longshot2 += 0.03 * e; F.crossB -= 0.001; }
+          break;
+        case 'Stopper': A.tackling += 1.2 * e; A.aerial_def += 1.2 * e; A.pace_def -= 0.6; if (d && o.p.pos !== 'CB') F.wingCover += 0.003 * e; break;
+        case 'Wing back': F.crossB += 0.008 * e; A.pace_att += 0.5 * e; F.wingCover += 0.003 * e; F.exposed += 0.008; F.tire += 1; break;
+        case 'Sweeper': F.sweeper += 1.2 * e; A.pace_def += 0.8 * e; A.trap -= 1.5; break;
+        case 'Long passer': F.holdup += 0.08 * e; F.counterQ += 0.012 * e; F.lose += 0.008; break;
+        case 'Supporting CDM': A.passing += 0.8 * e; A.tackling += 0.5 * e; F.keep += 0.03 * e; F.exposed += 0.008; break;
+        case '2nd striker':
+          if (d) { F.setPiece += 0.025 * e; A.aerial_att += 0.8 * e; F.exposed += 0.01; }
+          else { A.finishing += 1.5 * e; A.tackling -= 0.4; }
+          break;
+        case 'Anchor': A.tackling += 1.5 * e; F.anchor += e; A.passing -= 0.3; break;
+        case 'Marker': F.mark += e; A.passing -= 0.6; break;
+        case 'Deep-lying playmaker': A.passing += 1.5 * e; F.through += 0.003 * e; F.keep += 0.03 * e; A.tackling -= 0.6; break;
+        case 'Flank cover': F.wingCover += 0.006 * e; A.tackling += 0.4 * e; F.anchor += 0.3 * e; A.passing -= 0.3; break;
+        case 'Regista': A.passing += 1.2 * e; F.through += 0.006 * e; F.counterQ += 0.008 * e; A.tackling -= 0.8; F.pressed += 0.02; break;
+        case 'Box to box': A.tackling += 0.6 * e; A.passing += 0.6 * e; F.prog += 0.05 * e; F.tire += 1; break;
+        case 'Ball carrier': F.prog += 0.08 * e; A.pace_att += 0.4 * e; F.lose += 0.01; break;
+        case 'Playmaker': A.passing += 1.8 * e; F.through += 0.006 * e; A.tackling -= 0.5; break;
+        case 'Long shooter': F.longshot += 0.008 * e; F.longshot2 += 0.04 * e; break;
+        case 'Supporting wing': F.crossB += 0.005 * e; F.wingCover += 0.003 * e; A.passing -= 0.3; break;
+        case 'Drift wide': F.crossB += 0.006 * e; A.pace_att += 0.4 * e; A.finishing -= 0.4; if (o.slot === 'FWD') A.aerial_att -= 0.8; break;
+        case 'Early crosser': F.crossB += (0.006 + target * 0.005) * e; break;
+        case 'Inside winger': A.finishing += 1.2 * e; F.longshot += 0.005 * e; F.longshot2 += 0.02 * e; F.crossB -= 0.002; break;
+        case 'Wide winger': F.crossB += 0.009 * e; A.pace_att += 0.6 * e; break;
+        case 'Shadow striker': A.finishing += 1.5 * e; A.runs += 1.2 * e; A.tackling -= 0.4; break;
+        case 'Line breaker': A.pace_att += 1.4 * e; F.counterQ += 0.012 * e; F.offside += 0.5; break;
+        case 'Poacher': A.finishing += 2.3 * e; A.passing -= 0.4; break;
+        case 'Target man': A.aerial_att += 2.5 * e; F.holdup += 0.1 * e; A.pace_att -= 0.8; break;
+        case 'False 9': A.passing += 1 * e; F.through += 0.005 * e; F.keep += 0.02 * e; A.finishing -= 0.5; break;
+      }
+      void m;
     }
     // the shape itself: more defenders shut the door but blunt the attack, more forwards the other way round,
     // a crowded midfield keeps the ball, wide players feed crosses, a narrow shape plays through the middle
@@ -229,18 +266,21 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     return r.weighted(pool, (o) => {
       const w = o.slot === 'FWD' ? 5 : o.slot === 'MID' ? 2 : 0.5;
       const skill = kind === 'cross' ? S[side].val(o, 'Heading') : kind === 'long shot' ? S[side].val(o, 'LongShots') : S[side].val(o, 'Finishing');
-      return w * Math.pow(Math.max(30, skill) / 70, 4);
+      const role = S[side].roleOf.get(o.p.id);
+      const rw = role ? (ROLE_GOALS[role] ?? 1) * (role === 'Long shooter' && kind === 'long shot' ? 1.5 : role === 'Target man' && kind === 'cross' ? 1.5 : 1) * (role === '2nd striker' && o.slot === 'DEF' ? (kind === 'cross' ? 3 : 0.5) : 1) : 1;
+      return w * rw * Math.pow(Math.max(30, skill) / 70, 4);
     });
   };
   const pickAssist = (side: 0 | 1, scorer: OnPitch, kind: string) => {
     const pool = S[side].pitch.filter((o) => o !== scorer && o.slot !== 'GK');
-    return r.weighted(pool, (o) => (o.slot === 'MID' ? 3 : o.slot === 'FWD' ? 2 : 1) * Math.pow(Math.max(30, S[side].val(o, kind === 'cross' ? 'Crossing' : 'Passing')) / 70, 3));
+    return r.weighted(pool, (o) => (o.slot === 'MID' ? 3 : o.slot === 'FWD' ? 2 : 1) * (ROLE_ASSISTS[S[side].roleOf.get(o.p.id) || ''] ?? 1) * Math.pow(Math.max(30, S[side].val(o, kind === 'cross' ? 'Crossing' : 'Passing')) / 70, 3));
   };
 
   const shot = (a: 0 | 1, baseXg: number, kind: string) => {
     const b = (1 - a) as 0 | 1;
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     let q = 0.73 * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
+    if (S[b].flags.mark > 0) q *= 1 - 0.07 * Math.min(1.5, S[b].flags.mark); // their danger man is man-marked
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
     const lead = goals[a] - goals[b];
@@ -306,6 +346,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (sp.routine === 'far') q += (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.002;
     if (sp.routine === 'short') q = 0.038;
     if (weather === 'wind') q -= 0.01;
+    q += S[a].flags.setPiece; // a centre-back who goes up for corners
     shot(a, Math.max(0.015, q), 'corner');
   };
   const freeKick = (a: 0 | 1) => {
@@ -327,7 +368,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const b = (1 - a) as 0 | 1;
     if (!T(b).trap || T(b).line < 1 || r.next() > 0.6) return null;
     const chem = ((S[b].s.chem?.DEF ?? 50) - 50) / 50 * 4;
-    const edge = A(b, 'trap') - A(a, 'runs') + chem;
+    const edge = A(b, 'trap') - A(a, 'runs') + chem + S[a].flags.offside; // runners in behind are caught more often
     if (r.next() < sig(0.15 + edge * 0.13)) {
       offsides[a]++;
       log('offside', a, `Offside! ${S[b].s.name}'s trap catches the run.`);
@@ -343,7 +384,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (tr === 'off') return;
     if (tr === 'beaten') return shot(a, 0.3 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.004, 'counter');
     const exposed = (T(b).line === 2 ? 0.03 : T(b).line === 1 ? 0.01 : -0.03) + (T(b).mentality === 2 ? 0.02 : 0)
-      - (T(b).line === 2 ? S[b].flags.sweeper * 0.02 : 0) - S[b].flags.anchor * 0.012;
+      - (T(b).line === 2 ? S[b].flags.sweeper * 0.02 : 0) - S[b].flags.anchor * 0.012 + S[b].flags.exposed + S[a].flags.counterQ;
     const gap = (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005;
     shot(a, Math.max(0.03, 0.1 + exposed + gap), 'counter');
   };
@@ -353,9 +394,13 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const ta = T(a), tb = T(b);
     let q: number, two: number;
     const f = ta.focus;
+    // a long shooter (or a wide man cutting in) has a go from distance instead of working it closer
+    if (S[a].flags.longshot2 > 0 && r.next() < S[a].flags.longshot2) {
+      return shot(a, Math.max(0.03, 0.095 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + S[a].flags.longshot + S[b].flags.lobbed), 'long shot');
+    }
     if (f === 0) {
       q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) + (tb.line === 0 ? 0.015 : 0)
-        + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0);
+        + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0) - S[b].flags.wingCover;
       two = 0.25;
     } else if (f === 1) {
       q = 0.11 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005 + (tb.line === 2 ? 0.05 - S[b].flags.sweeper * 0.02 : tb.line === 0 ? -0.035 : 0) + S[a].flags.through;
@@ -364,7 +409,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       q = 0.1 + (A(a, 'passing') - A(b, 'tackling')) * 0.005 + (tb.line === 0 ? -0.03 : tb.press >= 2 ? 0.015 : 0) + S[a].flags.through * 0.5;
       two = 0.1;
     } else {
-      q = 0.07 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0) + S[a].flags.longshot;
+      q = 0.07 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0) + S[a].flags.longshot + S[b].flags.lobbed;
       two = 0.55;
     }
     q = Math.max(0.02, q + bonus);
@@ -552,7 +597,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     possN[a]++;
     flow.push([minute, a, 0, -1]);
     const risk = ta.build === 0 ? (weather === 'rain' ? 1.55 : 1.35) : ta.build === 2 ? 0.5 : 1.0;
-    const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0); // hard tackling hurts short-passing sides most
+    const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0) // hard tackling hurts short-passing sides most
+      + S[a].flags.lose + (tb.press >= 2 ? S[a].flags.pressed : 0);
     if (r.next() < Math.max(0.03, pLose)) {
       // tackles can bring fouls and cards, many more when the team gets stuck in
       if (r.next() < (0.2 + (tb.press >= 2 ? 0.08 : 0)) * [0.55, 1, 1.6][tk(b)]) {
@@ -584,6 +630,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 : ta.mentality === 0 ? -0.1 : 0);
     prog += ta.tempo === 2 ? 0.1 : ta.tempo === 0 ? -0.08 : 0;
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
+    prog += S[a].flags.prog;
     if (r.next() < sig(prog - 1.55)) { reach(a, 2); create(a); }
     else if (tb.mentality <= 1 && r.next() < (ta.mentality === 2 ? 0.07 : 0.035)) counter(b);
   };
@@ -594,6 +641,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const bv = (t: Tactic) => (t.build === 0 ? 0.35 : t.build === 2 ? -0.2 : 0);
     x += bv(t0) - bv(t1) + (t0.press - t1.press) * 0.08;
     x += (S[0].pitch.length - S[1].pitch.length) * 0.15;
+    x += (S[0].flags.keep - S[1].flags.keep) * 3;
     // late on, the team that is behind has more of the ball (the leader sits deeper)
     if (minute >= 55 && goals[0] !== goals[1]) x += (goals[0] < goals[1] ? 1 : -1) * (0.25 + (T(goals[0] < goals[1] ? 0 : 1).mentality === 2 ? 0.2 : 0));
     return sig(x);
@@ -612,7 +660,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       const t = S[i].tactic;
       for (const o of S[i].pitch) {
         const stam = o.p.a.Stamina || 70;
-        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 : 1);
+        const roleTire = S[i].roleOf.size && ['Wing back', 'Box to box', 'Overlap'].includes(S[i].roleOf.get(o.p.id) || '') ? 1.18 : 1;
+        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 : 1) * roleTire;
       }
       // injuries: rare, more likely when exhausted
       if (r.next() < 0.0009 * (S[i].s.injuryRisk ?? 1) * S[i].pitch.length / 11) {
@@ -704,7 +753,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     players: lines,
     motm: motm ? motm.id : null,
     tactics: [home.tactic.preset, away.tactic.preset],
-    lineups: [home, away].map((sd) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id), captain: sd.captain })),
+    lineups: [home, away].map((sd, i) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id), captain: sd.captain,
+      roles: Object.fromEntries([...sd.xi, ...sd.bench].map((p) => [p.id, roleName(sd.roles?.[p.id])]).filter(([, r]) => r)) as Record<string, string>, fits: Object.fromEntries([...S[i].roleEff.entries()].map(([k, v]) => [k, Math.round(v * 100) / 100])) })),
     shootout, winner, derby, shots: shotsList, weather, flow, styles,
   };
 }

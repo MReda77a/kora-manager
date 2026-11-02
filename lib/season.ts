@@ -9,7 +9,7 @@ import { fail } from './errors.ts';
 import {
   AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, LIVE_TOTAL, minuteAt, recoveryPerDay, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic, bestLeader, leadership,
-  windowFromDays, WINDOW_DAYS,
+  windowFromDays, WINDOW_DAYS, roleFit, rolesFor, slotLabel,
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -439,14 +439,14 @@ function humanRoles(club: Row, xi: Row[], formation: string) {
 
 // Bots pick sensible roles and set-piece takers for their line-up, and know their shape well.
 function autoRoles(xi: Row[], formation: string) {
-  const slots = (FORMATIONS[formation] || FORMATIONS['4-3-3']).slots;
+  const F = FORMATIONS[formation] || FORMATIONS['4-3-3'];
   const roles: Record<string, string> = {};
+  // each player gets the role for his position that suits his attributes best
   xi.forEach((p, i) => {
-    const slot = slots[i], a = p.attrs || {};
-    if (slot === 'GK') roles[p.id] = (a.Distribution ?? 0) > (a.Reflexes ?? 0) ? 'Sweeper keeper' : 'Shot stopper';
-    else if (slot === 'DEF') roles[p.id] = ['LB', 'RB'].includes(p.pos) ? 'Wing-back' : (a.Passing ?? 0) > (a.Tackling ?? 0) ? 'Ball-playing' : 'Stopper';
-    else if (slot === 'MID') roles[p.id] = p.pos === 'DM' ? 'Anchor' : p.pos === 'CAM' || (a.Vision ?? 0) > 78 ? 'Playmaker' : 'Box-to-box';
-    else roles[p.id] = p.pos === 'ST' ? ((a.Heading ?? 0) > (a.Finishing ?? 0) ? 'Target man' : 'Poacher') : 'Inside forward';
+    if (!F.slots[i]) return;
+    const lab = slotLabel(F.slots[i], F.xy[i][0], F.xy[i][1]);
+    const best = rolesFor(lab).sort((x, y) => roleFit(y, p.attrs || {}) - roleFit(x, p.attrs || {}))[0];
+    if (best) roles[p.id] = best;
   });
   const outfield = xi.filter((p) => p.pos !== 'GK');
   const best = (k: string) => [...outfield].sort((x, y) => (y.attrs?.[k] ?? 0) - (x.attrs?.[k] ?? 0))[0]?.id;

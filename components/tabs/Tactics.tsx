@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/client.ts';
-import { CORNER_ROUTINES, FORMATIONS, LINE, PRESETS, ROLES, TACKLE_STYLES, stripDesc, tacticFit, type Tactic } from '../../lib/game.ts';
+import { CORNER_ROUTINES, FORMATIONS, LINE, PRESETS, ROLES, TACKLE_STYLES, roleFit, roleName, rolesFor, slotLabel, stripDesc, tacticFit, type Tactic } from '../../lib/game.ts';
 import { Bar, BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import { Pitch, autoXI, useSquad } from './Lineup.tsx';
 import type { TabProps } from './types.ts';
@@ -98,7 +98,7 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
             const wide = F.slots[i] === 'GK' ? 0 : (y - 50) * (t.width - 1) * 0.15;
             return (
               <div key={i} className="pc" style={{ left: `clamp(31px, ${Math.max(5, Math.min(95, x + push))}%, calc(100% - 31px))`, top: `${Math.max(6, Math.min(94, y + wide))}%`, width: 58, height: 42, transition: 'left .3s, top .3s' }}>
-                <b style={{ fontSize: 17 }}>{p && roles[p.id] && ROLES[roles[p.id]]?.line === F.slots[i] ? roleShort(roles[p.id]) : F.slots[i]}</b><small>{p ? lastName(p.name) : '—'}</small>
+                <b style={{ fontSize: 17 }}>{(() => { const lab = slotLabel(F.slots[i], F.xy[i][0], F.xy[i][1]); const r = p ? roleName(roles[p.id]) : null; return r && ROLES[r].pos.includes(lab) ? ROLES[r].short : lab; })()}</b><small>{p ? lastName(p.name) : '—'}</small>
               </div>
             );
           })}
@@ -170,22 +170,35 @@ export default function TacticsTab({ lid, toast, go }: TabProps) {
             </div>
           )}
           {panel === 'roles' && (
-            <div className="col" style={{ gap: 4 }}>
-              <span className="tiny muted">A role that suits the player's attributes gives a small edge. Roles stay with the player in every plan.</span>
-              {xiPlayers.map((p: any, i: number) => {
-                const slot = F.slots[saved.indexOf(p.id)] || LINE[p.pos];
-                const opts = Object.entries(ROLES).filter(([, r]) => r.line === slot);
-                const cur = roles[p.id] && ROLES[roles[p.id]]?.line === slot ? roles[p.id] : '';
-                const fit = cur ? Math.round(ROLES[cur].keys.reduce((a: number, k: string) => a + (p.attrs[k] ?? 60), 0) / ROLES[cur].keys.length) : 0;
+            <div className="col" style={{ gap: 5 }}>
+              <div className="row between wrap" style={{ gap: 6 }}>
+                <span className="tiny muted" style={{ flex: '1 1 220px' }}>Each role changes how the player moves on the pitch and what he does in the match, with a cost. The number shows how well he suits it.</span>
+                <button className="seg" onClick={() => change(() => {
+                  const n = { ...roles };
+                  for (const p of xiPlayers) { const i = saved.indexOf(p.id); const lab = slotLabel(F.slots[i], F.xy[i][0], F.xy[i][1]); const best = rolesFor(lab).sort((a, b) => roleFit(b, p.attrs) - roleFit(a, p.attrs))[0]; if (best) n[p.id] = best; }
+                  setRoles(n);
+                })}><span>⚡ Best roles</span></button>
+              </div>
+              {xiPlayers.map((p: any) => {
+                const i = saved.indexOf(p.id);
+                const lab = i >= 0 ? slotLabel(F.slots[i], F.xy[i][0], F.xy[i][1]) : p.pos;
+                const opts = rolesFor(lab).sort((a, b) => roleFit(b, p.attrs) - roleFit(a, p.attrs));
+                const r0 = roleName(roles[p.id]);
+                const cur = r0 && opts.includes(r0) ? r0 : '';
+                const fit = cur ? roleFit(cur, p.attrs) : 0;
+                const fc = (v: number) => (v >= 80 ? '#2EE6A0' : v >= 70 ? 'var(--cyan)' : v ? '#F2C14E' : 'var(--dim)');
                 return (
-                  <div key={p.id} className="row small" style={{ gap: 8, fontWeight: 700 }}>
-                    <span className="tiny" style={{ width: 30, color: 'var(--cyan)', fontWeight: 900 }}>{slot}</span>
-                    <span className="grow ellipsis" style={{ minWidth: 60 }}>{lastName(p.name)}</span>
-                    <select value={cur} onChange={(e) => change(() => setRoles({ ...roles, [p.id]: e.target.value }))} style={{ width: 'clamp(104px, 40%, 140px)', height: 30 }} title={cur ? ROLES[cur].desc : ''}>
-                      <option value="">Auto (assistant)</option>
-                      {opts.map(([k]) => <option key={k} value={k}>{k}</option>)}
-                    </select>
-                    <b className="tiny" style={{ width: 26, textAlign: 'right', color: fit >= 80 ? '#2EE6A0' : fit >= 70 ? 'var(--cyan)' : fit ? '#F2C14E' : 'var(--dim)' }}>{fit || '–'}</b>
+                  <div key={p.id} className="col" style={{ gap: 1, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="row small" style={{ gap: 8, fontWeight: 700 }}>
+                      <span className="tiny" style={{ width: 30, color: 'var(--cyan)', fontWeight: 900 }}>{lab}</span>
+                      <span className="grow ellipsis" style={{ minWidth: 60 }}>{lastName(p.name)}</span>
+                      <select value={cur} onChange={(e) => change(() => setRoles({ ...roles, [p.id]: e.target.value }))} style={{ width: 'clamp(120px, 46%, 180px)', height: 30 }} aria-label={`Role for ${p.name}`}>
+                        <option value="">Auto (assistant picks)</option>
+                        {opts.map((k) => <option key={k} value={k}>{k} · {roleFit(k, p.attrs)}</option>)}
+                      </select>
+                      <b className="tiny" style={{ width: 26, textAlign: 'right', color: fc(fit) }}>{fit || '–'}</b>
+                    </div>
+                    {cur && <span className="tiny" style={{ paddingLeft: 38, color: 'var(--soft)' }}>✓ {ROLES[cur].desc} <span style={{ color: '#FF8A80' }}>✗ {ROLES[cur].minus}</span></span>}
                   </div>
                 );
               })}
