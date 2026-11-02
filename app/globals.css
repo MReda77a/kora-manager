@@ -695,3 +695,10 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 .mk-filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
 .mk-filters .seg { flex: none; }
 @media (max-height: 520px) { .matchplan .bench { height: 36px; } .matchplan .bench b { font-size: 15px; } }
+
+/* club office: tap a target for how to reach it */
+button.row-item.obj { cursor: pointer; }
+button.row-item.obj.open { background: color-mix(in srgb, var(--mint) 8%, rgba(255,255,255,0.04)); }
+.obj-how { display: flex; flex-direction: column; gap: 5px; padding: 8px 12px 10px 82px; border-left: 3px solid var(--mint); margin: 2px 0 6px; background: rgba(255, 255, 255, 0.03); border-radius: 0 8px 8px 0; }
+.panel.obj-how { padding: 10px 12px; margin: 0; }
+@media (max-width: 900px) { .obj-how { padding-left: 12px; } }

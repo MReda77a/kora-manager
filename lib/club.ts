@@ -80,7 +80,7 @@ export async function trainingView(uid: number, leagueId: number) {
   };
 }
 
-// One player trains one thing: +2 to a skill (about a day) or a new position (about 3 days).
+// One player trains one thing: +2 to a skill (about 16 hours) or a new position (about a day and a half).
 export async function startTraining(uid: number, leagueId: number, b: { playerId: string; kind: 'attr' | 'pos'; target: string }) {
   const club = await myClub(uid, leagueId);
   const lv = await staffLevels(club.id);
@@ -95,7 +95,7 @@ export async function startTraining(uid: number, leagueId: number, b: { playerId
     if (!POSITIONS.includes(b.target)) fail(400, 'Pick a position.');
     if ((p.pos_override || p.base_pos) === b.target) fail(400, 'He already plays there.');
     if ((b.target === 'GK') !== (p.base_pos === 'GK')) fail(400, 'Keepers and outfield players cannot swap.');
-    hours = 72 * speed;
+    hours = 36 * speed;
   } else {
     if (!TRAINABLE.includes(b.target)) fail(400, 'Pick a skill.');
     const cur = (p.attrs[b.target] ?? 50) + ((p.boost || {})[b.target] ?? 0);
@@ -103,7 +103,7 @@ export async function startTraining(uid: number, leagueId: number, b: { playerId
     if (cur >= 95) fail(400, 'Already world class at this.');
     // improvement is slow and steady: +2 a session for weak skills, +1 for good ones
     amount = cur < 70 ? 2 : 1;
-    hours = 36 * speed;
+    hours = 16 * speed;
   }
   const [t] = await q(
     `INSERT INTO training (league_id, club_id, player_id, kind, target, amount, ends_at) VALUES ($1,$2,$3,$4,$5,$6, now() + make_interval(mins => $7)) RETURNING *`,
@@ -155,7 +155,7 @@ export async function officeView(uid: number, leagueId: number) {
   // outside the top flight every board wants promotion
   const lower = (club.division || 1) > 1;
   const target = lower ? movers(l.max_clubs) : t.targetPos(n);
-  const objectives: { area: string; text: string; progress: number; note: string; status: string }[] = [];
+  const objectives: { area: string; text: string; progress: number; note: string; status: string; how?: string; reward?: string; go?: string; cta?: string }[] = [];
   const posProgress = pos ? Math.max(0, Math.min(1, (n - pos + 1) / (n - target + 1))) : 0;
   objectives.push({ area: 'Board', text: lower ? `Win promotion (top ${target})` : t.board, progress: posProgress, note: pos ? `Now ${pos}${pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'} · target top ${target}` : 'Season not started', status: !pos ? 'WAITING' : pos <= target ? 'ON TRACK' : pos <= target + 2 ? 'AT RISK' : 'BEHIND' });
   const cup = await one(`SELECT data FROM papers WHERE league_id=$1 AND day=0 AND kind='cup'`, [leagueId]);
@@ -172,6 +172,28 @@ export async function officeView(uid: number, leagueId: number) {
   else { sponsorNote = 'Cup run counts'; }
   objectives.push({ area: 'Sponsors', text: t.sponsor, progress: sponsorProgress, note: sponsorNote, status: sponsorProgress >= 0.9 ? 'ON TRACK' : sponsorProgress >= 0.6 ? 'AT RISK' : 'BEHIND' });
   objectives.push({ area: 'Squad', text: t.squad, progress: 0.7, note: 'Judged at the end of the season', status: 'ON TRACK' });
+  // how to get each one done, what it is worth, and where in the game to do it
+  const HOW: Record<string, { how: string; go: string; cta: string }> = {
+    'Board|league': { how: `Finish in the top ${target}. Every win counts: pick your best XI, a plan that suits your players and counters the opponent (the analyst helps), and keep them fresh.`, go: 'analyst', cta: 'Prepare the next match' },
+    'Board|cup': { how: 'Win your cup ties. Cup matches are one-off knock-outs (penalties if level), so play your strongest team in them.', go: 'cup', cta: 'See the cup' },
+    'Sponsors|fan': { how: 'Fill the stadium: fans come with wins (most in derbies), leave after defeats and protests. Do not expand the stadium beyond what you can fill.', go: 'office', cta: 'Stadium below' },
+    'Sponsors|invest': { how: 'Have a 90+ rated player in your squad: buy one in the market or train a 88-89 player up.', go: 'market', cta: 'Find a star' },
+    'Sponsors|academy': { how: 'Make 10M from selling players: list players at a fair price in your Squad, or accept offers from other clubs.', go: 'players', cta: 'Sell a player' },
+    'Sponsors|commercial': { how: 'Score 1.5 goals a game: attacking mentality, shoot-on-sight or wing play, and strikers in a scoring role (poacher, shadow striker).', go: 'lineup', cta: 'Set up to attack' },
+    'Sponsors|historic': { how: 'Go far in the cup: the sponsors pay attention to a semi-final run.', go: 'cup', cta: 'See the cup' },
+    'Squad|fan': { how: 'Do not sell or loan out your fan favourite, and play him often.', go: 'players', cta: 'See your squad' },
+    'Squad|invest': { how: 'Sign a big-name player while the season is on.', go: 'market', cta: 'Open the market' },
+    'Squad|academy': { how: 'Give young players (21 and under) about a third of the minutes: start them in the Match plan.', go: 'lineup', cta: 'Pick young players' },
+    'Squad|commercial': { how: 'Start an attacking star (85+ forward) in most matches.', go: 'lineup', cta: 'Pick your XI' },
+    'Squad|historic': { how: 'Keep your captain at the club and give him the armband.', go: 'lineup', cta: 'Choose a captain' },
+  };
+  const REWARD: Record<string, string> = { Board: 'Hit it: the board backs you (confidence up, bigger prize money). Miss it: confidence drops and fans protest.', Sponsors: 'Hit it: sponsors pay more next season.', Squad: 'Hit it: dressing-room morale and board confidence go up.' };
+  objectives.forEach((o, i) => {
+    const key = o.area === 'Board' ? (i === 0 ? 'Board|league' : 'Board|cup') : `${o.area}|${club.club_type}`;
+    const h = HOW[key];
+    if (h) Object.assign(o, h);
+    o.reward = REWARD[o.area];
+  });
   const played = me?.p || 0;
   const left = Math.max(0, (n - 1) * 2 - played);
   const winRate = played ? me!.w / played : 0.45;
@@ -187,6 +209,12 @@ export async function officeView(uid: number, leagueId: number) {
     division: club.division || 1,
     club: { id: club.id, name: club.name, type: club.club_type, typeName: t.name, stadium: club.stadium, capacity: club.capacity, fans: club.fans, board: club.board, money: Number(club.money), sponsor: club.sponsor },
     perk: t.perk, weak: t.weak, objectives,
+    boardRules: [
+      `Win: +${club.club_type === 'invest' ? 6 : 3} confidence. Loss: −${club.club_type === 'invest' ? 8 : 4}. Draws change nothing.`,
+      'Big words at a press conference raise the stakes: a win then counts more, a defeat hurts more.',
+      'Below 55 the fans can protest (−3 and fewer fans).',
+      'At the end of the season it goes back to 60.',
+    ],
     sponsors: (Object.keys(SPONSORS) as SponsorKey[]).map((k) => ({ key: k, ...SPONSORS[k], estimate: est(k) })),
     canChooseSponsor: !club.sponsor,
     attendance: Math.min(club.capacity, club.fans), gate: Math.round(Math.min(club.capacity, club.fans) * 0.00002 * 100) / 100,

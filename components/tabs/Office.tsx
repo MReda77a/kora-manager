@@ -5,8 +5,10 @@ import { BackHead, COLORS, Kit, Ring, Spinner } from '../ui.tsx';
 import { PATTERNS } from '../../lib/game.ts';
 import type { TabProps } from './types.ts';
 
-export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
+export default function OfficeTab({ lid, d: ov, toast, reload, go }: TabProps) {
   const [d, setD] = useState<any>(null);
+  const [openObj, setOpenObj] = useState<number | null>(0);
+  const [rules, setRules] = useState(false);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState(false);
   const load = () => api(`/api/leagues/${lid}/office`).then((r) => { setD(r); setName(r.club.stadium); });
@@ -23,22 +25,40 @@ export default function OfficeTab({ lid, d: ov, toast, reload }: TabProps) {
       <BackHead title="Club Office" tag={<span className="tag" style={{ background: 'rgba(46, 230, 160,0.3)', color: 'var(--cyan)' }}><span>{c.typeName.toUpperCase()}</span></span>}
         sub={ov.club.pos ? `${ov.club.pos}${['', 'st', 'nd', 'rd'][ov.club.pos] || 'th'} place` : 'Pre-season'}
         right={<><span className="tiny muted" style={{ fontWeight: 900, letterSpacing: 1 }}>PROJECTED GRADE</span><span className="lz" style={{ fontSize: 28, color: '#2EE6A0' }}>{d.grade}</span></>} />
-      <div className="split3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-        <Gauge v={c.board} color="#F2C14E" title="Board confidence" note={c.board >= 60 ? 'They back you' : 'Patience is wearing thin'} good={c.board >= 60} />
+      <div className="split3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, cursor: 'pointer' }} onClick={() => setRules(!rules)} title="What moves these numbers">
+        <Gauge v={c.board} color="#F2C14E" title="Board confidence ⓘ" note={c.board >= 60 ? 'They back you' : 'Patience is wearing thin'} good={c.board >= 60} />
         <Gauge v={fanPct} color="#2EE6A0" title="Fans" note={`${c.fans.toLocaleString()} supporters`} good={fanPct >= 70} />
         <Gauge v={Math.round(d.objectives.reduce((a: number, o: any) => a + o.progress, 0) / d.objectives.length * 100)} color="#5FD3F3" title="Targets" note={d.objectives.filter((o: any) => o.status === 'ON TRACK' || o.status === 'DONE').length + '/' + d.objectives.length + ' on track'} good />
       </div>
+      {rules && (
+        <div className="panel obj-how" style={{ gap: 3 }}>
+          <b className="small">What moves board confidence</b>
+          {(d.boardRules || []).map((r: string, i: number) => <span key={i} className="tiny">• {r}</span>)}
+          <span className="tiny muted">Fans grow with wins (more in derbies) and leave after defeats. Targets are the objectives below.</span>
+        </div>
+      )}
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ gap: 6 }}>
           <span className="kicker">Season objectives</span>
+          <span className="tiny muted">Tap a target to see how to reach it.</span>
           {d.objectives.map((o: any, i: number) => (
-            <div key={i} className="row-item" style={{ gap: 10, minHeight: 44 }}>
+            <div key={i} className="col" style={{ gap: 0 }}>
+            <button className={`row-item obj ${openObj === i ? 'open' : ''}`} style={{ gap: 10, minHeight: 44, width: '100%', textAlign: 'left' }} onClick={() => setOpenObj(openObj === i ? null : i)} aria-expanded={openObj === i}>
               <span className="tiny" style={{ width: 62, fontWeight: 900, color: 'var(--muted)' }}>{o.area.toUpperCase()}</span>
               <div className="col grow" style={{ gap: 3, minWidth: 0 }}>
                 <b className="small">{o.text}</b>
                 <div className="row" style={{ gap: 8 }}><div className="bar" style={{ height: 6 }}><i style={{ width: `${Math.round(o.progress * 100)}%`, background: o.status === 'ON TRACK' || o.status === 'DONE' ? '#2EE6A0' : '#F2C14E' }} /></div><span className="tiny muted" style={{ whiteSpace: 'nowrap' }}>{o.note}</span></div>
               </div>
               <span className={`status ${statusCls(o.status)}`}>{o.status}</span>
+              <span className="muted" style={{ width: 12 }}>{openObj === i ? '▴' : '▾'}</span>
+            </button>
+            {openObj === i && (
+              <div className="obj-how">
+                {o.how && <span className="small"><b style={{ color: 'var(--mint)' }}>How:</b> {o.how}</span>}
+                {o.reward && <span className="tiny muted">{o.reward}</span>}
+                {o.go && <button className="seg on" style={{ alignSelf: 'flex-start' }} onClick={() => go(o.go)}><span>{o.cta || 'Go'} ›</span></button>}
+              </div>
+            )}
             </div>
           ))}
           <span className="kicker" style={{ marginTop: 6 }}>Manager's inbox</span>

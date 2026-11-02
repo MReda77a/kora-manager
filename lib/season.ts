@@ -406,7 +406,7 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
       [opp.id],
     );
     const mine = xi.reduce((a, p) => a + p.ovr, 0) / Math.max(1, xi.length);
-    boost = Math.max(0, (h?.a ?? mine) - mine) * [0, 0.15, 0.3][l.ai_level];
+    boost = Math.max(0, (h?.a ?? mine) - mine) * [0, 0.05, 0.12][l.ai_level];
   }
   return {
     clubId: club.id, name: club.name, xi: xi.map(toE), bench: bench.map(toE), tactic, boost,
@@ -550,11 +550,11 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   const botClub = await one('SELECT user_id FROM clubs WHERE id=$1', [botSide === 0 ? f.home_id : f.away_id]);
   if (!botClub?.user_id && ch.kind === 'tactic' && l.ai_level > 0) {
     const r = rng(hashSeed('react', f.id, minute));
-    if (l.ai_level === 2 || r.next() < 0.5) {
+    if (r.next() < (l.ai_level === 2 ? 0.6 : 0.3)) {
       const mine = side === 0 ? hs : as;
       const theirNow = nearestPreset({ ...mine.tactic, ...changes.filter((c) => c.side === side && c.kind === 'tactic').reduce((t, c) => ({ ...t, ...(c as any).tactic }), {}), ...ch.tactic });
       const best = Object.keys(PRESETS).sort((a, b) => counterShare(b, theirNow) - counterShare(a, theirNow))[0];
-      const at = Math.min(88, minute + 4 + Math.floor(r.next() * 5));
+      const at = Math.min(88, minute + 8 + Math.floor(r.next() * 8)); // it takes the AI a while to read the change
       all.push({ m: at, side: botSide, kind: 'tactic', tactic: { preset: best, ...stripDesc(PRESETS[best]) } });
     }
   }

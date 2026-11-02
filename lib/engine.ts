@@ -804,14 +804,14 @@ export function aiPlan(o: { level: number; oppHistory: string[]; own: PlanPlayer
       o.oppHistory.slice(0, 4).forEach((h, i) => { const wt = [1, 0.55, 0.3, 0.2][i]; c += counterShare(n, h) * wt; w += wt; });
       const counter = w ? c / w : 0.5;
       const fit = tacticFit(own, stripDesc(PRESETS[n])).fit;
-      return { n, v: counter + fit * 0.06 + (r.next() - 0.5) * (o.level === 2 ? 0.02 : 0.08) };
+      return { n, v: counter * 0.6 + fit * 0.06 + (r.next() - 0.5) * (o.level === 2 ? 0.06 : 0.12) };
     }).sort((x, y) => y.v - x.v);
-    pick = scored[o.level === 2 ? (r.next() < 0.85 ? 0 : 1) : Math.floor(r.next() * 3)].n;
+    pick = scored[o.level === 2 ? (r.next() < 0.6 ? 0 : 1 + Math.floor(r.next() * 2)) : Math.floor(r.next() * 4)].n;
   }
   const t: Tactic = { preset: pick, formation: o.formation, ...stripDesc(PRESETS[pick]) } as Tactic;
   if (o.level === 0) return t;
   // aim at weak spots (hard always, normal half the time)
-  if (o.level === 2 || r.next() < 0.5) {
+  if (r.next() < (o.level === 2 ? 0.6 : 0.35)) {
     const paceGap = lineAvg(o.own, 'FWD', ['Pace']) - lineAvg(o.opp, 'DEF', ['Pace']);
     const airGap = lineAvg(o.own, 'FWD', ['Heading', 'Jumping', 'Strength']) - lineAvg(o.opp, 'DEF', ['Heading', 'Jumping', 'Strength']);
     const theirKeeper = lineAvg(o.opp, 'GK', ['Reflexes', 'Handling']);
