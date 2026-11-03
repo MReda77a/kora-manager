@@ -1,0 +1,119 @@
+{loser} turned up, I will give them that. That is the only thing I will give them.	{loser} جم الماتش، هديهم دي. ودي الحاجة الوحيدة اللي هديهالهم.
+{score}. I have seen better defending in a car park on a Friday night.	{score}. أنا شفت دفاع أحسن من كده في جراج يوم جمعة بالليل.
+{lm}'s defence was so open they should charge rent for the space.	دفاع {lm} كان مفتوح لدرجة إنهم المفروض ياخدوا إيجار على المساحة.
+{loser} didn't lose that match. They donated it.	{loser} ماخسروش الماتش. اتبرعوا بيه.
+Somebody tell {lm} the game started at kick-off, not at half-time.	حد يقول لـ{lm} إن الماتش بيبدأ مع الصافرة، مش بين الشوطين.
+Credit to {winner}, they were sharp from the first whistle.	تحية لـ{winner}، كانوا صاحيين من أول صافرة.
+{wm} got everything right today: the plan, the shape, the changes.	{wm} ظبط كل حاجة النهارده: الخطة والشكل والتغييرات.
+That is a statement result from {winner}. The table will notice.	دي نتيجة رسالة من {winner}. الجدول هياخد باله.
+{winner} won ugly. Ugly still gets three points, sadly for my eyes.	{winner} كسبوا بشكل وحش. بس الوحش برضه بيجيب 3 نقط، للأسف لعينيا.
+Nobody will put that one on a DVD, but {wm} will not care.	محدش هيحط الماتش ده على يوتيوب، بس {wm} مش فارق معاه.
+Tight game. Small details, and {winner} got them right.	ماتش ضيق. تفاصيل صغيرة، و{winner} ظبطوها.
+Fine margins. {loser} can take some positives from that.	فروق بسيطة. {loser} يقدروا ياخدوا شوية حاجات حلوة من الماتش.
+A draw. Both managers will call it 'a point gained'. Both are lying.	تعادل. المدربين الاتنين هيقولوا "كسبنا نقطة". الاتنين بيكدبوا.
+{home} and {away} shared the points and, by the look of it, the boredom.	{home} و{away} اتقسموا النقط، وواضح إنهم اتقسموا الملل كمان.
+Ninety minutes of football and the scoreboard did not notice.	تسعين دقيقة كورة والسكوربورد ماخدش باله.
+Fair result. Neither side deserved to lose it.	نتيجة عادلة. ولا فريق كان يستاهل يخسر.
+A point each, and both will feel they could have nicked it.	نقطة لكل واحد، والاتنين حاسين إنهم كانوا يقدروا يخطفوها.
+{loser} lost to {winner}. Read that again. Then go and lie down.	{loser} خسروا من {winner}. اقراها تاني. وبعدين روح نام.
+Somewhere a bookmaker is laughing at {lm}'s team sheet.	في حتة ما، في مراهن بيضحك على تشكيلة {lm}.
+Huge result for {winner}. Nobody gave them a chance.	نتيجة كبيرة لـ{winner}. محدش كان مدّيهم فرصة.
+That is why we play the games. {winner} fully deserved it.	عشان كده بنلعب الماتشات. {winner} يستاهلوها بجد.
+{m} said they would win. They won. I hate it when managers are right.	{m} قال هنكسب. وكسبوا. أنا بكره لما المدربين يطلعوا صح.
+Big words from {m} in the press room, and for once the football backed them up.	كلام كبير من {m} في المؤتمر، ولأول مرة الكورة وقفت في ضهره.
+{m} promised a win in the press room. {score}. Somebody check on {m}, please.	{m} وعد بالكسب في المؤتمر. {score}. حد يطمن على {m} لو سمحتوا.
+I'm told {m}'s press conference quotes are now being used as a comedy podcast.	بيقولولي إن تصريحات {m} بقت بتتذاع في بودكاست كوميدي.
+{m} talked a big game. Turns out the game was bigger.	{m} اتكلم كلام كبير. طلع الماتش أكبر منه.
+Bold words before a big game always come back to you. Good or bad.	الكلام الجريء قبل الماتش الكبير بيرجعلك دايمًا. بالحلو أو بالوحش.
+The press room is part of the job. It added pressure on both dressing rooms.	المؤتمر الصحفي جزء من الشغل. وزوّد الضغط على غرفتين اللبس.
+{m} has played {preset} in {n} of the last {t}. Predictable? I would not say that on air. Oh wait.	{m} لعب {preset} في {n} من آخر {t}. متوقع؟ مكنتش هقولها على الهوا. أوبس.
+Every week {m} picks {preset}. Every week the opponents say thank you.	كل أسبوع {m} بيختار {preset}. وكل أسبوع الخصوم بيقولوله شكرًا.
+If you face {m}, {counter} is the answer: about {pct}% of the time it comes out on top against {preset}.	لو هتقابل {m}، {counter} هي الحل: حوالي {pct}% من المرات بتكسب قدام {preset}.
+The numbers say {counter} works best against {preset}. Worth a look before you meet {m}.	الأرقام بتقول إن {counter} أحسن حاجة قدام {preset}. بص عليها قبل ما تقابل {m}.
+{m}: {form}. The board have started reading job adverts. Out loud.	{m}: {form}. الإدارة بدأت تقرا إعلانات الوظايف. بصوت عالي.
+{m}'s run is {form}. Even the kit man has stopped making eye contact.	مشوار {m}: {form}. حتى بتاع المهمات بطّل يبص في عينه.
+{m} is on {form}. I would not buy a house near the stadium just yet.	{m} ماشي {form}. مكنتش اشتريت شقة جنب الاستاد دلوقتي.
+Pressure is building on {m}. One good result changes everything, though.	الضغط بيزيد على {m}. بس نتيجة حلوة واحدة بتقلب كل حاجة.
+Tough spell for {m}. The squad is good enough to turn it around.	فترة صعبة على {m}. الفريق كويس كفاية إنه يقلبها.
+{m} wins Manager of the Week. Enjoy it, it never lasts.	{m} مدرب الأسبوع. استمتع، عمرها ما بتدوم.
+Manager of the Week: {m}. Try not to mention it in every group chat.	مدرب الأسبوع: {m}. حاول متقولهاش في كل جروب واتساب.
+{m} got the plan spot on. Deserved.	{m} ظبط الخطة بالملّي. يستاهل.
+Great week for {m}. The players clearly believe in the plan.	أسبوع حلو لـ{m}. اللعيبة واضح إنهم مصدقين الخطة.
+{to} paid {fee} for {player}. That is either genius or a cry for help.	{to} دفعوا {fee} في {player}. يا عبقرية يا استغاثة.
+{fee} for {player}? At that price I want him to cook dinner as well.	{fee} في {player}؟ بالسعر ده عايزه يطبخ العشا كمان.
+{from} got {fee} for {player}. Someone at {from} deserves a raise.	{from} خدوا {fee} في {player}. في حد في {from} يستاهل علاوة.
+Big statement signing for {to}. He fits the way they play.	صفقة رسالة من {to}. لايق على طريقة لعبهم.
+{player} gives {to} quality and options. Smart business if he settles fast.	{player} هيدي {to} جودة واختيارات. صفقة ذكية لو اتأقلم بسرعة.
+{club} had {xg} expected goals and scored {g}. The training ground has a Finishing drill, I am told.	{club} كان عندهم {xg} أهداف متوقعة وجابوا {g}. بيقولوا إن في تمرين اسمه "اللمسة الأخيرة".
+{club} created {shots} shots and scored {g}. The goal was not moving, lads.	{club} عملوا {shots} تسديدة وجابوا {g}. الجون مكانش بيتحرك يا شباب.
+A finishing session in Training would turn those chances into points.	حصة لمسة أخيرة في التمرين هتحوّل الفرص دي لنقط.
+The chances are there for {club}. It will click soon if they keep creating.	الفرص موجودة لـ{club}. هتظبط قريب لو فضلوا يعملوا فرص.
+{0} had {1}% of the ball and lost. Possession is not a trophy, lads. Counter-attacks are.	{0} كان معاهم {1}% من الكورة وخسروا. الاستحواذ مش بطولة يا شباب. المرتدات هي اللي بتجيب.
+{0} created more ({1} xG to {2}). On another day that ends differently.	{0} عملوا أكتر ({1} xG قدام {2}). في يوم تاني كانت هتخلص غير كده.
+{0} took {1} shots to {2}. They wanted it more.	{0} شوّطوا {1} قدام {2}. كانوا عايزينها أكتر.
+{0} shots between them. I counted. I regret counting.	{0} تسديدات بين الفريقين. أنا عدّيت. وندمت إني عدّيت.
+Result of the day	نتيجة اليوم
+MATCHDAY · {0}	الجولة · {0}
+The press room verdict	حكم المؤتمر الصحفي
+WORDS BACKED UP	قال وعمل
+EATING THOSE WORDS	بلع كلامه
+Tactics corner	ركن التكتيك
+Stat of the week	رقم الأسبوع
+{0} xG → {1} goals	{0} xG ← {1} أجوان
+{0} · {1} shots	{0} · {1} تسديدات
+FINISHING PROBLEM	مشكلة في اللمسة الأخيرة
+Transfer talk	كلام الانتقالات
+DEAL OF THE WEEK	صفقة الأسبوع
+Hot seat	الكرسي السخن
+FORM · LAST 3	الفورمة · آخر 3
+Backed up the big words.	كلامه الكبير طلع صح.
+A convincing win.	كسبة مقنعة.
+Big words, no answers.	كلام كبير ومفيش رد.
+A heavy defeat.	خسارة تقيلة.
+Nothing to talk about.	مفيش حاجة تتقال.
+Fans {0}1% · board {1}1	الجمهور {0}1% · الإدارة {1}1
+No effect	مفيش تأثير
+WHAT A PERFORMANCE 🔥🔥 {score} and it could have been more	إيه الأداء ده 🔥🔥 {score} وكان ممكن أكتر
+{manager} you beauty. Statue outside the ground when?	{manager} يا عسل. التمثال قدام الاستاد امتى؟
+Sorry {opp}, we were just warming up 😂 {score}	سوري يا {opp}، إحنا كنا لسه بنسخن 😂 {score}
+3 points is 3 points. Ugly but we take it 🙌	3 نقط يعني 3 نقط. وحشة بس ماشي 🙌
+Good win. Now do it again on {next}	كسبة حلوة. يلا كررها يوم {next}
+Never in doubt (it was very much in doubt)	عمري ما قلقت (كنت قلقان جدًا)
+A draw against {opp}? We pay for tickets for this?	تعادل مع {opp}؟ إحنا بندفع تذاكر عشان ده؟
+Fine. A point. I am not angry, just disappointed.	ماشي. نقطة. أنا مش زعلان، أنا مخذول.
+{manager} OUT. I will not be taking questions 😡	{manager} برا. ومش هرد على أسئلة 😡
+{score} to {opp}. I am going to bed.	{score} من {opp}. أنا داخل أنام.
+Who picked this team. Genuinely asking.	مين اللي اختار التشكيلة دي. بسأل بجد.
+{score}?!?! I want my season ticket money back	{score}؟!؟! عايز فلوس الاشتراك بتاعي ترجع
+{manager} has lost the dressing room, the plot and my respect	{manager} خسر غرفة اللبس والخطة واحترامي
+That was the worst thing I have seen since my ex 🤡	ده أوحش حاجة شفتها من ساعة الإكس بتاعتي 🤡
+{player} is too good for this league. Keep him at all costs 🙏	{player} أكبر من الدوري ده. خلّوه بأي تمن 🙏
+{player} ({rating}) carried the team on his back again	{player} ({rating}) شايل الفريق على ضهره تاني
+{player} ({rating}) was invisible. Is he even on the pitch?	{player} ({rating}) كان مختفي. هو كان في الملعب أصلًا؟
+Please give {player} a rest. For all our sakes.	ريّحوا {player} بالله عليكم. عشان خاطرنا كلنا.
+BUY A STRIKER. We have scored {g} in {p}. This is not hard.	هاتوا مهاجم. جبنا {g} في {p}. مش صعبة يعني.
+We have let in {ga} in {p}. A centre-back please, any centre-back.	دخل فينا {ga} في {p}. قلب دفاع لو سمحتوا، أي قلب دفاع.
+How did the derby go, {club} fans? 😂 {score}	الديربي عمل إيه يا جمهور {club}؟ 😂 {score}
+{club} fans very quiet today. Wonder why 🤔	جمهور {club} ساكت أوي النهارده. يا ترى ليه 🤔
+Saturday	السبت
+Sunday	الحد
+Monday	الاتنين
+Tuesday	التلات
+Wednesday	الأربع
+Thursday	الخميس
+Friday	الجمعة
+Fan favourite	حبيب الجمهور
+A new striker	مهاجم جديد
+Fans want: a striker	الجمهور عايز: مهاجم
+A new defender	مدافع جديد
+Fans want: a defender	الجمهور عايز: مدافع
+A win in the next match	كسبة في الماتش الجاي
+🤝 “We hear you. We will keep working.”	🤝 "سامعينكم. وهنفضل نشتغل."
+Board +1	الإدارة +1
+📝 “Reinforcements are coming.”	📝 "التدعيمات جاية."
+Board +4 now. Sign a player for that line before the window shuts, or −8.	الإدارة +4 دلوقتي. هات لعيب للخط ده قبل ما الميركاتو يقفل، وإلا −8.
+😏 “Trust the process.”	😏 "ثقوا في المشروع."
+Board −1, squad morale +2	الإدارة −1، معنويات الفريق +2
+Pick a reply.	اختار رد.
+Nothing to reply to yet.	لسه مفيش حاجة ترد عليها.
+You already answered the fans this matchday.	رديت على الجمهور الجولة دي خلاص.

@@ -3,6 +3,8 @@ import '@fontsource/bebas-neue/400.css';
 import './globals.css';
 import SwRegister from '../components/SwRegister.tsx';
 import Splash from '../components/Splash.tsx';
+import { LangLayer } from '../components/Lang.tsx';
+import { BOOT } from '../lib/i18n.ts';
 
 export const metadata: Metadata = {
   title: 'Vamos!', description: 'Build your club, pick your tactics, beat your friends.',
@@ -14,8 +16,9 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: BOOT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
@@ -27,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="rotate">Turn your phone sideways for the best view</div>
         <SwRegister />
         <Splash />
+        <LangLayer />
         {children}
       </body>
     </html>

@@ -1,0 +1,87 @@
+Home	الرئيسية
+Match plan	خطة الماتش
+Condition	الحالة
+Office	المكتب
+Packs	الباكات
+Market	السوق
+Deals	الصفقات
+Standings	الترتيب
+Prepare	جهّز
+Press	الصحافة
+Paper	الجرنال
+Social	السوشيال
+TV	التلفزيون
+Leaders	المتصدرين
+Matches	الماتشات
+Media	الميديا
+Analyst	المحلل
+Press room	أوضة الصحافة
+Table	الجدول
+Top players	أحسن اللعيبة
+No connection.	مفيش نت.
+Can't reach the game right now	مش قادرين نوصل للعبة دلوقتي
+You are still logged in, trying again…	إنت لسه داخل، بنجرب تاني…
+Try again	جرّب تاني
+Build your club from packs, set the tactics that beat your friends, and watch every match play out live in five minutes.	كوّن ناديك من الباكات، وحط الخطة اللي تكسر بيها صحابك، واتفرج على كل ماتش لايف في خمس دقايق.
+8 leagues	8 دوريات
+Real tactics	تكتيك بجد
+Derby days	أيام الديربي
+New manager	مدرب جديد
+Username	اسم المستخدم
+Password	الباسورد
+Create account	اعمل أكونت
+Hi,	أهلًا،
+Log out	اخرج
+My leagues (	دورياتي (
+My leagues ({0})	دورياتي ({0})
++ Create league	+ اعمل دوري
+Join with code	ادخل بكود
+🌍 Manager ranking	🌍 ترتيب المدربين
+Global manager ranking	ترتيب المدربين العالمي
+Your reputation:	سمعتك:
+Win +3 · draw +1 · title +50 · cup +30 · promotion +30 · Manager of the Season +20 · relegation −20	كسب +3 · تعادل +1 · دوري +50 · كاس +30 · صعود +30 · مدرب الموسم +20 · هبوط −20
+Live season	الموسم شغال
+Season over	الموسم خلص
+CODE	الكود
+· {0} divisions	· {0} درجات
+{0} divisions	{0} درجات
+· season {0}	· الموسم {0}
+season {0}	الموسم {0}
+No leagues yet	لسه مفيش دوريات
+Join a league	ادخل دوري
+6-letter code, e.g. K7Q2MX	كود من 6 حروف، زي K7Q2MX
+Find league	دوّر على الدوري
+clubs ·	نادي ·
+The season has started: you will take over a random AI club, with its players and its place in the table.	الموسم بدأ: هتستلم نادي بوت عشوائي، بلعيبته ومكانه في الجدول.
+This season is over. Join next season.	الموسم ده خلص. ادخل الموسم الجاي.
+League name	اسم الدوري
+Friday Night League	دوري ليلة الجمعة
+Player pool (packs only give players from this league)	لعيبة الدوري (الباكات بتطلّع لعيبة من الدوري ده بس)
+Divisions (promotion and relegation between them)	الدرجات (صعود وهبوط بينهم)
+One league	دوري واحد
+Managers start in	المدربين يبدأوا في
+Clubs per division	أندية في كل درجة
+Clubs	الأندية
+(empty places become AI clubs)	(الأماكن الفاضية هتبقى أندية بوت)
+AI difficulty	صعوبة البوت
+Easy	سهل
+Match schedule	مواعيد الماتشات
+Every day at (your time)	كل يوم الساعة (بتوقيتك)
+, for everyone, in their own time zone. Nobody can play a match early, not even you.	، للكل، كل واحد بتوقيته. محدش يقدر يلعب ماتش بدري، ولا حتى إنت.
+for everyone, in their own time zone. Nobody can play a match early, not even you.	للكل، كل واحد بتوقيته. محدش يقدر يلعب ماتش بدري، ولا حتى إنت.
+Home and away league, plus a knockout cup. The transfer market opens before matchday 1 and at the halfway break.	دوري ذهاب وعودة، وكاس خروج مغلوب. السوق بيفتح قبل الجولة 1 وفي نص الموسم.
+This season is over. New clubs can join next season.	الموسم ده خلص. الأندية الجديدة تقدر تدخل الموسم الجاي.
+Sections	الأقسام
+All leagues	كل الدوريات
+Leagues	الدوريات
+Season {0} over	الموسم {0} خلص
+S{0} · Matchday {1}/{2}	م{0} · الجولة {1}/{2}
+Coins for packs	كوينز للباكات
+Club money	فلوس النادي
+Create league	اعمل دوري
+Create	اعمل
+Join	ادخل
+st	
+nd	
+rd	
+th	

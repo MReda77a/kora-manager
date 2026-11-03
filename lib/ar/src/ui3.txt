@@ -1,0 +1,322 @@
+{0} joins your club!	{0} انضم لناديك!
+Transfer Market	سوق الانتقالات
+OPEN{0}	مفتوح{0}
+OPEN	مفتوح
+Your budget	ميزانيتك
+🔍 Search player…	🔍 دوّر على لعيب…
+Search player	دوّر على لعيب
+Where from	منين
+Everyone	الكل
+This league	الدوري ده
+🌍 Abroad	🌍 برا
+Sort by	رتّب حسب
+Sort: rating	ترتيب: التقييم
+Sort: potential	ترتيب: الإمكانيات
+Sort: price	ترتيب: السعر
+Sort: age	ترتيب: السن
+AGE	السن
+SELLER	البايع
+POT	الإمكانيات
+PRICE	السعر
+No players here. Players from other managers, AI clubs and clubs abroad appear while the window is open. Sell your own from the Squad screen.	مفيش لعيبة هنا. لعيبة المدربين التانيين والبوتات والأندية اللي برا بيظهروا وقت ما الميركاتو مفتوح. بيع لعيبتك من شاشة الفريق.
+(AI)	(بوت)
+yrs ·	سنة ·
+🌍 From a club abroad	🌍 من نادي برا
+Seller:	البايع:
+Pace	السرعة
+Passing	الباص
+Finishing	اللمسة الأخيرة
+Tackling	الالتحام
+Stamina	النَفَس
+Shooting	الشوط
+Defending	الدفاع
+Physical	البدنيات
+value ≈	القيمة ≈
+Your listing	عرضك
+Not enough money	الفلوس مش مكفية
+Buy now	اشتري دلوقتي
+Pick a player to see details.	اختار لعيب تشوف تفاصيله.
+Listed	معروض
+Make an offer	قدّم عرض
+Offers{0}	العروض{0}
+Offers	العروض
+Buy	اشتري
+WINDOW OPEN{0}	الميركاتو مفتوح{0}
+· shuts in {0}	· بيقفل بعد {0}
+Player or club…	لعيب أو نادي…
+· wants out	· عايز يمشي
+wants out	عايز يمشي
+Pick any player at another club. AI clubs answer straight away; managers answer from their inbox. Offers only work while the window is open.	اختار أي لعيب في نادي تاني. البوتات بترد على طول؛ المدربين بيردوا من البوسطة. العروض شغالة بس والميركاتو مفتوح.
+OVR ·	التقييم ·
+Value ≈	القيمة ≈
+· on loan (can not move)	· معار (مينفعش يتحرك)
+Pick one of your players…	اختار لعيب من بتوعك…
+Fee	المبلغ
+Loan fee	تمن الإعارة
+Plus cash	وكمان فلوس
+He plays for you until the end of the season, then goes back.	هيلعب ليك لحد آخر الموسم وبعدين يرجع.
+Your player goes the other way.	لعيبك هيروح ليهم.
+Key players cost more. Low offers get laughed at.	اللعيبة المهمة غالية. العروض الهزيلة بيضحكوا عليها.
+Send offer	ابعت العرض
+From {0}	من {0}
+To {0}	لـ{0}
+· they want {0}M	· عايزين {0}M
+they want {0}M	عايزين {0}M
+Accept	موافق
+Reject	ارفض
+Your price	سعرك
+Counter	عرض مضاد
+Add {0}M	زوّد {0}M
+Pay {0}M	ادفع {0}M
+Extra cash	فلوس زيادة
+New offer	عرض جديد
+New offer in millions	عرض جديد بالمليون
+Offer	العرض
+Walk away	سيبك منه
+· they are losing patience	· صبرهم بيخلص
+they are losing patience	صبرهم بيخلص
+Withdraw	اسحب
+⏰ DEADLINE DAY · the window shuts at the next kick-off	⏰ آخر يوم · الميركاتو هيقفل مع الماتش الجاي
+. Open offers expire when the window closes.	. العروض المفتوحة بتنتهي لما الميركاتو يقفل.
+Open offers expire when the window closes.	العروض المفتوحة بتنتهي لما الميركاتو يقفل.
+Offers for your players	عروض على لعيبتك
+Nobody has bid yet.	لسه محدش قدّم.
+Your offers	عروضك
+Make an offer for any player in the league.	قدّم عرض لأي لعيب في الدوري.
+DONE	خلص
+Club Office	مكتب النادي
+PROJECTED GRADE	التقدير المتوقع
+What moves these numbers	إيه اللي بيحرك الأرقام دي
+Board confidence ⓘ	ثقة الإدارة ⓘ
+Board confidence	ثقة الإدارة
+They back you	في ضهرك
+Patience is wearing thin	الصبر بيخلص
+Targets	الأهداف
+What moves board confidence	إيه اللي بيحرك ثقة الإدارة
+Fans grow with wins (more in derbies) and leave after defeats. Targets are the objectives below.	الجمهور بيزيد مع الكسب (أكتر في الديربي) وبيمشي بعد الخسارة. الأهداف هي اللي تحت.
+Season objectives	أهداف الموسم
+Tap a target to see how to reach it.	دوس على هدف تشوف توصله إزاي.
+How:	إزاي:
+Manager's inbox	بوسطة المدرب
+Nothing yet. Player complaints, offers, club events and board messages land here.	لسه مفيش. شكاوي اللعيبة والعروض وأخبار النادي ورسايل الإدارة بتوصل هنا.
+Club perk:	ميزة النادي:
+Weakness:	العيب:
+Sponsor deal	عقد الراعي
+Choose once per season	اختار مرة في الموسم
+Signed	اتمضى
+Kits saved	الأطقم اتسيفت
+Stadium renamed	اسم الاستاد اتغير
+Rename	غيّر الاسم
+seats ·	كرسي ·
+M per home game	M في كل ماتش على أرضك
++5,000 seats	+5,000 كرسي
++5,000 seats · 6M	+5,000 كرسي · 6M
+Resign from this league	استقيل من الدوري ده
+carries on with an AI manager, with its players and money. You lose the club and the league leaves your list. This cannot be undone.	هيكمّل مع مدرب بوت، بلعيبته وفلوسه. هتخسر النادي والدوري هيختفي من عندك. ومفيش رجوع.
+Resign	استقيل
+Type "{0}" to confirm	اكتب "{0}" عشان تأكد
+Type your club name to confirm	اكتب اسم ناديك عشان تأكد
+Resigning…	بنستقيل…
+Resign for good	استقيل نهائي
+Cancel	إلغاء
+Kits	الأطقم
+Edit	عدّل
+When both teams' shirts look alike, the away side changes to its away kit (or a white or black third kit).	لما التيشيرتات تبقى شبه بعض، الضيف بيلبس طقم الأواي (أو طقم تالت أبيض أو أسود).
+KAREEM	كريم
+THE CRITIC	الناقد
+SAMI	سامي
+THE CALM ONE	الهادي
+Tiki-taka	تيكي تاكا
+Low block	دفاع متأخر
+Long ball	كورة طويلة
+Shoot on sight	شوّط من أي حتة
+Beat it:	اكسرها:
+The first Matchday Show goes on air after the first round of matches.	أول حلقة من برنامج الجولة هتتذاع بعد أول جولة.
+Next line	اللي بعده
+VAMOS TV	VAMOS TV
+Matchday Show · tap to move on	برنامج الجولة · دوس تكمّل
+The verdict on you	الحكم عليك
+PRAISED 👏	اتشكر 👏
+MOCKED 😬	اتتريق عليه 😬
+IGNORED 😐	محدش جاب سيرته 😐
+You did not play this matchday.	مالعبتش الجولة دي.
+Hot seat 🔥	الكرسي السخن 🔥
+Your fans	جمهورك
+Whole league	الدوري كله
+Quiet so far. The fans start posting after the first matchday.	هادية لحد دلوقتي. الجمهور هيبدأ يكتب بعد أول جولة.
+Fan mood	مود الجمهور
+Happy	مبسوط
+Restless	قلقان
+Angry	متعصب
+Wins, the TV verdict and how you answer them move it. It follows your board confidence.	الكسب وحكم التلفزيون وردك عليهم بيحركوه. وماشي ورا ثقة الإدارة.
+The fans want	الجمهور عايز
+Answer	رُد
+You answered this matchday. Next chance after the next match.	رديت الجولة دي. الفرصة الجاية بعد الماتش الجاي.
+Press conference	مؤتمر صحفي
+🎙️ No press conference right now	🎙️ مفيش مؤتمر صحفي دلوقتي
+The press room opens before the big ones: a	أوضة الصحافة بتفتح قبل الماتشات الكبيرة: 
+(two Fan Club managers) and the	(مدربين نوادي جماهيرية) و
+Five questions about the table, the form, the stars, the referee and what the other manager said. Every answer changes the match: your team's spirit, the rival's anger, the referee's patience and what the fans expect. Everything you say is printed in the news.	خمس أسئلة عن الجدول والفورمة والنجوم والحكم واللي قاله المدرب التاني. كل إجابة بتغيّر الماتش: روح فريقك، وغضب الخصم، وصبر الحكم، والجمهور مستني إيه. وكل كلمة هتتنشر في الأخبار.
+Cup final	نهائي الكاس
+Derby	ديربي
+🎙️ Press conference ·	🎙️ مؤتمر صحفي ·
+Question {0} of {1}	سؤال {0} من {1}
+Leave the press room	اطلع من أوضة الصحافة
+THE PRESS ROOM IS FULL	أوضة الصحافة مليانة
+Five questions. Every answer changes the match	خمس أسئلة. كل إجابة بتغيّر الماتش
+, and the {0} manager will read every word	، ومدرب {0} هيقرا كل كلمة
+and the {0} manager will read every word	ومدرب {0} هيقرا كل كلمة
+The other manager has already spoken…	المدرب التاني اتكلم خلاص…
+Take your seat	اقعد مكانك
+Question	سؤال
+See tomorrow’s papers	شوف جرايد بكرة
+Next question	السؤال اللي بعده
+Your answer	إجابتك
+SPECIAL ·	عدد خاص ·
+, and their manager did not hold back in front of the cameras.	، ومدربهم ماسكش نفسه قدام الكاميرات.
+and their manager did not hold back in front of the cameras.	ومدربهم ماسكش نفسه قدام الكاميرات.
+What your words will do	كلامك هيعمل إيه
+Nothing much. A quiet press conference.	ولا حاجة تقريبًا. مؤتمر هادي.
+The effects count in this match only.	التأثير في الماتش ده بس.
+The other manager has been told what you said.	المدرب التاني وصله كلامك.
+Set the line-up	ظبّط التشكيلة
+Leave the room	اطلع برا
+Your analyst is studying the opponent…	المحلل بيذاكر الخصم…
+New analyst hired!	محلل جديد اتعين!
+Level	المستوى
+Hire	عيّن
+Match Analyst	محلل الماتش
+No match coming up. Your analyst will be ready for the next one.	مفيش ماتش جاي. المحلل هيبقى جاهز للي بعده.
+· {0}{1} in the table	· {0}{1} في الجدول
+{0}{1} in the table	{0}{1} في الجدول
+· a manager	· مدرب حقيقي
+a manager	مدرب حقيقي
+· AI club	· نادي بوت
+The opponent	الخصم
+YOU	إنت
+THEM	هما
+WHERE THEY ARE WEAK	هما ضعاف فين
+Their roles	أدوارهم
+WATCH OUT	خلي بالك
+WHAT THEY WILL PROBABLY PLAY	غالبًا هيلعبوا إيه
+The plan	الخطة
+CONFIDENCE:	الثقة:
+BEST FOR YOU	الأحسن ليك
+Already your plan	دي خطتك أصلًا
+Use this plan	استخدم الخطة دي
+PLAN	الخطة
+WIN · DRAW · LOSS (%)	كسب · تعادل · خسارة (%)
+ROUGH RANKING	ترتيب تقريبي
+Use {0}	استخدم {0}
+Looks best	شكلها الأحسن
+Could work	ممكن تنفع
+Avoid:	ابعد عن:
+(you played it last time, and they are ready for it)	(لعبتها آخر مرة، وهما مستعدين لها)
+A part-time analyst only gives a rough guess and can be wrong. A Match analyst plays the game through hundreds of times first.	المحلل البارت تايم بيديك تخمين تقريبي وممكن يغلط. محلل الماتش بيلعب الماتش مئات المرات الأول.
+Open tactics	افتح الخطة
+Study again	ذاكر تاني
+Your words go to print	كلامك رايح المطبعة
+Next matchday	الجولة الجاية
+Player of the Month ›	لعيب الشهر ›
+CUP SPECIAL	عدد الكاس
+MATCHDAY REPORT	تقرير الجولة
+CUP PREVIEW	قبل الكاس
+MID-SEASON	نص الموسم
+PREVIEW · MATCHDAY {0}	قبل الجولة {0}
+· 1 COIN	· 1 كوين
+The managers spoke	المدربين اتكلموا
+No comments before this matchday.	مفيش تصريحات قبل الجولة دي.
+Results	النتايج
+({0} pens)	({0} ترجيح)
+Top of the table	صدارة الجدول
+See the full team ›	شوف الفريق كامل ›
+Tonight, only one can rule {0}	الليلة، واحد بس اللي هيحكم {0}
+Cup night: win or go home	ليلة الكاس: اكسب أو روّح
+The window is open	الميركاتو مفتوح
+Matchday is coming	الجولة جاية
+The managers speak	المدربين بيتكلموا
+No manager has spoken yet. Be the first.	لسه محدش من المدربين اتكلم. خليك الأول.
+On the card	على الجدول
+Your words	كلامك
+Confident: your players +1 in the derby.	واثق: لعيبتك +1 في الديربي.
+Provocative: +2, but the derby gets dirtier.	مستفز: +2، بس الديربي هيبقى خشن.
+Say something…	قول حاجة…
+Post	انشر
+No edition yet.	لسه مفيش عدد.
+Awards	الجوايز
+Team of the Week	تشكيلة الأسبوع
+Player of the Month	لعيب الشهر
+Replay reveal	أعد الإعلان
+The first Team of the Week comes after matchday 1.	أول تشكيلة أسبوع بعد الجولة 1.
+Your players	لعيبتك
+Star of the week	نجم الأسبوع
+Effect:	التأثير:
+“In form”: +2 rating for the next 2 days.	"في الفورمة": +2 تقييم لمدة يومين.
+Your club:	ناديك:
+Picked automatically: the best match rating in each position. Ratings count goals, assists, saves, clean sheets and the team result.	بتتختار أوتوماتيك: أعلى تقييم في كل مركز. التقييم بيحسب الأجوان والأسيستات والصدّات والشباك النضيفة ونتيجة الفريق.
+The first Player of the Month is picked after matchday 4.	أول لعيب شهر بيتختار بعد الجولة 4.
+Avg rating	متوسط التقييم
+Score	النقاط
+WINNER	الكسبان
+Upset: −2 for 2 days	زعلان: −2 لمدة يومين
+Reveal the winner	اكشف الكسبان
+What happens next	اللي هيحصل بعد كده
+The winner gets a confidence boost: +3 rating for 4 days. Nominees who lose may sulk: their rating drops by 2 for 2 days, then recovers.	الكسبان ثقته بتعلى: +3 تقييم لمدة 4 أيام. المرشحين اللي خسروا ممكن يقمصوا: تقييمهم بيقل 2 لمدة يومين وبعدين يرجع.
+Score = avg rating × 10 + goals × 2 + assists × 1.5 + team points × 0.8	النقاط = متوسط التقييم × 10 + الأجوان × 2 + الأسيستات × 1.5 + نقط الفريق × 0.8
+History	التاريخ
+Season {0}{1}	الموسم {0}{1}
+· {0} finished	· {0} خلّص
+History is written at the end of the first season: champions, promotions, the cup winner and the season awards all land here.	التاريخ بيتكتب آخر أول موسم: الأبطال والصاعدين وبطل الكاس وجوايز الموسم كلهم هنا.
+Season	الموسم
+You:	إنت:
+th,	،
+Season awards	جوايز الموسم
+Your trophy cabinet	دولاب البطولات
+Empty for now. Win a title, a cup or promotion to fill it.	فاضي دلوقتي. اكسب دوري أو كاس أو اطلع عشان تملاه.
+Hall of fame	قاعة المشاهير
+No honours yet.	لسه مفيش بطولات.
+Legends	الأساطير
+Club records count from the end of season 1.	أرقام النادي بتتحسب من آخر الموسم 1.
+· retired	· اعتزل
+apps ·	ماتش ·
+The Cup	الكاس
+The cup draw happens when the season starts.	قرعة الكاس بتتعمل لما الموسم يبدأ.
+KNOCKOUT	خروج المغلوب
+Drawing…	بنسحب…
+Watch the {0} draw	اتفرج على قرعة {0}
+The pot ·	الكورة ·
+Cup winners	أبطال الكاس
+You are out. Better luck next season.	خرجت. حظ أحسن الموسم الجاي.
+Draw after a draw at 90 minutes goes straight to penalties, taken in your order.	التعادل في 90 دقيقة بيروح على طول لضربات الترجيح، بالترتيب بتاعك.
+· day {0}	· يوم {0}
+Draw after the previous round	القرعة بعد الدور اللي قبله
+LIVE ›	لايف ›
+Byes:	معفيين:
+Winner: 8M + trophy	البطل: 8M + الكاس
+Each win +1M	كل كسبة +1M
+HOME	أرض
+Friendly	ودي
+Play any club now. Only the result and the stats, no live match.	العب مع أي نادي دلوقتي. النتيجة والإحصائيات بس، من غير ماتش لايف.
+Pick an opponent	اختار الخصم
+MGR	مدرب
+Div	درجة
+⚠ One friendly between match days. Your players lose stamina and build chemistry. Injuries are rare and mostly small knocks. Their club is not affected.	⚠ ودي واحد بين كل جولة والتانية. لعيبتك هتتعب بس هتبني كيمياء. الإصابات نادرة وأغلبها خبطات خفيفة. النادي التاني مش هيتأثر.
+Playing…	بنلعب…
+Play the friendly	العب الودي
+Recent friendlies	آخر الوديات
+No friendlies yet. Try a new plan or give the bench some minutes.	لسه مفيش وديات. جرّب خطة جديدة أو ادي الدكة شوية دقايق.
+WIN	كسب
+LOSS	خسارة
+DRAW	تعادل
+Friendly · full time	ودي · نهاية الماتش
+Possession	الاستحواذ
+Shots	التسديدات
+On target	على المرمى
+xG	xG
+Cards	الكروت
+Plan	الخطة
+Stamina:	النَفَس:
+· Player of the match: {0}	· رجل الماتش: {0}
+Player of the match: {0}	رجل الماتش: {0}
+✚ Injured:	✚ مصاب:
+Best ratings:	أحسن تقييمات:

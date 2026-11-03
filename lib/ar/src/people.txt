@@ -1,0 +1,93 @@
+Part-time analyst	محلل بارت تايم
+Spots their weak points and gives a rough plan. Can be wrong.	بيلقط نقط ضعفهم وبيديك خطة تقريبية. ممكن يغلط.
+Match analyst	محلل ماتشات
+Plays the match through hundreds of times. Knows their habits.	بيلعب الماتش مئات المرات. حافظ عاداتهم.
+Head of analysis	رئيس التحليل
+The sharpest advice, and what their manager is likely to pick.	أدق نصيحة، وكمان مدربهم غالبًا هيختار إيه.
+You already have the best analyst.	عندك أحسن محلل خلاص.
+Not enough money: the {0} costs {1}M.	الفلوس مش مكفية: {0} بـ{1}M.
+Their defenders are slower than your forwards (pace {0} vs {1}): through balls and a quick tempo.	مدافعينهم أبطأ من مهاجمينك (سرعة {0} قدام {1}): بينيات وريتم سريع.
+You are stronger in the air ({0} vs {1}): play wide and cross.	إنت أقوى في الهوا ({0} قدام {1}): العب على الأطراف وعرّض.
+Their keeper is shaky ({0}): shoot from distance.	الحارس بتاعهم مهزوز ({0}): شوّط من بعيد.
+They have let in {0} goals from {1} lately.	دخل فيهم {0} أجوان من {1} الفترة اللي فاتت.
+Fast forwards (pace {0}): do not play a high line.	مهاجمين سريعين (سرعة {0}): متلعبش بخط عالي.
+Their best player is {0} ({1}).	أحسن لعيب عندهم {0} ({1}).
+Your part-time analyst cannot read their plans. A better analyst can.	المحلل البارت تايم مش قادر يقرا خططهم. محلل أحسن يقدر.
+AI managers study your last plans (last time you played {0}).	مدربين البوت بيذاكروا خططك الأخيرة (آخر مرة لعبت {0}).
+They will pick a plan that suits their players.	هيختاروا خطة لايقة على لعيبتهم.
+From their last {0} matches. A friend can always surprise you.	من آخر {0} ماتشات ليهم. صاحبك ممكن يفاجئك في أي وقت.
+No matches to study yet.	لسه مفيش ماتشات نذاكرها.
+🙂 Strict referee ({0}): tackle with care, cards will fly.	🙂 حكم شديد ({0}): التحم بالراحة، الكروت هتطير.
+😠 They pass short: getting stuck in can break up their play (watch the cards).	😠 بيلعبوا باصات قصيرة: الدخول بقوة ممكن يكسر لعبهم (خلي بالك من الكروت).
+🚩 Your defenders read the game better than their forwards ({0} vs {1}){2}: an offside trap could catch them.	🚩 مدافعينك بيقروا الماتش أحسن من مهاجمينهم ({0} قدام {1}){2}: مصيدة التسلل ممكن تمسكهم.
+, and they like to run in behind	، وبيحبوا يجروا ورا الدفاع
+🚩 Their forwards time their runs well ({0} vs your back line's {1}): an offside trap is risky.	🚩 مهاجمينهم بيظبطوا الجري صح ({0} قدام {1} لدفاعك): مصيدة التسلل مخاطرة.
+a Stopper at centre-back wins his headers	ستوبر في قلب الدفاع يكسب راسياته
+a Sweeper behind the line stops his runs	ليبرو ورا الخط يوقف جريه
+a Marker in midfield cuts his service	رقيب في الوسط يقطع عنه الكور
+a Marker can follow him	رقيب يمشي وراه
+a Flank cover or a Stopper full-back on that side	غطا جنب أو ظهير ستوبر في الناحية دي
+an Anchor in front of the defence picks him up	مرساة قدام الدفاع تمسكه
+a Sweeper keeper is riskier against him	الحارس الليبرو مخاطرة قدامه
+an Inverted full-back closes the middle	ظهير مقلوب يقفل النص
+If you need a goal late on, switch to {0}: it is the best answer to {1}.	لو محتاج جون في الآخر، اقلب على {0}: هي أحسن رد على {1}.
+Your captain {0} is not happy to be left out. Play him, or give the armband to someone else.	الكابتن {0} مش مبسوط إنه برا. لعّبه أو ادي الشارة لحد تاني.
+Captain unhappy	الكابتن زعلان
+{0} is furious: you promised him games and he hasn't played.	{0} قالب الدنيا: وعدته بماتشات ومالعبش.
+{0} is unhappy with his playing time. Have a talk with him in Players.	{0} مش مبسوط من دقايق لعبه. اقعد معاه من اللعيبة.
+Transfer request	طلب رحيل
+RUMOUR: {0} wants out. Clubs are said to be watching.	شايعة: {0} عايز يمشي. وبيقولوا في أندية بتراقب.
+{0} has withdrawn his transfer request. He is happy again.	{0} سحب طلب الرحيل. رجع مبسوط.
+You already promised {0} games.	وعدت {0} بماتشات خلاص.
+{0}: "Thank you, boss. I'll be ready." (He must play in the next 3 days.)	{0}: "تسلم يا ريس. هكون جاهز." (لازم يلعب في الـ3 أيام الجايين.)
+You spoke to {0} recently. Give it {1} more day(s).	لسه مكلّم {0}. استنى {1} يوم كمان.
+{0} appreciated the chat. Morale up.	{0} اتبسط من القعدة. المعنويات طلعت.
+{0} didn't seem convinced.	{0} شكله مش مقتنع.
+📺 A TV channel paid {0}M to film behind the scenes at {1}.	📺 قناة دفعت {0}M عشان تصوّر كواليس {1}.
+💼 Your sponsor cut this month's payment after a bad press story: −0.6M.	💼 الراعي قطع فلوس الشهر ده بعد خبر وحش في الجرايد: −0.6M.
+🩹 {0} picked up a knock in training and will miss the next match.	🩹 {0} خد خبطة في التمرين وهيغيب الماتش الجاي.
+📢 Fans protested outside {0}. Attendance and board confidence drop.	📢 الجمهور احتج قدام {0}. الحضور وثقة الإدارة وقعوا.
+Fans protest outside {0} as pressure grows on {1}.	الجمهور بيحتج قدام {0} والضغط بيزيد على {1}.
+🌱 Breakthrough! {0} has made a big jump in training: +2 overall.	🌱 طفرة! {0} عمل نقلة كبيرة في التمرين: +2 في التقييم.
+🥊 {0} and {1} clashed in training. Both are sulking (morale −10).	🥊 {0} و{1} اتخانقوا في التمرين. الاتنين مقموصين (المعنويات −10).
+🎁 A wealthy supporter donated 1M to {0}.	🎁 مشجع غني اتبرع بـ1M لـ{0}.
+Praise the players	اشكر اللعيبة
+"Every one of them was magnificent today."	"كلهم كانوا جامدين النهارده."
+"I'm proud of the effort. Results will come."	"فخور بالمجهود. النتايج جاية."
+Demand more	اطلب أكتر
+"We won, but that was not good enough for {0}."	"كسبنا، بس ده مش مستوى {0}."
+"That was unacceptable. Some players must look in the mirror."	"ده كلام مش مقبول. في لعيبة لازم تبص في المراية."
+Blame the referee	الحكم هو السبب
+"The referee decided this match. Everyone saw it."	"الحكم هو اللي حسم الماتش. الكل شاف."
+Pick an answer.	اختار إجابة.
+The press conference opens after full time.	المؤتمر الصحفي بيفتح بعد نهاية الماتش.
+This was not your match.	ده مكانش ماتشك.
+You already spoke to the press.	اتكلمت مع الصحافة خلاص.
+Players who played: morale +4.	اللي لعبوا: المعنويات +4.
+Morale −4, but they are fired up for the next match (+1).	المعنويات −4، بس متولعين للماتش الجاي (+1).
+Fined 0.3M by the league. The fans loved it (+300).	الدوري غرّمك 0.3M. الجمهور عجبه الكلام (+300).
+Pick your line-up for the next match (your assistant picks one otherwise).	اختار تشكيلتك للماتش الجاي (وإلا المساعد هيختار).
+Line-up ready.	التشكيلة جاهزة.
+{0} tired starter{1} ({2}): rest {3}?	{0} أساسي تعبان ({2}): تريّح {3}؟
+Someone plays out of position: he loses power.	في حد بيلعب في غير مركزه: بيقل مستواه.
+🎙️ Press conference before the {0}: the journalists are waiting. Your words change the match.	🎙️ مؤتمر صحفي قبل {0}: الصحفيين مستنيين. كلامك هيغيّر الماتش.
+🎙️ You spoke to the press.	🎙️ اتكلمت مع الصحافة.
+You played {0} twice in a row: {1} will be ready for it.	لعبت {0} مرتين ورا بعض: {1} هيبقوا جاهزين.
+See how to beat {0} in the analyst report.	شوف تكسب {0} إزاي في تقرير المحلل.
+The transfer window is open: {0} left.	الميركاتو مفتوح: فاضل {0}.
+Choose a sponsor: no sponsor means less money for every win.	اختار راعي: من غير راعي فلوس أقل على كل كسبة.
+Friendlies are played during the season and pre-season.	الوديات بتتلعب في الموسم وقبله.
+Pick another club from your league.	اختار نادي تاني من دوريك.
+Your team is playing a match right now.	فريقك بيلعب ماتش دلوقتي.
+You need at least 11 players.	محتاج 11 لعيب على الأقل.
+You already played a friendly before this match day. Try again after your next match.	لعبت ودي قبل الجولة دي خلاص. جرّب تاني بعد الماتش الجاي.
+{0} (a knock, he can play)	{0} (خبطة، يقدر يلعب)
+{0} (misses {1} match{2})	{0} (هيغيب {1} ماتش)
+Please log in first.	ادخل الأول لو سمحت.
+Something went wrong on the server. Try again.	حصلت مشكلة في السيرفر. جرّب تاني.
+Bad request.	طلب غلط.
+Something went wrong.	حصلت مشكلة.
+No connection. Check your internet and try again.	مفيش نت. شوف الإنترنت وجرّب تاني.
+The server is busy. Try again in a moment.	السيرفر مضغوط. جرّب كمان شوية.
+Club not found.	النادي مش موجود.
+Out	برا

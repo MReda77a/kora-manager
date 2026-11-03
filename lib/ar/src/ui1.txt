@@ -1,0 +1,306 @@
+Manager: {0}	المدرب: {0}
+AI club{0}	نادي بوت{0}
+AI club	نادي بوت
+Referee	الحكم
+THE {0} DERBY	ديربي {0}
+Sent to the matchday paper	اتبعتت لجرنال الماتش
+KICK-OFF IN	الماتش هيبدأ بعد
+Match conditions	ظروف الماتش
+Strict referee: more cards and penalties.	حكم شديد: كروت وبلنتيات أكتر.
+Lenient referee: lets the game flow.	حكم رايق: سايب اللعب ماشي.
+Tension	التوتر
+Cards ×1.5	الكروت ×1.5
+Fans swing ×2	الجمهور بيقلب ×2
+Form is wilder	الفورمة مجنونة
+From the press room	من أوضة الصحافة
+Tactics, penalties & assistant	الخطة والبلنتيات والمساعد
+Mind games	حرب نفسية
+Say something to the paper	قول كلمتين للجرنال
+Calm	هادي
+Confident	واثق
+Provocative	مستفز
+Calm: no effect.	هادي: مفيش تأثير.
+Confident: your players +1 tonight.	واثق: لعيبتك +1 النهارده.
+Provocative: +2, but the game gets dirtier.	مستفز: +2، بس الماتش هيبقى خشن.
+Your words go in the matchday paper…	كلامك هيتنشر في جرنال الماتش…
+Send to the matchday paper	ابعت للجرنال
+Comes on at the kick-off time. Open this page then to watch it live.	هيشتغل في معاد الماتش. افتح الصفحة دي ساعتها وتابعه لايف.
+The match plays at kick-off whether you watch or not. Watching live lets you change tactics and make subs. If you skip, your assistant follows your rules.	الماتش هيتلعب في معاده سواء اتفرجت أو لأ. لو اتفرجت لايف تقدر تغيّر الخطة وتعمل تغييرات. لو فوّت، المساعد هيمشي على تعليماتك.
+Full time	نهاية الماتش
+Watch (	اتفرج (
+min)	دقايق)
+Watch ({0} min)	اتفرج ({0} دقايق)
+No spoilers: the score stays hidden until you watch or skip.	مفيش حرق: النتيجة مستخبية لحد ما تتفرج أو تفوّت.
+All-out attack	هجوم كاسح
+Everyone forward, press high	الكل قدام، ضغط عالي
+All out attack!	هجووم كاسح!
+Park the bus	ركن الأتوبيس
+Sit deep, protect the lead	ارجع ورا وحافظ على التقدم
+High press	ضغط عالي
+Win the ball back high	اخطف الكورة من فوق
+High press on	الضغط العالي شغال
+Plan {0}	خطة {0}
+Switch to your saved plan	حوّل على خطتك المتسيفة
+Plan {0}!	خطة {0}!
+⚽ You scored! Protect the lead or go for more?	⚽ جبت جون! هتقفل ولا هتزوّد؟
+😤 Conceded! Change something?	😤 دخل فينا جون! هتغيّر حاجة؟
+🟥 Down to 10 men! Reorganise?	🟥 بقينا 10! هترتب الدنيا؟
+🟥 They are down to 10! Go for it?	🟥 هما بقوا 10! هنهجم؟
+🚑 Injury! Make a sub?	🚑 إصابة! هتغيّر؟
+Live	لايف
+Stats	الإحصائيات
+Events	الأحداث
+Line-ups	التشكيلات
+MOMENTUM	الزخم
+REPLAY	إعادة
+Result	النتيجة
+Second half in	الشوط التاني بعد
+The clock is stopped: make your changes now.	الوقت واقف: اعمل تغييراتك دلوقتي.
+🔁 Substitution	🔁 تغيير
+🎛 Style	🎛 الأسلوب
+ASSISTANT	المساعد
+🔁 Sub	🔁 تغيير
+Quick tactics	خطة سريعة
+Plan, tackling, offside trap	الخطة، الالتحام، مصيدة التسلل
+Substitution	تغيير
+Match stats	إحصائيات الماتش
+Live commentary	التعليق اللايف
+Key events	أهم الأحداث
+Current formation	التشكيل الحالي
+Substitution (	تغيير (
+Switched to {0}	اتحولنا لـ{0}
+TACKLING	الالتحام
+OFFSIDE TRAP	مصيدة التسلل
+🚩 Offside trap on	🚩 مصيدة التسلل شغالة
+🚩 Trap on	🚩 المصيدة شغالة
+Offside trap off	مصيدة التسلل مقفولة
+Trap off	المصيدة مقفولة
+Who comes on?	مين ينزل؟
+Who comes off?	مين يطلع؟
+‹ choose another player	‹ اختار لعيب تاني
+· assist {0}	· أسيست {0}
+assist {0}	أسيست {0}
+GOAL	جووول
+Momentum swings to them	الزخم راح ليهم
+Yellow card	كارت أصفر
+SENT OFF	طرد
+Injury	إصابة
+WHAT A SAVE	إيه الصدّة دي
+NO GOAL!	مفيش جون!
+BIG CHANCE	فرصة محققة
+Substitution ·	تغيير ·
+▼ OUT	▼ برا
+▲ IN	▲ جوا
+Manager’s decision	قرار المدرب
+Assistant’s decision	قرار المساعد
+VAR	الفار
+PENALTY OVERTURNED	البلنتي اتلغت
+GOAL RULED OUT	الجون اتلغى
+FREE KICK	فاول
+Change of plan	تغيير في الخطة
+🚩 OFFSIDE!	🚩 تسلل!
+TRAP BEATEN!	المصيدة اتكسرت!
+PENALTIES	ضربات ترجيح
+Expected goals	الأهداف المتوقعة
+{0} scores · {1}	{0} يجيب جون · {1}
+{0} off, {1} on	{0} برا، {1} جوا
+VAMOS!	VAMOS!
+{0} win {1}–{2} on penalties	{0} كسبوا {1}–{2} بالترجيح
+FULL TIME · {0}	نهاية الماتش · {0}
+SIMULATED · YOU SKIPPED	محاكاة · إنت فوّت
+What happened ·	اللي حصل ·
+What happened	اللي حصل
+AST	مسا
+A quiet one.	ماتش هادي.
+Replay	إعادة
+Continue	كمّل
+MAN OF THE MATCH	رجل الماتش
+{0} goal{1}	{0} جون
+{0} assist	{0} أسيست
+Your ratings	تقييماتك
++10 coins · fans up · board +3	+10 كوينز · الجمهور مبسوط · الإدارة +3
++3 coins · fans down · board −4	+3 كوينز · الجمهور زعلان · الإدارة −4
++5 coins · fans steady	+5 كوينز · الجمهور ثابت
+Shot map	خريطة التسديدات
+size = xG · filled = goal	الحجم = xG · المليانة = جون
+{0}' {1} · xG {2}{3}	{0}' {1} · xG {2}{3}
+GOAL	جووول
+attack →	بيهاجم →
+xG race	سباق الـxG
+Expected goals over time	الأهداف المتوقعة على مدار الماتش
+Your words are in the papers	كلامك في الجرايد
+Post-match press conference	المؤتمر الصحفي بعد الماتش
+You have already spoken to the press.	إنت اتكلمت مع الصحافة خلاص.
+"Your thoughts on the game, coach?"	"رأيك في الماتش يا كوتش؟"
+Praise lifts morale. Demanding more fires them up but stings. Blaming the referee pleases fans and costs a fine.	المدح بيرفع المعنويات. إنك تطلب أكتر بيولّعهم بس بيوجع. لو لُمت الحكم الجمهور هيتبسط بس هتدفع غرامة.
+No more matches	مفيش ماتشات تاني
+Team	التيم
+Morale	المعنويات
+Fitness	اللياقة
+Fans	الجمهور
+{0} League	دوري {0}
+League	الدوري
+TABLE ›	الجدول ›
+Assists	الأسيستات
+· Assists	· الأسيستات
+{0}{1} · target top {2}	{0}{1} · الهدف توب {2}
+target top {0}	الهدف توب {0}
+Second round	الدور التاني
+First round	الدور الأول
+· shuts in	· بيقفل بعد
+shuts in	بيقفل بعد
+. Buy, sell, loan and swap in the Market.	. اشتري وبيع وسلّف وبدّل في السوق.
+Buy, sell, loan and swap in the Market.	اشتري وبيع وسلّف وبدّل في السوق.
+BREAKING	عاجل
+Recent results	آخر النتايج
+All ›	الكل ›
+No matches played yet.	لسه مفيش ماتشات اتلعبت.
+Cup	الكاس
+MD {0}	ج{0}
+Coming up	الجاي
+Nothing else scheduled.	مفيش حاجة تانية في الجدول.
+CUP	الكاس
+Players	اللعيبة
+Positions	المراكز
+Form & morale	الفورمة والمعنويات
+Plan fits squad	الخطة لايقة على التيم
+Knows the shape	حافظين الشكل
+Chemistry	الكيمياء
+Home crowd	جمهور الأرض
+AI level	مستوى البوت
+Today	النهارده
+Match strength	قوة الماتش
+. A few points either way still leaves room for surprises.	. كام نقطة فرق لسه فيهم مفاجآت.
+A few points either way still leaves room for surprises.	كام نقطة فرق لسه فيهم مفاجآت.
+Inbox	البوسطة
+Less	أقل
+All {0}	الكل {0}
+Season {0} is here!	الموسم {0} وصل!
+You finished	إنت خلّصت
+Promoted!	طلعنا!
+Relegated.	نزلنا.
+Next season: players age, veterans retire, academy graduates arrive, loans end and you get prize money plus 300 coins.	الموسم الجاي: اللعيبة بتكبر، الكبار بيعتزلوا، ولاد الأكاديمية بيطلعوا، الإعارات بتخلص، وبتاخد فلوس الجوايز + 300 كوينز.
+Awards & history	الجوايز والتاريخ
+Preparing…	بنجهز…
+Start season {0}	ابدأ الموسم {0}
+The league creator starts the next season.	صاحب الدوري هو اللي يبدأ الموسم الجاي.
+LIVE NOW	لايف دلوقتي
+Next match	الماتش الجاي
+🔥 DERBY	🔥 ديربي
+MATCHDAY {0}	الجولة {0}
+● LIVE	● لايف
+Set lineup	ظبّط التشكيلة
+Match time saved	معاد الماتش اتسيف
+Matches every day at	الماتشات كل يوم الساعة
+(your time)	(بتوقيتك)
+Save	سيف
+Change time	غيّر المعاد
+The season has started!	الموسم بدأ!
+Pre-season	قبل الموسم
+Build your squad	كوّن فريقك
+At least 16 players ({0})	16 لعيب على الأقل ({0})
+At least 2 goalkeepers ({0})	2 حراس على الأقل ({0})
+You have	معاك
+. Stars, balance or depth: your call.	. نجوم ولا توازن ولا دكة طويلة: إنت حر.
+Stars, balance or depth: your call.	نجوم ولا توازن ولا دكة طويلة: إنت حر.
+Set your lineup	ظبّط تشكيلتك
+Invite friends	هات صحابك
+Send this code. Empty places become	ابعت الكود ده. الأماكن الفاضية هتبقى
+AI clubs with	أندية بوت فيها
+Schedule	المواعيد
+One match every day at	ماتش كل يوم الساعة
+(your time). Nobody can move a match earlier.	(بتوقيتك). محدش يقدر يقدّم ماتش.
+Start the season	ابدأ الموسم
+Every manager needs 16+ players and 2 keepers. The first match is the next day at the match time.	كل مدرب محتاج 16+ لعيب و2 حراس. أول ماتش تاني يوم في المعاد.
+The league creator starts the season when everyone is ready.	صاحب الدوري هيبدأ الموسم لما الكل يجهز.
+Shield	درع
+Hex	سداسي
+Round	دايرة
+Diamond	ماسة
+Star	نجمة
+Crown	تاج
+Bolt	برق
+Ball	كورة
+Wings	جناحات
+Eagle	نسر
+Loading	بيحمّل
+YOUR CLUB · YOUR FRIENDS · YOUR DERBY	ناديك · صحابك · الديربي بتاعك
+Sound settings	إعدادات الصوت
+Sound	الصوت
+🎵 Music	🎵 مزيكا
+📣 Crowd & effects	📣 الجمهور والمؤثرات
+Volume	الصوت
+Off	مقفول
+On	شغال
+Never	ولا مرة
+Online now	أونلاين دلوقتي
+Yesterday	امبارح
+managers · ranked by the board's target	مدربين · مترتبين حسب هدف الإدارة
+{0} managers · ranked by the board's target	{0} مدربين · مترتبين حسب هدف الإدارة
+Board	الإدارة
+Board target	هدف الإدارة
+Last check-in	آخر ظهور
+Manager	المدرب
+Goals	الأجوان
+Form	الفورمة
+ON TRACK	ماشي صح
+AT RISK	على الحافة
+BEHIND	متأخر
+WAITING	مستني
+· target top	· الهدف توب
+Kick-off!	الماتش بدأ!
+{0} vs {1} is live now. Watch or skip.	{0} ضد {1} لايف دلوقتي. اتفرج أو فوّت.
+DERBY · KICK-OFF	ديربي · بدأ
+CUP · KICK-OFF	الكاس · بدأ
+KICK-OFF	بدأ الماتش
+LIVE	لايف
+Your match has started. Watch it live (5 minutes, with a half-time break) and make changes, or let your assistant handle it and see the result.	ماتشك بدأ. اتفرج عليه لايف (5 دقايق، وفيه استراحة بين الشوطين) واعمل تغييرات، أو سيب المساعد يتصرف وشوف النتيجة.
+Watch live	اتفرج لايف
+Skip to result	فوّت للنتيجة
+Turn on kick-off notifications	شغّل إشعارات بداية الماتش
+Later	بعدين
+1 player · top 3.5% of the league	لعيب واحد · من أحسن 3.5% في الدوري
+3 players · strong first-teamers	3 لعيبة · أساسيين تقال
+4 players · solid squad depth	4 لعيبة · دكة محترمة
+5 players · fills squad gaps	5 لعيبة · يسدّوا الخرم
+Doctor, physio or coach · 1–5★	دكتور أو علاج طبيعي أو مدرب · 1–5★
+Pack Store	محل الباكات
+League pool:	لعيبة الدوري:
+· every player has only one owner in your league	· كل لعيب ليه صاحب واحد بس في الدوري
+every player has only one owner in your league	كل لعيب ليه صاحب واحد بس في الدوري
+Your squad	فريقك
+1000 coins at the start. Go for stars, balance or depth. You earn coins from every match too.	1000 كوينز في الأول. روح للنجوم أو التوازن أو الدكة. وبتكسب كوينز من كل ماتش كمان.
+Packs open while the transfer window is open: pre-season and the first 5 days of each round.	الباكات بتتفتح وقت ما الميركاتو مفتوح: قبل الموسم وأول 5 أيام من كل دور.
+New staff member	موظف جديد
+Tap to close	دوس عشان تقفل
+Transfer	بيع
+Loan	إعارة
+Swap	تبديل
+From abroad	من برا
+Sold abroad	اتباع برا
+Transfers	الانتقالات
+Every deal in the league	كل صفقة في الدوري
+All	الكل
+Mine	بتوعي
+Managers	المدربين
+Record:	الرقم القياسي:
+Big spender:	أكتر واحد صرف:
+No deals yet. They show up here as soon as anyone buys, sells, loans or swaps a player.	لسه مفيش صفقات. هتظهر هنا أول ما حد يشتري أو يبيع أو يسلّف أو يبدّل لعيب.
+Day {0}	يوم {0}
+Pre	قبل
+Transfer window open	الميركاتو مفتوح
+THE FIRST ROUND	الدور الأول
+THE SECOND ROUND	الدور التاني
+HAS STARTED	بدأ
+Every team plays every other team once.	كل فريق بيلعب مع كل فريق مرة.
+The return games: every fixture again, home and away swapped.	ماتشات العودة: كل ماتش تاني بس الأرض اتقلبت.
+🔓 TRANSFER WINDOW OPEN	🔓 الميركاتو مفتوح
+Open for 5 days ·	مفتوح 5 أيام ·
+It shuts on	هيقفل يوم
+. After that, no buying, selling, loans or swaps	. بعد كده مفيش بيع ولا شرا ولا إعارة ولا تبديل
+After that, no buying, selling, loans or swaps	بعد كده مفيش بيع ولا شرا ولا إعارة ولا تبديل
+Go to the market	روح السوق
+Transfer window closed	الميركاتو قفل
+🔒 TRANSFER WINDOW CLOSED	🔒 الميركاتو قفل
+The deals are done. It opens again when the second round starts{0}.	الصفقات خلصت. هيفتح تاني مع بداية الدور التاني{0}.
+The deals are done. It opens again next season.	الصفقات خلصت. هيفتح تاني الموسم الجاي.

@@ -1,0 +1,25 @@
+{0} booked	{0} خد أصفر
+{0} sent off	{0} اتطرد
+{0} injured	{0} اتصاب
+{0} Home kit	{0} طقم الأرض
+{0} Away kit	{0} طقم الأواي
+{0} Third kit	{0} الطقم التالت
+= your assistant	= المساعد بتاعك
+beat	كسبوا
+win the derby against	كسبوا الديربي قدام
+attack	بيهاجم
+{0} attack	{0} بيهاجم
+{0} attack →	{0} بيهاجم →
+← {0} attack	← {0} بيهاجم
+{0}' {1} · xG {2}	{0}' {1} · xG {2}
+cross	عرضية
+corner	كورنر
+counter	مرتدة
+long shot	شوط بعيد
+free kick	فاول
+through ball	بينية
+build-up	بناء هجمة
+high turnover	خطف عالي
+penalty	بلنتي
+header	راسية
+at	عند

@@ -733,3 +733,12 @@ button.row-item.obj.open { background: color-mix(in srgb, var(--mint) 8%, rgba(2
 .fan-reply small { font-size: 10px; color: var(--muted); font-weight: 700; }
 @media (max-width: 900px), (max-height: 520px) { .tv-wrap { grid-template-columns: minmax(0, 1fr) 190px; } .tv-l3-t { font-size: 12.5px; } .tv-l3-n { width: 92px; } .tv-l3-n b { font-size: 18px; } }
 @media (orientation: portrait) and (max-width: 640px) { .tv-wrap { grid-template-columns: minmax(0, 1fr); } }
+
+/* Arabic: right to left, Cairo for display text too (Bebas has no Arabic) */
+html.tr-wait body { visibility: hidden; }
+html.ar { --display: 'Cairo', system-ui, sans-serif; }
+html.ar .lz, html.ar .cta > span, html.ar .ghost > span { font-weight: 900; letter-spacing: 0; }
+html.ar .p2d-svg, html.ar .p2d, html.ar [data-ltr], html.ar .ticker, html.ar .mc-score { direction: ltr; }
+html.ar .ticker .run > * { direction: rtl; unicode-bidi: isolate; }
+/* decorations that hang off the left edge (the header shine) would make an RTL page scroll sideways */
+html.ar, html.ar body, html.ar .shell, html.ar .main { overflow-x: clip; }

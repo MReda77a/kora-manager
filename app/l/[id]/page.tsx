@@ -25,6 +25,7 @@ import { SocialTab, TvTab } from '../../../components/tabs/Media.tsx';
 import FriendlyTab from '../../../components/tabs/Friendly.tsx';
 import Tutorial from '../../../components/Tutorial.tsx';
 import LiveAlert from '../../../components/LiveAlert.tsx';
+import { LangButton } from '../../../components/Lang.tsx';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import WindowSplash from '../../../components/WindowSplash.tsx';
 import { crowdBed, music } from '../../../lib/sound.ts';
@@ -90,7 +91,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
             </button>
           );
         })}
-        <div style={{ marginTop: 'auto', display: 'grid', placeItems: 'center', padding: '8px 0' }}><SoundButton side /></div>
+        <div style={{ marginTop: 'auto', display: 'grid', placeItems: 'center', padding: '8px 0', gap: 6 }}><LangButton /><SoundButton side /></div>
       </nav>
       <div className="main">
         {tab === 'home' && (

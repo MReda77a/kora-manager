@@ -1,0 +1,167 @@
+Humble	متواضع
+Fiery	نار
+Witty	دمه خفيف
+How are you feeling going into {0} against {1}?	عامل إيه قبل {0} قدام {1}؟
+Big one tomorrow. What's the mood in the {0} camp?	ماتش كبير بكرة. المود عامل إيه في معسكر {0}؟
+{0} is here. Nervous?	{0} وصل. متوتر؟
+Focused. It's three points like any other, and we'll treat it that way.	مركزين. دي 3 نقط زي أي 3 نقط، وهنتعامل معاها كده.
+Calm. The players know what to do.	هادي. اللعيبة عارفين هيعملوا إيه.
+Never better. My players can't wait to get out there.	أحسن من كده مفيش. اللعيبة مش قادرين يستنوا ينزلوا.
+Nervous? We've been counting down the days.	متوتر؟ إحنا بنعد الأيام.
+This one is personal. Everybody in this club knows what it means. We are going to war.	الماتش ده شخصي. كل واحد في النادي عارف يعني إيه. إحنا رايحين حرب.
+I don't want calm tomorrow. I want blood and thunder.	مش عايز هدوء بكرة. عايز نار ودم.
+I slept like a baby. Woke up every two hours and cried.	نمت زي البيبي. صحيت كل ساعتين وعيّطت.
+Nervous? I've already chewed through three pens this morning.	متوتر؟ أنا قرقضت 3 أقلام من الصبح.
+Any message for the {0} supporters before {1}?	رسالة لجمهور {0} قبل {1}؟
+What do you want to say to your fans tonight?	عايز تقول إيه لجمهورك الليلة؟
+Thank you. Bring the noise, and we'll bring everything we have.	شكرًا. هاتوا الصوت، وإحنا هنجيب كل اللي عندنا.
+Make it hell for them. Ninety minutes, no breathing space.	خلّوها جحيم عليهم. تسعين دقيقة من غير ما ياخدوا نَفَسهم.
+I want {0} shaking. They have to feel it.	عايز {0} يترعشوا. لازم يحسوا بيها.
+Get the party ready. Tomorrow night is ours.	جهزوا الفرح. ليلة بكرة بتاعتنا.
+Stay with us whatever happens. We need you more than ever.	خليكم معانا مهما حصل. محتاجينكم أكتر من أي وقت.
+How has the week of preparation gone?	أسبوع التحضير كان عامل إزاي؟
+Talk us through your preparation for this one.	احكيلنا حضّرت للماتش ده إزاي.
+Normal week. Good sessions, no drama.	أسبوع عادي. تمارين حلوة، ومفيش دراما.
+We've watched every one of their matches this season. Twice. There are no secrets left.	اتفرجنا على كل ماتشاتهم الموسم ده. مرتين. مفيش أسرار فاضلة.
+Let's just say we've prepared something special. They'll find out at kick-off.	خلينا نقول إننا محضّرين حاجة مخصوص. هيعرفوها مع الصافرة.
+Lots of video. Lots of coffee. Not much sleep. The usual.	فيديوهات كتير. قهوة كتير. نوم قليل. العادي يعني.
+Sharpest I've seen this group all season. {0} picked the wrong week to play us.	دي أحسن حالة شفت فيها الفريق ده طول الموسم. {0} اختاروا الأسبوع الغلط عشان يلعبونا.
+You're {0}, {1} are {2}, {3} point{4} behind you. Does the table matter tomorrow?	إنتوا {0}، و{1} {2}، ورا منكم بـ{3} نقطة. الجدول فارق بكرة؟
+{0} point{1} clear of {2}. Can you stretch the gap?	سابقين {2} بـ{0} نقطة. تقدروا توسّعوا الفرق؟
+The table never matters in a game like this. Form goes out of the window.	الجدول عمره ما بيفرق في ماتش زي ده. الفورمة بتطير من الشباك.
+The table doesn't lie. We are above them for a reason.	الجدول مش بيكدب. إحنا فوقيهم لسبب.
+Stretch it? I want to bury them in the table.	أوسّعه؟ أنا عايز أدفنهم في الجدول.
+They've been looking up at us all season and they'll be looking up at us after tomorrow.	طول الموسم باصين لفوق علينا، وبعد بكرة هيفضلوا باصين لفوق.
+A few points is nothing. They can catch us with one good night.	كام نقطة دول ولا حاجة. ممكن يلحقونا بليلة حلوة واحدة.
+{0} are {1} point{2} ahead of you. Is this a chance to close the gap?	{0} سابقينكم بـ{1} نقطة. دي فرصة تقرّبوا؟
+You're {0} and they're {1}. Are they simply better than you this season?	إنتوا {0} وهما {1}. هما ببساطة أحسن منكم الموسم ده؟
+One game at a time. Win tomorrow and the gap takes care of itself.	ماتش ماتش. اكسب بكرة والفرق هيتظبط لوحده.
+Better? Ask me again after the final whistle.	أحسن؟ اسألني تاني بعد صافرة النهاية.
+The table says they're ahead. The table hasn't played us yet.	الجدول بيقول إنهم قدام. الجدول لسه ملعبناش.
+They've had it easy. Tomorrow they meet a team that's sick of hearing their name.	كانت سهلة عليهم. بكرة هيقابلوا فريق زهق من سماع اسمهم.
+They've earned their place. We have to be at our very best.	هما يستاهلوا مكانهم. لازم نبقى في أحسن حالاتنا.
+You're level on points with {0}. Who blinks first?	إنتوا متساويين في النقط مع {0}. مين هيرمش الأول؟
+Nothing between you in the table. Is tomorrow a six-pointer?	مفيش فرق بينكم في الجدول. ماتش بكرة بست نقط؟
+It's three points. Big ones, but three points.	دي 3 نقط. كبار، بس 3 نقط.
+Not us. We don't blink.	مش إحنا. إحنا مبنرمشش.
+They do. They've been looking over their shoulder at us for weeks.	هما. بقالهم أسابيع بيبصوا ورا كتفهم علينا.
+I've been practising not blinking in the mirror all week. I think I'm ready.	طول الأسبوع بتمرن مرمشش قدام المراية. أظن إني جاهز.
+You're {0}. Is {1} the night your title challenge is made or broken?	إنتوا {0}. {1} هي الليلة اللي هتحدد حلم الدوري؟
+Can a team that wants the title afford to slip up here?	ينفع فريق عايز الدوري يقع هنا؟
+Nothing is decided tomorrow. There's a long way to go.	مفيش حاجة هتتحسم بكرة. لسه المشوار طويل.
+Champions win nights like this. Simple as that.	الأبطال بيكسبوا الليالي دي. بالبساطة دي.
+Title? Let's not get carried away. We just want to win a football match.	الدوري؟ بلاش نتسرّع. إحنا عايزين نكسب ماتش كورة وبس.
+If we can't win this one, we don't deserve the trophy. I've told the players exactly that.	لو مكسبناش ده، مانستاهلش الدرع. وقلت للعيبة كده بالحرف.
+You're down in {0}. Can {1} save your season?	إنتوا تحت في المركز {0}. {1} ممكن ينقذ موسمكم؟
+It hasn't been a great season. Is this your chance to put it right?	الموسم مكانش حلو. دي فرصتكم تصلّحوه؟
+Our season is long. But yes, a win here would change the mood.	موسمنا طويل. بس آه، كسبة هنا هتغيّر المود.
+Write us off. Go on. That's exactly what I want you to do.	اكتبونا برا الحسابات. يلا. ده بالظبط اللي أنا عايزه.
+We've let our fans down. Tomorrow we have to give them something back.	خذلنا جمهورنا. بكرة لازم نرجعلهم حاجة.
+One derby win and nobody will remember the table.	كسبة ديربي واحدة ومحدش هيفتكر الجدول.
+On paper you're the stronger side. Is there a danger of complacency?	على الورق إنتوا الأقوى. في خوف من الاستهتار؟
+Everyone expects {0} to win. Is that pressure or confidence?	الكل مستني {0} يكسبوا. ده ضغط ولا ثقة؟
+Paper doesn't win matches. My players know that.	الورق مش بيكسب ماتشات. واللعيبة عارفين كده.
+We are the better team. We'll show it.	إحنا الفريق الأحسن. وهنوريهم.
+Pressure is a privilege. We're the favourites because we've earned it.	الضغط شرف. إحنا المرشحين عشان نستاهل.
+{0} are dangerous. Anyone who thinks this is easy hasn't watched them.	{0} خطيرين. اللي فاكرها سهلة ماتفرجش عليهم.
+If we lose this, I'll be the first to say it: unacceptable.	لو خسرنا ده، هكون أول واحد يقول: مش مقبول.
+{0} look stronger on paper. How do you beat them?	{0} شكلهم أقوى على الورق. هتكسبهم إزاي؟
+Most people expect you to lose tomorrow. Do they have a point?	أغلب الناس مستنيين تخسروا بكرة. عندهم حق؟
+We stay organised, we stay patient, and we take our chances.	هنفضل منظمين وصبورين، وهنستغل فرصنا.
+Let them think that. Underdogs bite.	خليهم يفكروا كده. الصغير بيعض.
+Paper? I'll give them some paper. They can write their excuses on it.	ورق؟ هديهم ورق. يكتبوا عليه أعذارهم.
+They're better than us. We need a perfect night.	هما أحسن مننا. محتاجين ليلة كاملة.
+All the pressure is on them. If they don't win, it's a disaster for them. For us it's a free hit.	الضغط كله عليهم. لو مكسبوش تبقى كارثة. إحنا مش خسرانين حاجة.
+The two squads look very even. What decides a match like this?	الفريقين شبه بعض جدًا. إيه اللي بيحسم ماتش زي ده؟
+Hard to split these two teams. Where will it be won?	صعب تفرّق بين الفريقين. الماتش هيتكسب فين؟
+Small details. A set piece, a mistake, a moment of quality.	تفاصيل صغيرة. كورة ثابتة، غلطة، لحظة إبداع.
+Hunger. And nobody is hungrier than us.	الجوع. ومحدش جعان أكتر مننا.
+Nerves. And I know which dressing room will be the quieter one tomorrow.	الأعصاب. وأنا عارف أنهي غرفة لبس هتبقى ساكتة بكرة.
+Probably {0}. Don't tell him I said that, his head is big enough.	غالبًا {0}. متقولهوش إني قلت كده، دماغه كبيرة كفاية.
+{0} {1} in a row. Are you unstoppable right now?	{1} {0} ورا بعض. محدش يقدر يوقفكم دلوقتي؟
+You're flying. Does a run like this make you favourites tomorrow?	إنتوا طايرين. المشوار ده بيخليكم المرشحين بكرة؟
+Every run ends sometime. We just make sure it isn't tomorrow.	كل مشوار بيخلص في يوم. إحنا بس هنتأكد إنه مش بكرة.
+Unstoppable? Ask the last few teams who tried.	محدش يوقفنا؟ اسأل آخر كام فريق حاولوا.
+Form counts for nothing in a game like this. We start from zero.	الفورمة مش بتفرق في ماتش زي ده. هنبدأ من الصفر.
+I'm not changing my socks until we lose. My wife is praying they beat us.	مش هغيّر الشراب لحد ما نخسر. مراتي بتدعي إنهم يكسبونا.
+{0} defeats in a row. Is this the worst possible time to face {1}?	{0} خساير ورا بعض. ده أوحش وقت تقابلوا فيه {1}؟
+Results haven't been good. Is the dressing room still with you?	النتايج مش حلوة. غرفة اللبس لسه معاك؟
+We've been unlucky, not bad. That changes tomorrow.	كنا مش محظوظين، مش وحشين. ده هيتغير بكرة.
+Worst time? It's the best time. My players are angry, and angry is good.	أوحش وقت؟ ده أحسن وقت. اللعيبة متعصبين، والعصبية حلوة.
+We've not been good enough. I take the blame, all of it.	مكناش كويسين كفاية. الغلط عليا، كله.
+{0} will think we're there for the taking. Let them.	{0} هيفتكرونا لقمة سهلة. سيبهم.
+{0} have won {1} in a row. How do you stop them?	{0} كسبوا {1} ورا بعض. هتوقفهم إزاي؟
+They're in great form. Does that worry you?	هما في فورمة عالية. ده مقلقك؟
+Good teams have good runs. We've prepared for the best version of them.	الفرق الحلوة بيبقالها مشاوير حلوة. إحنا محضرين لأحسن نسخة منهم.
+Every run needs someone to end it. Why not us?	كل مشوار محتاج حد يوقفه. ليه مش إحنا؟
+Good runs make teams comfortable. Comfortable teams get caught.	المشاوير الحلوة بتريّح الفرق. والفرق المرتاحة بتتمسك.
+They've been beating teams that weren't us.	كانوا بيكسبوا فرق مش إحنا.
+{0} have lost their last {1}. Is this the perfect time to play them?	{0} خسروا آخر {1}. ده أحسن وقت تلعبوهم؟
+They're struggling. Are you expecting an easy night?	هما في أزمة. مستني ليلة سهلة؟
+There's no such thing as an easy derby. A wounded team is a dangerous team.	مفيش حاجة اسمها ديربي سهل. الفريق المجروح فريق خطير.
+We'll put them out of their misery.	هنريّحهم من عذابهم.
+I feel for {0}. It's lonely when the results don't come. Tomorrow won't help.	صعبانين عليا {0}. الدنيا بتبقى وحشة لما النتايج متجيش. وبكرة مش هيساعد.
+Form means nothing tomorrow. They'll raise their game.	الفورمة مش هتفرق بكرة. هيعلّوا مستواهم.
+You won the last meeting {0}. Do you have their number?	كسبتوا آخر مقابلة {0}. إنتوا حافظينهم؟
+Last time out you beat them {0}. Same again?	آخر مرة كسبتوهم {0}. نفس الكلام؟
+That game is history. They'll have learned from it.	الماتش ده بقى تاريخ. أكيد اتعلموا منه.
+We know how to beat them. We've done it before and we'll do it again.	إحنا عارفين نكسبهم إزاي. عملناها قبل كده وهنعملها تاني.
+I've got that match on DVD. I watch it before bed.	الماتش ده عندي متسيف. بتفرج عليه قبل ما أنام.
+They've been thinking about that night ever since. Good. Let them think.	من ساعتها وهما بيفكروا في الليلة دي. حلو. خليهم يفكروا.
+They beat you {0} last time. Is this about revenge?	كسبوكم {0} آخر مرة. الموضوع انتقام؟
+How much has that last defeat against {0} hurt?	الخسارة الأخيرة من {0} وجعتكم قد إيه؟
+Revenge is for films. We want three points.	الانتقام ده في الأفلام. إحنا عايزين 3 نقط.
+It's still burning. Every player in that dressing room remembers it.	لسه بتحرق. كل لعيب في غرفة اللبس فاكرها.
+They were better than us that day. Fair play to them.	كانوا أحسن مننا اليوم ده. تحية ليهم.
+That was a different team. We've grown up since then.	ده كان فريق تاني. كبرنا من ساعتها.
+It finished {0} last time. Who's going to find the winner tomorrow?	آخر مرة خلصت {0}. مين هيجيب جون الفوز بكرة؟
+Whoever makes fewer mistakes.	اللي يغلط أقل.
+{0}. Put your money on it.	{0}. راهن عليه.
+Draws are like kissing your sister. I'm not doing that twice.	التعادل زي الأكل من غير ملح. مش هكررها مرتين.
+They were happy with a draw last time. That tells you everything about their ambition.	كانوا مبسوطين بالتعادل آخر مرة. ده بيقولك كل حاجة عن طموحهم.
+This is the first time you've faced {0}. What do you know about them?	دي أول مرة تقابلوا {0}. تعرف عنهم إيه؟
+Enough. We've done our homework.	كفاية. ذاكرنا كويس.
+More than they know about us. That's a promise.	أكتر من اللي يعرفوه عننا. وعد.
+They wear shirts, they kick a ball. I'll know more at half-time.	لابسين تيشيرتات وبيشوطوا كورة. هعرف أكتر بين الشوطين.
+I know they've never played anyone like us.	اللي أعرفه إنهم عمرهم ما لعبوا مع حد زينا.
+How do you stop {0}?	هتوقف {0} إزاي؟
+{0} is their key man. Does he worry you?	{0} هو مفتاحهم. مقلقك؟
+Is {0} the best player in this match?	{0} أحسن لعيب في الماتش ده؟
+As a team. One player can't stop him, eleven can.	كفريق. لعيب واحد ميقدرش يوقفه، 11 يقدروا.
+He hasn't met our back line yet.	لسه مقابلش دفاعنا.
+He's good. {0} is better.	هو كويس. {0} أحسن.
+He's a good player. A bit over-hyped, if I'm honest. Let's see how he likes being kicked for ninety minutes.	لعيب كويس. واخد أكبر من حجمه شوية بصراحة. نشوف هيعجبه يتضرب تسعين دقيقة.
+He's world class. We'll need our best defensive performance of the season.	ده لعيب عالمي. محتاجين أحسن أداء دفاعي في الموسم.
+{0} is your best player. How important is he tomorrow?	{0} أحسن لعيب عندك. مهم قد إيه بكرة؟
+Is {0} ready for a night like this?	{0} جاهز لليلة زي دي؟
+Important, like everyone. We don't rely on one man.	مهم زي الكل. إحنا مش معتمدين على راجل واحد.
+He's the best player in this league and tomorrow he proves it.	ده أحسن لعيب في الدوري وبكرة هيثبت ده.
+I've told him if he scores he can pick the music on the bus for a month.	قلتله لو جاب جون يختار الأغاني في الأتوبيس لمدة شهر.
+I'd rather not put pressure on him. Let him play.	مش عايز أضغط عليه. سيبوه يلعب.
+{0} has {1} goals this season. Can he decide {2}?	{0} جاب {1} أجوان الموسم ده. يقدر يحسم {2}؟
+Will {0} score tomorrow?	{0} هيجيب جون بكرة؟
+If the chances come, he usually takes them.	لو الفرص جت، غالبًا بيستغلها.
+I'd bet my house on it.	أراهن بشقتي.
+He'll score. He'll celebrate in front of their fans. I'll pretend to be angry about it.	هيجيب جون. وهيحتفل قدام جمهورهم. وأنا هعمل نفسي زعلان.
+Goals come from the whole team. I won't single him out.	الأجوان بتيجي من الفريق كله. مش هخصّه بالكلام.
+{0} has struggled lately. Does he keep his place?	{0} مش في أحسن حالاته الفترة دي. هيفضل أساسي؟
+Fans are questioning {0}. What do you say to them?	الجمهور بيشكك في {0}. تقولهم إيه؟
+He's a good player having a quiet spell. It happens.	لعيب كويس في فترة هادية. بتحصل.
+I trust him completely. Watch him tomorrow.	واثق فيه تمامًا. اتفرجوا عليه بكرة.
+He knows it isn't good enough. He has one night to show me he cares.	هو عارف إن ده مش كفاية. قدامه ليلة واحدة يوريني إنه فارق معاه.
+That's my fault. I've played him out of his best role.	ده غلطي. لعّبته في غير دوره.
+What does {0} mean to this team on a night like this?	{0} يعني إيه للفريق في ليلة زي دي؟
+Your captain, {0}. What will you say to him before kick-off?	الكابتن بتاعك، {0}. هتقوله إيه قبل الماتش؟
+He's the voice in the dressing room. He keeps everybody's heads cool.	ده الصوت في غرفة اللبس. بيهدّي دماغ الكل.
+I'll tell him to lead from the front and make them feel every tackle.	هقوله يقود من قدام ويخليهم يحسوا بكل التحام.
+I don't need to say anything. He was born for these games.	مش محتاج أقول حاجة. ده اتولد للماتشات دي.
+"Don't get booked in the first minute." Same speech every week.	"متاخدش كارت في أول دقيقة." نفس الخطبة كل أسبوع.
+{0} misses out. How big a blow is that?	{0} غايب. الضربة دي كبيرة قد إيه؟
+A big player, but the next man is ready.	لعيب كبير، بس اللي بعده جاهز.
+We'll win it for him.	هنكسبها عشانه.
+Huge. You don't replace a player like that overnight.	كبيرة جدًا. لعيب زي ده مبيتعوضش في يوم وليلة.
+Who says he misses out? You'll see the team sheet when {0} do.	مين قال إنه غايب؟ هتشوفوا التشكيلة لما {0} يشوفوها.
+Your keeper {0} could be busy tomorrow. Is he ready?	الحارس بتاعك {0} ممكن يتعب بكرة. جاهز؟
+He's been excellent in training. No concerns.	كان ممتاز في التمرين. مفيش قلق.
+They'll need a rocket to beat him.	محتاجين صاروخ عشان يعدّوه.
+He's been diving at shadows all week. He's ready.	طول الأسبوع بيرمي نفسه على الضل. جاهز.

@@ -1,0 +1,141 @@
+{0} is in charge, one of the strictest referees around. Will you tell your players to calm down?	{0} هو الحكم، ومن أشد الحكام. هتقول للعيبة يهدوا؟
+{0} hands out a lot of cards. Does that change your approach?	{0} بيطلّع كروت كتير. ده هيغيّر طريقتك؟
+We'll respect the referee and keep eleven men on the pitch.	هنحترم الحكم ونفضل 11 في الملعب.
+I hope he's strict with both teams. Last time he wasn't.	أتمنى يبقى شديد مع الفريقين. آخر مرة مكانش.
+I'm more worried about {0}. Their players love a dive.	أنا قلقان أكتر من {0}. لعيبتهم بيحبوا يرموا نفسهم.
+I've asked him to save some yellow cards for the other games this weekend.	طلبت منه يسيب شوية كروت صفرا لماتشات تانية الويك إند ده.
+{0} is the referee. Any thoughts?	{0} هو الحكم. رأيك؟
+What do you expect from {0} tomorrow?	مستني إيه من {0} بكرة؟
+A good referee. I'm sure he'll have a good game.	حكم كويس. أكيد هيعمل ماتش حلو.
+I want a fair game. That would make a change against {0}.	عايز ماتش عادل. وده هيبقى جديد قدام {0}.
+I've sent him a fruit basket. Completely unrelated.	بعتّله سلة فاكهة. ملهاش علاقة خالص.
+He'll have the cameras on him. I just hope he's brave enough to give us what we deserve.	الكاميرات هتبقى عليه. بس أتمنى يبقى جدع ويدّينا حقنا.
+You're at home. How much will the crowd at {0} matter?	إنتوا على أرضكم. جمهور {0} هيفرق قد إيه؟
+It'll be a full house at {0}. Is that worth a goal?	{0} هيبقى كامل العدد. ده يساوي جون؟
+Our fans are always a lift. We have to give them something to shout about.	جمهورنا دايمًا بيشيلنا. لازم نديهم حاجة يهتفوا عشانها.
+I want them on their feet from the warm-up. Make {0} wish they'd stayed at home.	عايزهم واقفين من التسخين. خلّوا {0} يتمنوا لو قعدوا في البيت.
+Worth two. Nobody comes to our place and wins on derby day.	يساوي اتنين. محدش بييجي عندنا ويكسب يوم الديربي.
+I've asked the groundsman to leave the grass extra long on their side.	قلت للجنايني يسيب النجيلة طويلة في ناحيتهم.
+You're away tomorrow. Their fans will be loud. Can your players handle it?	إنتوا برا بكرة. جمهورهم هيبقى عالي. لعيبتك هيستحملوا؟
+{0} will be a hostile place. How do you silence it?	{0} هيبقى مكان عدائي. هتسكّته إزاي؟
+We focus on ourselves. Noise is just noise.	هنركز في نفسنا. الدوشة مجرد دوشة.
+We'll make it so quiet you can hear the players breathing.	هنخليه ساكت لدرجة إنك تسمع نَفَس اللعيبة.
+My players love playing away. Fifty thousand people telling you you're rubbish? That's motivation.	لعيبتي بيحبوا اللعب برا. خمسين ألف بيقولولك إنك وحش؟ ده حافز.
+Their fans get nervous quickly. Score first and the crowd turns on them.	جمهورهم بيتوتر بسرعة. جيب الجون الأول والجمهور هيقلب عليهم.
+What do you make of {0} as a manager?	رأيك في {0} كمدرب؟
+Is {0} a friend or a rival?	{0} صاحبك ولا منافسك؟
+I respect him. We'll shake hands before and after.	بحترمه. هنسلم على بعض قبل وبعد.
+A friend for 364 days a year. Tomorrow isn't one of them.	صاحبي 364 يوم في السنة. وبكرة مش منهم.
+He's done well with what he has. I'd be nervous in his shoes.	عمل شغل حلو باللي عنده. لو مكانه كنت هتوتر.
+He talks a lot. Tomorrow we'll see if he can coach as well as he talks.	بيتكلم كتير. بكرة هنشوف بيدرب زي ما بيتكلم ولا لأ.
+Give us a prediction.	توقّعك؟
+Score prediction for tomorrow?	توقّعك لنتيجة بكرة؟
+A win. The score doesn't matter.	كسبة. النتيجة مش مهمة.
+3-0. And I'm being kind.	3-0. وأنا كده بجامل.
+Comfortable win. Write it down.	كسبة مريحة. اكتبها عندك.
+I'd take a 1-0 right now and run.	1-0 دلوقتي وأجري.
+{0} 5, {1} 4. Nobody defends. Everybody goes home happy except the coaches.	{0} 5، {1} 4. محدش بيدافع. الكل يروّح مبسوط إلا المدربين.
+Is there any player at {0} you'd like in your team?	في لعيب في {0} نفسك فيه؟
+If you could take one {0} player, who would it be?	لو تاخد لعيب واحد من {0}، مين؟
+I'm happy with my squad.	أنا مبسوط بفريقي.
+Their kit man. Their shirts always look better ironed.	بتاع المهمات بتاعهم. تيشيرتاتهم دايمًا مكوية أحسن.
+{0}. Between you and me, I hear he isn't happy there.	{0}. بيني وبينك، سمعت إنه مش مبسوط هناك.
+None of them would get in my team.	ولا واحد فيهم يدخل تشكيلتي.
+There are reports the board is losing patience. Is your job on the line tomorrow?	في كلام إن الإدارة صبرها خلص. شغلانتك على المحك بكرة؟
+Lose {0} and are you out of a job?	لو خسرت {0} هتمشي؟
+I don't think about my job. I think about the next match.	مش بفكر في شغلانتي. بفكر في الماتش الجاي.
+If they want to sack me, they know where my office is. Tomorrow I'm busy winning a derby.	لو عايزين يمشّوني، عارفين مكتبي فين. بكرة أنا مشغول بكسب ديربي.
+The board has every right to expect more. I'll give them more.	الإدارة من حقها تستنى أكتر. وأنا هديهم أكتر.
+I've already packed a bag. It's got my lucky scarf in it.	أنا محضّر الشنطة خلاص. وفيها الكوفية بتاعة الحظ.
+Who is under more pressure tomorrow, you or {0}?	مين تحت ضغط أكتر بكرة، إنت ولا {0}؟
+What happens if you lose {0}?	إيه اللي هيحصل لو خسرت {0}؟
+Both teams. That's what makes it special.	الفريقين. وده اللي بيخليه مميز.
+Them, no question. They're the ones with something to lose.	هما، من غير كلام. هما اللي عندهم حاجة يخسروها.
+Losing isn't something we've talked about.	الخسارة مش حاجة اتكلمنا فيها.
+Us. {0}	إحنا. {0}
+Everyone expects us to win.	الكل مستنينا نكسب.
+We have to show we belong at this level.	لازم نثبت إننا من المستوى ده.
+The forecast says {0}. Does that help one team more?	الأرصاد بتقول {0}. ده هيفيد فريق أكتر من التاني؟
+Same for both teams. We'll adapt.	نفس الحاجة للفريقين. هنتأقلم.
+We train in worse than this. {0} won't enjoy it.	إحنا بنتمرن في أوحش من كده. {0} مش هيستمتعوا.
+I've ordered extra-long studs and a very big umbrella for the dugout.	طلبت جزم بمسامير طويلة وشمسية كبيرة للدكة.
+What would winning the cup mean to {0}?	الكاس يعني إيه لـ{0}؟
+One game from a trophy. How do you keep the players calm?	ماتش واحد وتاخد بطولة. هتهدّي اللعيبة إزاي؟
+Everything. But we can't play the occasion. We play the game.	كل حاجة. بس مش هنلعب المناسبة. هنلعب الماتش.
+I don't want calm. I want them desperate. Finals are won by the hungrier team.	مش عايز هدوء. عايزهم هيموتوا عليها. النهائيات بيكسبها الأجوع.
+Clear a space in the trophy cabinet. We're bringing it home.	فضّوا مكان في الدولاب. إحنا جايبينه.
+Reaching the final is already a dream. Tomorrow is a bonus.	الوصول للنهائي حلم أصلًا. بكرة بونص.
+{0} said yesterday: "{1}" Your reply?	{0} قال امبارح: "{1}" ردك؟
+Have you seen what {0} said? "{1}"	شفت {0} قال إيه؟ "{1}"
+He can say what he likes. We do our talking on the pitch.	يقول اللي هو عايزه. إحنا بنتكلم في الملعب.
+Big words. I'll remind him of them at the final whistle.	كلام كبير. هفكّره بيه مع صافرة النهاية.
+Print that and stick it on our dressing-room wall. Thank you, {0}.	اطبعوا الكلام ده وعلّقوه في غرفة اللبس. شكرًا يا {0}.
+Did he say that? Bless him. Someone get the man a glass of water.	هو قال كده؟ يا حبيبي. حد يجيبله كوباية مية.
+When a manager talks that much before a game, he's trying to convince himself.	لما مدرب يتكلم كده قبل ماتش، يبقى بيحاول يقنع نفسه.
+Any superstitions before a big game?	عندك أي تفاؤل أو تشاؤم قبل الماتشات الكبيرة؟
+Same routine as always. Coffee, team talk, game.	نفس الروتين. قهوة، كلمتين للفريق، ماتش.
+I wear the same tie I wore when we last beat {0}. It's starting to smell.	بلبس نفس الكرافتة اللي كنت لابسها آخر مرة كسبنا {0}. بدأت ريحتها تطلع.
+I don't need luck. They're the ones who'll need it.	مش محتاج حظ. هما اللي هيحتاجوه.
+Can we expect a surprise from you tactically?	نستنى منك مفاجأة تكتيكية؟
+Will you change your system for {0}?	هتغيّر طريقتك عشان {0}؟
+We'll play our way. It's worked so far.	هنلعب بطريقتنا. ونافعة لحد دلوقتي.
+Maybe. Maybe not. {0} will have to guess.	يمكن. ويمكن لأ. {0} يخمّنوا بقى.
+No secrets. We'll attack them and they know it. Let's see them stop it.	مفيش أسرار. هنهاجمهم وهما عارفين. نشوفهم هيوقفوها إزاي.
+I'm thinking of playing nine at the back and our goalkeeper up front.	بفكر ألعب بتسعة ورا والحارس مهاجم.
+What makes this rivalry with {0} so special?	إيه اللي بيخلي المنافسة مع {0} مميزة كده؟
+Two great clubs, two sets of passionate fans. It's why we do this job.	ناديين كبار، وجمهورين مجانين. عشان كده بنشتغل الشغلانة دي.
+This city has one team. Tomorrow we remind everybody which one.	البلد دي فيها فريق واحد. وبكرة هنفكّر الكل مين.
+The fans hate each other, the players swap shirts, and the managers lose sleep. Perfect.	الجمهور بيكره بعض، واللعيبة بيبدلوا التيشيرتات، والمدربين مش بيناموا. حلو أوي.
+It's bigger than any player or manager. We're just looking after it for a while.	ده أكبر من أي لعيب أو مدرب. إحنا بس شايلينه شوية.
+Polite nods around the room.	هزّات راس مؤدبة في القاعة.
+A few pens scribble. Nothing for the front page.	كام قلم بيكتب. مفيش حاجة للصفحة الأولى.
+Measured. The press officer looks relieved.	كلام موزون. المسؤول الإعلامي ارتاح.
+The room goes quiet. Respectful.	القاعة سكتت. احترام.
+A journalist raises an eyebrow. Is he lowering expectations?	صحفي رفع حاجبه. هو بيقلل التوقعات؟
+Honest words. The fans will appreciate that.	كلام صريح. الجمهور هيقدّره.
+Murmurs in the room. That will be quoted.	وشوشة في القاعة. الكلام ده هيتنقل.
+Cameras flash. Big words.	الفلاشات اشتغلت. كلام كبير.
+A journalist whistles. Confident.	صحفي صفّر. واثق.
+The room ERUPTS. Every camera fires at once.	القاعة ولّعت. كل الكاميرات ضربت مرة واحدة.
+Gasps. That one will be on the back pages.	شهقة. دي هتبقى في الصفحة الأخيرة.
+The press officer puts his head in his hands.	المسؤول الإعلامي حط إيده على راسه.
+Laughter fills the room.	الضحك ملا القاعة.
+Even the cameramen are laughing.	حتى المصورين بيضحكوا.
+A ripple of laughter. Headline material.	ضحكة في القاعة. مانشيت جاهز.
+Whispers around the room. Was that a dig?	وشوشة في القاعة. دي كانت تلقيح؟
+Knowing looks. The other dressing room will read this.	بصات فاهمة. غرفة اللبس التانية هتقرا ده.
+Sly. Very sly.	خبيث. خبيث جدًا.
+Team fired up	الفريق متولع
+Team lifted	الفريق معنوياته عالية
+Team deflated	الفريق محبط
+Rival fired up	الخصم متولع
+Rival stung	الخصم اتلسع
+Rival rattled	الخصم اتهز
+Seeds of doubt	زرع الشك
+Referee watching you	الحكم مركز معاك
+Referee on side	الحكم معاك
+Fans roused	الجمهور متحمس
+Big promise	وعد كبير
+Expectations lowered	التوقعات نزلت
+Fans love it	الجمهور حبها
+Your players are fired up (+{0})	لعيبتك متولعين (+{0})
+Your players are lifted (+{0})	لعيبتك معنوياتهم عالية (+{0})
+Your players are a bit flat ({0})	لعيبتك فاترين شوية ({0})
+You fired up the rival (+{0} for them)	ولّعت الخصم (+{0} ليهم)
+You got into their heads ({0} for them)	دخلت في دماغهم ({0} ليهم)
+The referee will watch you closely (cards ×{0})	الحكم هيركز معاك (الكروت ×{0})
+The referee liked your respect (cards ×{0})	الحكم عجبه احترامك (الكروت ×{0})
+The fans will be louder (+{0})	الجمهور هيبقى أعلى (+{0})
+You raised the stakes: a win will mean more, a defeat will hurt more	علّيت الرهان: الكسب هيفرق أكتر، والخسارة هتوجع أكتر
+You lowered expectations: a defeat will hurt less	قلّلت التوقعات: الخسارة هتوجع أقل
++{0} fans loved your words	+{0} من الجمهور حبوا كلامك
+There is no press conference now.	مفيش مؤتمر صحفي دلوقتي.
+Open the press conference first.	افتح المؤتمر الصحفي الأول.
+Answer the questions in order.	جاوب الأسئلة بالترتيب.
+{0}: +{1} form for the match	{0}: +{1} فورمة للماتش
+"{0}!" {1} boss goes to war	"{0}!" مدرب {1} رايح حرب
+{0} boss: "{1}"	مدرب {0}: "{1}"
+Mind games begin: {0} boss takes aim at {1}	الحرب النفسية بدأت: مدرب {0} بيصوّب على {1}
+🎙️ {0} ({1}) before {2}: "{3}"	🎙️ {0} ({1}) قبل {2}: "{3}"
+🎙️ {0} manager spoke about you	🎙️ مدرب {0} اتكلم عنك
+"{0}" Answer him in your own press conference.	"{0}" رد عليه في المؤتمر بتاعك.

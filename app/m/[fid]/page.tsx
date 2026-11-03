@@ -867,7 +867,7 @@ function ShotMap({ d }: { d: any }) {
           return <circle key={i} cx={s.x} cy={2 + s.y * 0.6} r={r} fill={s.goal ? col(s.side) : 'none'} stroke={s.goal ? '#fff' : col(s.side)} strokeWidth={s.goal ? 0.5 : 0.7} opacity={s.goal ? 1 : 0.85}><title>{`${s.m}' ${s.kind} · xG ${s.xg}${s.goal ? ' · GOAL' : ''}`}</title></circle>;
         })}
       </svg>
-      <div className="row tiny between" style={{ fontWeight: 800 }}><span>← {d.away.short} attack</span><span>{d.home.short} attack →</span></div>
+      <div className="row tiny between" data-ltr style={{ fontWeight: 800 }}><span>← {d.away.short} attack</span><span>{d.home.short} attack →</span></div>
     </section>
   );
 }

@@ -1,0 +1,261 @@
+League Table	جدول الدوري
+{0} · Season {1}{2}	{0} · الموسم {1}{2}
+Season {0}	الموسم {0}
+Division	الدرجة
+{0} Division	الدرجة {0}
+Pts	ن
+Enter	ادخل
+See {0}'s squad	شوف فريق {0}
+Tap a club to see its squad.	دوس على أي نادي تشوف فريقه.
+Top	فوق
+Bottom	تحت
+Fixtures	الماتشات
+My matches	ماتشاتي
+By day	باليوم
+Day {0} · Cup	يوم {0} · الكاس
+Matchday {0}	الجولة {0}
+Fixtures appear when the season starts.	الماتشات هتظهر لما الموسم يبدأ.
+DERBY	ديربي
+Report ›	التقرير ›
+Watch ›	اتفرج ›
+Golden Boot race	سباق الحذاء الدهبي
+Playmaker race	سباق صانع الألعاب
+Golden Glove race	سباق القفاز الدهبي
+Best performer	أحسن أداء
+Stats Leaders	متصدرين الإحصائيات
+After {0} rounds	بعد {0} جولات
+Clean sheets	شباك نضيفة
+Ratings	التقييمات
+No data yet. Play some matches.	لسه مفيش داتا. العب كام ماتش.
+YOURS	بتاعك
+Nobody yet	لسه محدش
+How awards affect players	الجوايز بتأثر في اللعيبة إزاي
++2 rating for the next 2 days.	+2 تقييم لمدة يومين.
+Winner +3 for 4 days. Nominees who lose sulk: −2 for 2 days.	الكسبان +3 لمدة 4 أيام. المرشحين اللي خسروا بيقمصوا: −2 لمدة يومين.
+Wing play	لعب على الأطراف
+Lineup saved for the next match	التشكيلة اتسيفت للماتش الجاي
+Tap another player to swap, or a bench player to bring him on	دوس على لعيب تاني تبدّلهم، أو على حد من الدكة تنزّله
+Now tap the player on the pitch to replace	دلوقتي دوس على اللعيب اللي في الملعب اللي هيطلع
+Tap a player to move or replace him	دوس على لعيب تحركه أو تغيّره
+, out of position ({0}), minus {1}	، في غير مركزه ({0})، ناقص {1}
+out of position ({0}), minus {1}	في غير مركزه ({0})، ناقص {1}
+Empty {0}	{0} فاضي
+Captain	الكابتن
+Bench	الدكة
+Susp.	موقوف
+Injured	مصاب
+. Red = out of position (−8, or −30 in or out of goal).	. الأحمر = في غير مركزه (−8، أو −30 لو جوه أو برا الجون).
+Red = out of position (−8, or −30 in or out of goal).	الأحمر = في غير مركزه (−8، أو −30 لو جوه أو برا الجون).
+Lineup	التشكيلة
+Style	الأسلوب
+Roles	الأدوار
+More	كمان
+Strength	القوة
+Formation	الرسم
+Previous formation	الرسم اللي قبله
+Next formation	الرسم اللي بعده
+Best player for every position is in	أحسن لعيب في كل مركز نزل
+⚡ Best players	⚡ أحسن لعيبة
+Captain ©	كابتن ©
+Vice	نايب
+Vice-captain	نايب الكابتن
+Auto	أوتوماتيك
+Your captain is not in the line-up. He will not like it.	الكابتن مش في التشكيلة. مش هيعجبه الكلام ده.
+★ Leadership. With the armband he keeps heads cool (fewer cards) and drives the team on when it is losing.	★ قيادة. بالشارة بيهدّي الدنيا (كروت أقل) وبيشد الفريق لما يبقى خسران.
+Defence	الدفاع
+Midfield	الوسط
+Attack	الهجوم
+Players who play together (league, cup or friendly) understand each other better. New signings start as strangers.	اللعيبة اللي بتلعب مع بعض (دوري أو كاس أو ودي) بيفهموا بعض أكتر. الصفقات الجديدة بتبدأ غُرب.
+Save lineup	سيّف التشكيلة
+Saved	اتسيفت
+Sub tired players	غيّر التعبانين
+Fitness low after 60'	لياقة واطية بعد 60'
+Protect booked players	احمي اللي واخد كارت
+Sub a booked defender	غيّر المدافع اللي واخد كارت
+Shut it down when winning	اقفل الماتش وإنت كسبان
+Go defensive after 75'	ارجع للدفاع بعد 75'
+Go for it when losing	هاجم وإنت خسران
+Add a striker after 60'	زوّد مهاجم بعد 60'
+Replace injured players	غيّر المصابين
+Like for like from the bench	نفس المركز من الدكة
+Squad fit	مناسبة للتيم
+In possession	بالكورة
+Out of possession	من غير الكورة
+Set pieces	الكور الثابتة
+Penalties	البلنتيات
+Assistant	المساعد
+Tactics	الخطة
+Plans B and C are ready-made switches for the live match: one tap changes shape and style. Start from Plan A and change what you need, for example a 5-3-2 to protect a lead or a 4-2-4 when you must score.	خطة B وC جاهزين تقلب عليهم في الماتش اللايف: دوسة واحدة تغيّر الرسم والأسلوب. ابدأ من خطة A وغيّر اللي محتاجه، زي 5-3-2 تحافظ بيها على تقدم أو 4-2-4 لما لازم تجيب جون.
+from Plan A	من خطة A
+Custom	مخصوص
+Tactics saved for the next match	الخطة اتسيفت للماتش الجاي
+High	عالي
+Medium	متوسط
+Low	واطي
+Small	صغير
+Large	كبير
+Suits squad	لايقة على التيم
+· Familiarity	· التعوّد
+How well this plan suits your players	الخطة دي لايقة على لعيبتك قد إيه
+Familiarity grows each match you play this shape	التعوّد بيزيد كل ماتش تلعبه بالرسم ده
+Familiarity	التعوّد
+DEF LINE	خط الدفاع
+Switch to Plan	حوّل لخطة
+How well this plan suits your line-up	الخطة دي لايقة على تشكيلتك قد إيه
+Fit	المناسبة
+Tempo	الريتم
+Slow	بطيء
+Normal	عادي
+Fast	سريع
+Width	العرض
+Narrow	ضيق
+Balanced	متوازن
+Wide	واسع
+Build-up	البناء
+Play out	من ورا
+Mixed	مكس
+Direct	مباشر
+Final third	التلت الأخير
+Cross	عرضيات
+Through	بينيات
+Work in	دخّلها
+Shoot	شوط
+Mentality	العقلية
+Defensive	دفاعي
+Attacking	هجومي
+Pressing	الضغط
+Mid	نص
+Gegen	جيجن
+Def. line	خط الدفاع
+Deep	ورا خالص
+Offside trap	مصيدة التسلل
+🚩 On	🚩 شغالة
+The trap needs a mid or high line.	المصيدة محتاجة خط دفاع نص أو عالي.
+Your defenders step up together to catch runners offside. It works if they read the game well, know each other and have fresh legs; if one is late, their striker is clean through.	المدافعين بيطلعوا مع بعض يوقعوا المهاجم في التسلل. بتنفع لو قاريين الماتش وفاهمين بعض ورجليهم فريش؛ لو واحد اتأخر، مهاجمهم هيبقى لوحده.
+A high press wins the ball near goal but drains legs. A high line squeezes the pitch but fast strikers run in behind. A deep block stops through balls but invites crosses and long shots.	الضغط العالي بيخطف الكورة قريب من الجون بس بيهلك الرجلين. الخط العالي بيضيّق الملعب بس المهاجمين السريعين بيجروا ورا. الدفاع المتأخر بيقفل البينيات بس بيفتح العرضيات والشوطات البعيدة.
+Every part of a plan needs something from your players. A plan that suits them is carried out better; one that doesn't is carried out worse, even if it is the right idea against this opponent.	كل حتة في الخطة محتاجة حاجة من لعيبتك. الخطة اللي لايقة عليهم بتتنفذ أحسن؛ واللي مش لايقة بتتنفذ أوحش، حتى لو هي الفكرة الصح قدام الخصم ده.
+Weak spot	نقطة الضعف
+Best plans for this line-up:	أحسن خطط للتشكيلة دي:
+Each role changes how the player moves on the pitch and what he does in the match, with a cost. The number shows how well he suits it.	كل دور بيغيّر حركة اللعيب في الملعب وبيعمل إيه في الماتش، وليه تمن. الرقم بيقولك هو لايق عليه قد إيه.
+⚡ Best roles	⚡ أحسن أدوار
+Role for {0}	دور {0}
+Corners	الكورنرات
+Best crosser (auto)	أحسن واحد بيعرّض (أوتو)
+· Crossing	· العرضيات
+Free kicks	الفاولات
+Best shooter (auto)	أحسن شوّاط (أوتو)
+· Long shots	· الشوط البعيد
+Routine	الطريقة
+Near post suits quick movers, far post suits tall headers, short corners keep the ball and suit good passers.	القايم القريب للسريعين، البعيد للطوال اللي بيلعبوا راس، والكورنر القصير بيحافظ على الكورة وللي باسه حلو.
+PENALTY TAKERS · TAP IN ORDER	مسددين البلنتي · دوس بالترتيب
+If you skip, your assistant will…	لو فوّت، المساعد هيعمل…
+Stamina drain:	استهلاك اللياقة:
+Space behind:	المساحة ورا:
+Card risk:	خطر الكروت:
+SCOUT	الكشاف
+Full analyst report →	تقرير المحلل كامل ←
+Save tactic	سيّف الخطة
+Loading the scout report…	بنحمّل تقرير الكشاف…
+No match coming up.	مفيش ماتش جاي.
+You have played {0} {1} times in a row: {2} will be ready for it. Surprise them.	لعبت {0} {1} مرات ورا بعض: {2} هيبقوا مستعدين. فاجئهم.
+AI managers study your last plans (last time: {0}) and pick one that beats it.	مدربين البوت بيذاكروا خططك الأخيرة (آخر مرة: {0}) وبيختاروا اللي تكسرها.
+Their strikers have pace {0}: a high line leaves space for through balls.	مهاجمينهم سرعتهم {0}: الخط العالي هيسيب مساحة للبينيات.
+Their defenders are slow (pace {0}): through balls can hurt them.	مدافعينهم بطيئين (سرعة {0}): البينيات ممكن تموّتهم.
+Weak in the air at the back ({0}): try crosses.	ضعاف في الكور الهوائية ورا ({0}): جرّب عرضيات.
+Their keeper is shaky ({0}): shoot on sight.	الحارس بتاعهم مهزوز ({0}): شوّط من أي حتة.
+{0}: team strength {1}. No obvious weakness.	{0}: قوة الفريق {1}. مفيش ضعف واضح.
+Reflexes	رد الفعل
+Handling	مسك الكورة
+OneOnOne	انفراد
+Distribution	التوزيع
+Positioning	التمركز
+Composure	الهدوء
+Marking	الرقابة
+Heading	الراس
+Vision	الرؤية
+Dribbling	المراوغة
+LongShots	الشوط البعيد
+Crossing	العرضيات
+Delighted	مبسوط جدًا
+Content	راضي
+Unhappy	مضايق
+Furious	قالب الدنيا
+Removed from the market	اتشال من السوق
+Squad	الفريق
+{0} players · average {1}	{0} لعيب · متوسط {1}
+Training ›	التمرين ›
+WANTS OUT	عايز يمشي
+LOAN	إعارة
+SUS	موقوف
+INJ	مصاب
+SALE	للبيع
+Morale {0}	المعنويات {0}
+(was {0})	(كان {0})
+Left	شمال
+Right	يمين
+foot ·	رجل ·
+foot	رجل
+Potential	الإمكانيات
+· Value	· القيمة
+Value	القيمة
+Academy	الأكاديمية
+· Academy	· الأكاديمية
+He has asked to leave. Talk to him, play him, or sell him.	طالب يمشي. كلّمه، أو لعّبه، أو بيعه.
+On loan: he goes back to his club at the end of the season.	معار: هيرجع لناديه آخر الموسم.
+Have a talk	اقعد معاه
+Games promised	وعدته بماتشات
+Promise games	اوعده بماتشات
+goals ·	أجوان ·
+assists · avg	أسيست · متوسط
+Transfer market ·	سوق الانتقالات ·
+Listed for	معروض بـ
+Remove	شيله
+Lower the price to sell faster.	نزّل السعر عشان يتباع أسرع.
+Sell	بيع
+Training	التمرين
+Each player trains one thing: a skill or a new position	كل لعيب بيتمرن على حاجة واحدة: مهارة أو مركز جديد
+slots busy · Coach	أماكن مشغولة · المدرب
+Learning {0}	بيتعلم {0}
+(natural {0})	(الأصلي {0})
+· Age	· السن
+Age	السن
+· Potential	· الإمكانيات
+Learning to play {0}	بيتعلم يلعب {0}
+Improving {0} (+{1})	بيطوّر {0} (+{1})
+Ready	جاهز
+Stop	وقّف
+Improve a skill	طوّر مهارة
+Learn a new position	اتعلم مركز جديد
+New position: {0}	مركز جديد: {0}
+About {0} hours for +1 or +2. Up to +6 per skill each season.	حوالي {0} ساعة عشان +1 أو +2. لحد +6 لكل مهارة في الموسم.
+About {0} hours. He then plays {1} without the out-of-position penalty.	حوالي {0} ساعة. بعدها يلعب {1} من غير خصم المركز.
+All slots busy	كل الأماكن مشغولة
+Start training	ابدأ التمرين
+Recently done:	خلص قريب:
+Squad Condition	حالة الفريق
+next: {0} {1} · {2}	الجاي: {0} {1} · {2}
+out · recovery	برا · الاستشفاء
+%/day	%/يوم
+PLAYER	اللعيب
+POS	المركز
+OVR	التقييم
+Fitness right now	اللياقة دلوقتي
+FIT NOW	اللياقة دلوقتي
+Fitness he will have at kick-off	اللياقة وقت الماتش
+STATUS	الحالة
+Suspended	موقوف
+BANNED	موقوف
+INJ {0}d	مصاب {0}ي
+FORM +	فورمة +
+UPSET	زعلان
+TIRED	تعبان
+Medical & coaching staff	الجهاز الطبي والفني
+Club Doctor	دكتور النادي
+Physio	العلاج الطبيعي
+Coach	المدرب
+More injuries, longer layoffs	إصابات أكتر وغياب أطول
+Slower recovery between matches	استشفاء أبطأ بين الماتشات
+Slower training, 2 slots	تمرين أبطأ، مكانين بس
+Or try your luck: staff pack · 80 coins	أو جرّب حظك: باكة موظفين · 80 كوينز
+Fitness drops in every match, more with high pressing and fast tempo. Players recover about	اللياقة بتقل كل ماتش، وأكتر مع الضغط العالي والريتم السريع. اللعيبة بتستشفى حوالي
+% a day. Starting tired players lowers the whole team, so rotate. Injury risk rises with tiredness and injury-prone players.	% في اليوم. لو نزّلت تعبانين الفريق كله بيقع، فدوّر. خطر الإصابة بيزيد مع التعب واللعيبة اللي بتتصاب كتير.

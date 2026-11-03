@@ -1,0 +1,175 @@
+Welcome, boss of {0}	أهلًا يا ريس {0}
+You manage {0} against your friends and AI clubs. Matches are played every day at {1} (your time). Win the league, the cup and your board's targets.	إنت مدرب {0} قدام صحابك والبوتات. الماتشات كل يوم الساعة {1} (بتوقيتك). اكسب الدوري والكاس وحقق أهداف الإدارة.
+1. Build your squad	1. كوّن فريقك
+Open packs with your coins. You need at least 16 players and 2 keepers. Packs fill your gaps first: up to 2 keepers, then 4 defenders, 3 midfielders and 3 forwards.	افتح باكات بالكوينز. محتاج 16 لعيب على الأقل و2 حراس. الباكات بتسد النقص الأول: لحد 2 حراس، بعدين 4 مدافعين و3 وسط و3 مهاجمين.
+Open packs	افتح باكات
+2. Pick a plan that suits your players	2. اختار خطة لايقة على لعيبتك
+In Tactics, every plan shows how well it suits your squad. A great striker in the air loves crosses, fast forwards love through balls, a fit midfield can press. AI managers study your last plans: if you always play the same, they will be ready.	في الخطة، كل خطة بتوريك هي لايقة على فريقك قد إيه. المهاجم الجامد في الراس بيحب العرضيات، والمهاجمين السريعين بيحبوا البينيات، والوسط اللي نَفَسه حلو يقدر يضغط. مدربين البوت بيذاكروا خططك: لو بتلعب نفس الحاجة كل مرة، هيبقوا جاهزين.
+Show tactics	وريني الخطة
+3. Match day	3. يوم الماتش
+At kick-off you get a notification. Watch it live (5 minutes, with a half-time break) to switch plans, change mentality and make subs, or let your assistant follow your rules. Prepare Plan B and Plan C in Tactics for one-tap switches.	مع بداية الماتش هيجيلك إشعار. اتفرج لايف (5 دقايق، وفيه استراحة بين الشوطين) عشان تقلب الخطط وتغيّر العقلية وتعمل تغييرات، أو سيب المساعد يمشي على تعليماتك. جهّز خطة B وC في الخطة عشان تقلب بدوسة.
+See fixtures	شوف الماتشات
+4. Run the club	4. ادير النادي
+Choose a sponsor and check the board targets in the Club Office. Keep players happy: the ones on the bench sulk. Buy, loan and swap players when the transfer window is open.	اختار راعي وشوف أهداف الإدارة في مكتب النادي. خلي اللعيبة مبسوطة: اللي على الدكة بيقمصوا. اشتري وسلّف وبدّل لعيبة وقت ما الميركاتو مفتوح.
+Open the office	افتح المكتب
+Guide	الدليل
+Next step	الخطوة الجاية
+Finish	خلاص
+How to play	إزاي تلعب
+How to play ·	إزاي تلعب ·
+Skip	فوّت
+Back	رجوع
+Next	اللي بعده
+Let's play	يلا بينا
+Notifications are blocked in your browser settings.	الإشعارات مقفولة من إعدادات البراوزر.
+Notifications on: kick-offs, offers and big club news.	الإشعارات شغالة: بداية الماتشات والعروض وأخبار النادي الكبيرة.
+Could not turn on notifications.	معرفناش نشغّل الإشعارات.
+Notifications off on this device.	الإشعارات مقفولة على الجهاز ده.
+Play it like an app	العبها كأنها أبلكيشن
+Installed	متسطّبة
+Install app	سطّب الأبلكيشن
+On iPhone: tap Share, then "Add to Home Screen". It opens full screen.	على الآيفون: دوس Share وبعدين "Add to Home Screen". هتفتح فول سكرين.
+Open your browser menu and choose "Install app" or "Add to Home screen". It opens full screen and sideways.	افتح منيو البراوزر واختار "Install app" أو "Add to Home screen". هتفتح فول سكرين وبالعرض.
+On iPhone, notifications work after you add the game to the Home Screen.	على الآيفون، الإشعارات بتشتغل بعد ما تضيف اللعبة للهوم سكرين.
+This browser does not support notifications.	البراوزر ده مش بيدعم الإشعارات.
+Notifications on	الإشعارات شغالة
+Turn off	اقفل
+Notifications blocked	الإشعارات مقفولة
+Turn on notifications	شغّل الإشعارات
+Kick-offs, offers for your players, done deals and transfer requests, even when the game is closed.	بداية الماتشات، والعروض على لعيبتك، والصفقات اللي خلصت، وطلبات الرحيل، حتى واللعبة مقفولة.
+Goalkeepers	الحراس
+DEF	دفاع
+Defenders	المدافعين
+MID	وسط
+Midfielders	لعيبة الوسط
+FWD	هجوم
+Forwards	المهاجمين
+GK	حارس
+Club	النادي
+(you)	(إنت)
+· {0}{1} with {2} pts	· {0}{1} بـ{2} نقطة
+{0}{1} with {2} pts	{0}{1} بـ{2} نقطة
+Close	اقفل
+Best XI	أحسن 11
+Squad value	قيمة الفريق
+· for sale	· للبيع
+for sale	للبيع
+{0} apps · {1}G {2}A	{0} ماتش · {1} جون {2} أسيست
+Rating = average match rating this season. Tap outside to close.	التقييم = متوسط تقييم الماتشات الموسم ده. دوس برا عشان تقفل.
+Your club	ناديك
+Take over a club	استلم نادي
+1 · Identity	1 · الهوية
+2 · Club type	2 · نوع النادي
+{0} Park	استاد {0}
+· Home ground	· ملعب الأرض
+Home kit	طقم الأرض
+Away kit	طقم الأواي
+Away	أواي
+Club type: a surprise	نوع النادي: مفاجأة
+Club name	اسم النادي
+Short	اختصار
+Stadium	الاستاد
+Shape	الشكل
+Emblem	الشعار
+Shirt	التيشيرت
+Main	الأساسي
+Second	التاني
+Away 2nd	أواي تاني
+The season has already started. You get a random AI club from this league: its players, its money, its club type and its place in the table. You choose the name, the colours and the badge. No packs, but you can buy players on the market.	الموسم بدأ خلاص. هتاخد نادي بوت عشوائي من الدوري ده: بلعيبته وفلوسه ونوعه ومكانه في الجدول. إنت تختار الاسم والألوان والشعار. مفيش باكات، بس تقدر تشتري من السوق.
+Take over a club as	استلم نادي كـ
+Next: club type	الجاي: نوع النادي
+coins ·	كوينز ·
+Perk	الميزة
+Weakness	العيب
+Sponsor target	هدف الراعي
+If another manager here is also a Fan Club, your games against them become the derby, with a gold match day.	لو في مدرب تاني هنا نادي جماهيري برضه، ماتشاتكم هتبقى ديربي، بيوم ماتش دهبي.
+Goal	جون
+Came on	نزل
+Went off	طلع
+Shots on target	على المرمى
+Offsides	تسلل
+Yellow cards	كروت صفرا
+Red cards	كروت حمرا
+Fouls	فاولات
+Nothing yet.	لسه مفيش حاجة.
+Goal ruled out (VAR)	جون اتلغى (فار)
+Momentum	الزخم
+They have switched to {0}. {1} works well against it.	هما قلبوا على {0}. {1} بتنفع قدامها.
+Play {0}	العب {0}
+Down to ten men. Sitting deeper keeps it tight.	بقينا عشرة. لو رجعنا ورا هنقفلها.
+{0} is running out of legs ({1}% fit).	{0} رجليه خلصت (لياقته {1}%).
+Sub him	غيّره
+{0} is on a yellow. One more tackle and he is off.	{0} واخد أصفر. التحام كمان ويطلع برا.
+They are all over us: {0}% of the ball and {1} shots in ten minutes.	هما راكبين علينا: {0}% من الكورة و{1} تسديدات في عشر دقايق.
+Try {0}	جرّب {0}
+Most of their chances come down our {0} side. A fresh full-back there would help.	أغلب فرصهم جاية من الجنب {0} بتاعنا. ظهير فريش هناك هيفرق.
+We are {0} down with {1} minutes left. Time to go for it.	إحنا خسرانين بـ{0} وفاضل {1} دقيقة. وقت الهجوم.
+One goal up with {0} minutes to go. Protect it.	كسبانين بجون وفاضل {0} دقيقة. حافظ عليه.
+left	الشمال
+right	اليمين
+Deep-lying playmaker	صانع ألعاب متأخر
+Ball carrier	حامل الكورة
+Wide winger	جناح على الخط
+Wing back	ظهير جناح
+Early crosser	بيعرّض بدري
+Long passer	باص طويل
+Counter attack	هجمة مرتدة
+Patient build-up	بناء بالصبر
+Direct ball	كورة مباشرة
+Overlap	أوفرلاب
+Inverted	مقلوب
+Stopper	ستوبر
+Sweeper	ليبرو
+Supporting CDM	ارتكاز مساند
+Anchor	مرساة
+Marker	رقيب
+Flank cover	غطا الجنب
+Regista	ريجيستا
+Box to box	بوكس تو بوكس
+Playmaker	صانع ألعاب
+Long shooter	شوّاط بعيد
+Supporting wing	جناح مساند
+Drift wide	يطلع على الطرف
+Inside winger	جناح داخلي
+Shadow striker	مهاجم ضل
+Line breaker	كاسر الخطوط
+Poacher	خطّاف
+Target man	محطة
+False 9	مهاجم وهمي
+Inside forward	مهاجم داخلي
+Shot stopper	حارس صدّاد
+Sweeper keeper	حارس ليبرو
+Ball-playing	بيلعب بالكورة
+Wing-back	ظهير جناح
+Box-to-box	بوكس تو بوكس
+GOAL!	جووووول!
+Back to the centre	على نص الملعب
+Saved!	اتصدّت!
+Off target	برا
+Goal kick	ضربة مرمى
+Saved! Corner	اتصدّت! كورنر
+Corner	كورنر
+Keeper clears	الحارس بيشتت
+Penalty	بلنتي
+Free kick	فاول
+Big chance	فرصة محققة
+Goal chance	فرصة
+Second ball	الكورة التانية
+Building up	بناء هجمة
+Dangerous attack	هجمة خطيرة
+PENALTY!	بلنتي!
+{0} steps up…	{0} قدام الكورة…
+Foul · free kick	فاول · ضربة حرة
+{0} over the ball…	{0} على الكورة…
+Keeping the ball	استحواذ
+Ball won back	الكورة رجعت
+PENALTY…	بلنتي…
+SHOT!	شوووط!
+HALF-TIME	بين الشوطين
+FULL TIME	نهاية الماتش
+Live pitch	الملعب لايف
+📣 Foul · free kick	📣 فاول · ضربة حرة
+🟨 Yellow card	🟨 كارت أصفر
+🟥 Sent off	🟥 طرد
+📣 PENALTY	📣 بلنتي
+🚩 Offside	🚩 تسلل

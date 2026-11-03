@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AppPanel } from '../components/AppSetup.tsx';
+import { LangButton } from '../components/Lang.tsx';
 import { SoundButton } from '../components/SoundButton.tsx';
 import { crowdBed, music } from '../lib/sound.ts';
 import { useRouter } from 'next/navigation';
@@ -77,6 +78,7 @@ function Auth({ onDone }: { onDone: () => void }) {
         <div className="row">
           <button type="button" className={`chip ${mode === 'register' ? 'on' : ''}`} onClick={() => setMode('register')}><span>New manager</span></button>
           <button type="button" className={`chip ${mode === 'login' ? 'on' : ''}`} onClick={() => setMode('login')}><span>Log in</span></button>
+          <span style={{ marginInlineStart: 'auto' }}><LangButton /></span>
         </div>
         <label className="col" style={{ gap: 4 }}><span className="small muted">Username</span><input value={u} onChange={(e) => setU(e.target.value)} autoComplete="username" required /></label>
         <label className="col" style={{ gap: 4 }}><span className="small muted">Password</span><input type="password" value={p} onChange={(e) => setP(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required /></label>
@@ -115,6 +117,7 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
         <div className="row">
           <span className="muted small">Hi, <b style={{ color: '#E8F1FA' }}>{me.user!.name}</b></span>
           <SoundButton />
+          <LangButton />
           <button className="ghost" onClick={logout}><span>Log out</span></button>
         </div>
       </header>

@@ -1,0 +1,133 @@
+VAR check... goal by {0} ruled out for offside!	الفار بيراجع... جون {0} اتلغى تسلل!
+GOAL! {0}, assisted by {1}	جووول! {0}، أسيست {1}
+GOAL! {0}	جووول! {0}
+Big save by {0}!	صدّة جامدة من {0}!
+Huge chance missed for {0}.	{0} ضيّعوا فرصة مستحيل تضيع.
+Free kick in a dangerous position. {0} stands over it...	فاول في مكان خطير. {0} واقف على الكورة...
+Free kick in a dangerous position. stands over it...	فاول في مكان خطير...
+Offside! {0}'s trap catches the run.	تسلل! مصيدة {0} مسكته.
+The trap is beaten! {0} are clean through...	المصيدة اتكسرت! {0} لوحدهم قدام الجون...
+Penalty to {0}... VAR overturns it! No penalty.	بلنتي لـ{0}... الفار لغاها! مفيش بلنتي.
+PENALTY to {0}! {1} brings his man down.	بلنتي لـ{0}! {1} وقّع اللعيب.
+PENALTY to {0}!	بلنتي لـ{0}!
+GOAL! {0} scores the penalty	جووول! {0} بيسجل البلنتي
+{0}'s penalty is SAVED!	بلنتي {0} اتصدّت!
+{0} misses the penalty!	{0} ضيّع البلنتي!
+Yellow card: {0}	كارت أصفر: {0}
+RED CARD! {0} is sent off	كارت أحمر! {0} برا
+Second yellow: {0} is off	أصفر تاني: {0} برا
+{0} ease off the tackles: {1} is on a yellow.	{0} هدّوا الالتحامات: {1} واخد أصفر.
+Tired legs	رجلين تعبانة
+Protecting a booked player	حماية لعيب واخد كارت
+Injury	إصابة
+{0}: {1} on for {2}	{0}: {1} نازل مكان {2}
+Extra striker: {0} on for {1}	مهاجم زيادة: {0} نازل مكان {1}
+Plan {0} ({1})	خطة {0} ({1})
+Manager's change: {0} on for {1}	تغيير المدرب: {0} نازل مكان {1}
+{0} go all out attack	{0} نزلوا هجوم كاسح
+{0} sit back to protect the lead	{0} رجعوا ورا يحافظوا على التقدم
+{0} switch to {1}	{0} قلبوا على {1}
+all-out attack	هجوم كاسح
+parking the bus	ركن الأتوبيس
+a high press	ضغط عالي
+a new plan	خطة جديدة
+Kick-off! {0} vs {1}	بدأ الماتش! {0} ضد {1}
+Half-time: {0} {1}–{2} {3}	بين الشوطين: {0} {1}–{2} {3}
+Full time: {0} {1}–{2} {3}	نهاية الماتش: {0} {1}–{2} {3}
+{0} is injured	{0} اتصاب
+{0} takes the armband.	{0} لبس الشارة.
+{0} win {1}–{2} on penalties!	{0} كسبوا {1}–{2} بالترجيح!
+Only the league creator can start it.	صاحب الدوري بس اللي يقدر يبدأه.
+Already started.	بدأ خلاص.
+Already starting.	بيبدأ أهو.
+The season kicks off! {0} clubs, home and away, plus {1}.	الموسم بدأ! {0} نادي، ذهاب وعودة، وكمان {1}.
+🔓 The transfer window stays OPEN for the first {0} days of the round, then it shuts.	🔓 الميركاتو هيفضل مفتوح أول {0} أيام من الدور، وبعدين يقفل.
+{0} Stadium	استاد {0}
+Preliminary round	الدور التمهيدي
+Semi-final	نص النهائي
+Quarter-final	ربع النهائي
+Final	النهائي
+Round of {0}	دور الـ{0}
+{0}: the {1} draw is out!	{0}: قرعة {1} طلعت!
+🔥 Derby kick-off!	🔥 الديربي بدأ!
+⚽ Kick-off!	⚽ الماتش بدأ!
+{0} vs {1} is live. Watch it and change your tactics, or let your assistant handle it.	{0} ضد {1} لايف. اتفرج وغيّر خطتك، أو سيب المساعد يتصرف.
+Match not found.	الماتش مش موجود.
+This match is not live.	الماتش ده مش لايف.
+This is not your match.	ده مش ماتشك.
+The match is over.	الماتش خلص.
+Too many changes.	تغييرات كتير أوي.
+Plan {0} is empty. Save it in Tactics first.	خطة {0} فاضية. سيّفها في الخطة الأول.
+Nothing to change.	مفيش حاجة تتغير.
+🎙️ {0}'s manager backed up his words: "{1}" Delivered.	🎙️ مدرب {0} نفّذ كلامه: "{1}" وعمل اللي قاله.
+🎙️ "{0}" {1}'s manager will be eating those words tonight.	🎙️ "{0}" مدرب {1} هيبلع كلامه الليلة.
+DERBY: {0} {1}–{2} {3}. {4} own the city!	ديربي: {0} {1}–{2} {3}. {4} أسياد البلد!
+DERBY: {0} {1}–{2} {3}. Honours even.	ديربي: {0} {1}–{2} {3}. محدش كسب.
+{0} go through on penalties ({1}) after {2}–{3}.	{0} عدّوا بالترجيح ({1}) بعد {2}–{3}.
+Derby ends all square	الديربي خلص تعادل
+{0} {1}–{2} {3} in a derby nobody will forget.	{0} {1}–{2} {3} في ديربي محدش هينساه.
+A {0}–{1} statement result.	{0}–{1}: نتيجة رسالة للكل.
+🏁 The first round is over! {0} lead at the halfway mark. The second round starts tomorrow.	🏁 الدور الأول خلص! {0} متصدرين في النص. الدور التاني بكرة.
+{0} win {1}! 8M prize and a trophy for the cabinet.	{0} كسبوا {1}! 8M جايزة وكاس للدولاب.
+THE SECOND ROUND BEGINS	الدور التاني بدأ
+No matches today. The return games start tomorrow, and the transfer window is open for {0} days.	مفيش ماتشات النهارده. العودة بكرة، والميركاتو مفتوح {0} أيام.
+🔁 The second round has started! Every team now plays the return games.	🔁 الدور التاني بدأ! كل فريق هيلعب ماتشات العودة.
+🔓 The transfer window is OPEN for {0} days. Buy, sell, loan and swap before it shuts.	🔓 الميركاتو مفتوح {0} أيام. اشتري وبيع وسلّف وبدّل قبل ما يقفل.
+🔓 Transfer window open	🔓 الميركاتو مفتوح
+The second round has started. You have {0} days to do your deals.	الدور التاني بدأ. قدامك {0} أيام تخلّص صفقاتك.
+🔒 The transfer window is now CLOSED. {0}	🔒 الميركاتو قفل. {0}
+It opens again when the second round starts.	هيفتح تاني مع بداية الدور التاني.
+It opens again next season.	هيفتح تاني الموسم الجاي.
+⏰ DEADLINE DAY! The transfer window closes at the next kick-off. Get your offers in.	⏰ آخر يوم! الميركاتو هيقفل مع الماتش الجاي. قدّم عروضك.
+⏰ Deadline day	⏰ آخر يوم
+The transfer window closes at the next kick-off.	الميركاتو هيقفل مع الماتش الجاي.
+🎙️ Press conference: {0}	🎙️ مؤتمر صحفي: {0}
+{0} vs {1}. The journalists are waiting for you. What you say will change the match.	{0} ضد {1}. الصحفيين مستنيينك. اللي هتقوله هيغيّر الماتش.
+💰 First-round prize money: {0}M for finishing the round {1}{2}.	💰 جايزة الدور الأول: {0}M عشان خلّصت الدور {1}{2}.
+{0} ({1}) is Player of the Month!	{0} ({1}) لعيب الشهر!
+League name needs at least 3 letters.	اسم الدوري لازم 3 حروف على الأقل.
+Pick a league pool.	اختار لعيبة الدوري.
+This pool is too small for {0} divisions. Try fewer divisions.	اللعيبة دي قليلة على {0} درجات. قلّل الدرجات.
+Could not create a league code. Try again.	معرفناش نعمل كود للدوري. جرّب تاني.
+No league with that code.	مفيش دوري بالكود ده.
+League not found.	الدوري مش موجود.
+You have no club in this league yet.	لسه معندكش نادي في الدوري ده.
+Only the league creator can change the match time.	صاحب الدوري بس اللي يغيّر معاد الماتشات.
+Pick a time.	اختار معاد.
+The league creator changed the match time.	صاحب الدوري غيّر معاد الماتشات.
+You already have a club in this league.	عندك نادي في الدوري ده خلاص.
+This league is full.	الدوري ده كامل.
+Club name needs at least 3 letters.	اسم النادي لازم 3 حروف على الأقل.
+Another club in this league already has that name.	في نادي تاني في الدوري واخد الاسم ده.
+There is no AI club left to take over. You can join next season.	مفيش نادي بوت فاضل تستلمه. تقدر تدخل الموسم الجاي.
+A new manager takes over and renames the club {0} ({1}).	مدرب جديد استلم وسمّى النادي {0} ({1}).
+Unknown pack.	باكة مش معروفة.
+Squad limit is {0} players.	أقصى عدد في الفريق {0} لعيب.
+Not enough coins for this pack.	الكوينز مش مكفية للباكة دي.
+No players left for this pack in this league.	مفيش لعيبة فاضلة للباكة دي في الدوري ده.
+{0} pull a legend: {1} ({2})!	{0} طلّعوا أسطورة: {1} ({2})!
+Pick a role.	اختار دور.
+Pick a level from 1 to 5.	اختار مستوى من 1 لـ5.
+You already have a {0}-star {1}.	عندك {1} {0} نجوم خلاص.
+Not enough money: a {0}-star {1} costs {2}M.	الفلوس مش مكفية: {1} {0} نجوم تمنه {2}M.
+Youth	الناشئين
+Bad line-up.	تشكيلة غلط.
+{0} is hurt to lose the armband (morale −12).	{0} زعلان إن الشارة اتاخدت منه (المعنويات −12).
+{0} needs at least {1} players including 2 goalkeepers (now {2}, {3} GK).	{0} محتاج {1} لعيب على الأقل منهم 2 حراس (دلوقتي {2}، و{3} حارس).
+The transfer window is closed.	الميركاتو مقفول.
+He is only here on loan.	ده هنا إعارة بس.
+You have {0} players: nobody can buy one while you are at the minimum of {1}. Sign someone first.	عندك {0} لعيب: محدش يقدر يشتري منك وإنت على الحد الأدنى {1}. هات حد الأول.
+Price must be between 0.1M and 500M.	السعر لازم يبقى بين 0.1M و500M.
+This player was already sold.	اللعيب ده اتباع خلاص.
+That is your own player.	ده لعيبك أصلًا.
+Your squad is full ({0}).	فريقك كامل ({0}).
+The seller would drop below the minimum squad, so this sale is blocked.	البايع هيقل عن الحد الأدنى، فالبيعة دي ممنوعة.
+Not enough money.	الفلوس مش مكفية.
+{0} sign {1} for {2}M.	{0} ضمّوا {1} بـ{2}M.
+💰 {0} bought {1} for {2}M.	💰 {0} اشتروا {1} بـ{2}M.
+💰 Player sold	💰 لعيب اتباع
+{0} bought {1} for {2}M.	{0} اشتروا {1} بـ{2}M.
+Type your club name exactly to confirm.	اكتب اسم ناديك بالظبط عشان تأكد.
+Your match is being played right now. Resign after it ends.	ماتشك شغال دلوقتي. استقيل بعد ما يخلص.
+👋 {0} has resigned from {1}. The club carries on under an AI manager.	👋 {0} استقال من {1}. النادي هيكمّل مع مدرب بوت.
+The manager	المدرب

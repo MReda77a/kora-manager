@@ -1,0 +1,18 @@
+GOAL! {0}, assisted by {1} with a header from a corner	جووول! {0}، أسيست {1} براسية من كورنر
+GOAL! {0} with a header from a corner	جووول! {0} براسية من كورنر
+GOAL! {0}, assisted by {1} with a stunning free kick	جووول! {0}، أسيست {1} بفاول يجنن
+GOAL! {0} with a stunning free kick	جووول! {0} بفاول يجنن
+GOAL! {0}, assisted by {1} with a header from a cross	جووول! {0}، أسيست {1} براسية من عرضية
+GOAL! {0} with a header from a cross	جووول! {0} براسية من عرضية
+GOAL! {0}, assisted by {1} running onto a through ball	جووول! {0}، أسيست {1} بعد بينية حلوة
+GOAL! {0} running onto a through ball	جووول! {0} بعد بينية حلوة
+GOAL! {0}, assisted by {1} after a patient move	جووول! {0}، أسيست {1} بعد هجمة صبورة
+GOAL! {0} after a patient move	جووول! {0} بعد هجمة صبورة
+GOAL! {0}, assisted by {1} from distance	جووول! {0}، أسيست {1} من بعيد
+GOAL! {0} from distance	جووول! {0} من بعيد
+GOAL! {0}, assisted by {1} on the counter	جووول! {0}، أسيست {1} من مرتدة
+GOAL! {0} on the counter	جووول! {0} من مرتدة
+GOAL! {0}, assisted by {1} after winning it high up the pitch	جووول! {0}، أسيست {1} بعد ما خطفوها من فوق
+GOAL! {0} after winning it high up the pitch	جووول! {0} بعد ما خطفوها من فوق
+GOAL! {0}, assisted by {1} from the spot	جووول! {0}، أسيست {1} من البلنتي
+GOAL! {0} from the spot	جووول! {0} من البلنتي

@@ -1,0 +1,83 @@
+press high: he gets caught on the ball	اضغط عالي: بيتمسك بالكورة
+a winger who stays high pins him back	جناح واقف فوق يثبّته ورا
+attack the space behind him	اضرب المساحة اللي وراه
+{0} clubs	{0} نادي
+{0} players want to leave: talk to them.	{0} لعيبة عايزين يمشوا: كلّمهم.
+{0} player wants to leave: talk to him.	لعيب عايز يمشي: كلّمه.
+{0}/{1} on track	{0}/{1} ماشيين صح
+{0} pts in {1} games	{0} نقطة في {1} ماتش
+{0}d {1}h	{0}ي {1}س
+{0}h {1}m	{0}س {1}د
+{0}m	{0}د
+2nd striker	مهاجم تاني
+{0} supporters	{0} مشجع
+{0} place	المركز {0}
+{0} clean sheets	{0} شباك نضيفة
+{0} avg rating	متوسط تقييم {0}
+{0} avg rating, age {1}	متوسط تقييم {0}، سن {1}
+{0}% of {1} seats	{0}% من {1} كرسي
+{0} / {1} seats	{0} / {1} كرسي
+{0} assists	{0} أسيست
+{0} goals	{0} أجوان
+{0} has handed in a transfer request.	{0} قدّم طلب رحيل.
+{0} expand {1} to {2} seats.	{0} وسّعوا {1} لـ{2} كرسي.
+Create your club ›	اعمل ناديك ›
+Create your club	اعمل ناديك
+Create your club first.	اعمل ناديك الأول.
+Training {0}% faster	التمرين أسرع {0}%
+{0} is {1} behind {2}	{0} ورا {2} بـ{1}
+{0} leads	{0} في الصدارة
+English	إنجليزي
+Spanish	إسباني
+Italian	إيطالي
+German	ألماني
+French	فرنساوي
+Saudi	سعودي
+American	أمريكاني
+Egyptian	مصري
+Premier	الممتاز
+First	الأولى
+GD	الفرق
+W	ك
+D	ت
+L	خ
+OK	تمام
+VS	ضد
+vs	ضد
+vs {0}	ضد {0}
+at {0}	عند {0}
+Turn your phone sideways for the best view	لف الموبايل بالعرض عشان تشوف أحسن
+cup final	نهائي الكاس
+derby	الديربي
+deals	صفقات
+friend	صاحب
+manager	مدرب
+none	مفيش
+promoted	طلع
+relegated	نزل
+champions	بطل
+pts	نقطة
+to	لـ
+since signing	من ساعة ما مضى
+transfer request	طلب رحيل
+{0} unhappy player	{0} لعيب مضايق
+{0} unhappy players	{0} لعيبة مضايقين
+unhappy player	لعيب مضايق
+unhappy players	لعيبة مضايقين
+until the second round.	لحد الدور التاني.
+up to 30 clubs	لحد 30 نادي
+players picked.	لعيبة اتختاروا.
+{0} players picked.	{0} لعيبة اتختاروا.
+g ·	جون ·
+a	أسيست
+apps	ماتش
+Big	كبير
+It shuts on {0}. After that, no buying, selling, loans or swaps{1}	هيقفل {0}. بعد كده مفيش بيع ولا شرا ولا إعارة ولا تبديل{1}
+{0} min ago	من {0} دقيقة
+{0}h ago	من {0} ساعة
+{0} days ago	من {0} أيام
+in {0}	بعد {0}
+{0} ago	من {0}
+now	دلوقتي
+P	ل
+{0} left	فاضل {0}

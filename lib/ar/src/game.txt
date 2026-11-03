@@ -1,0 +1,193 @@
+English League	الدوري الإنجليزي
+Spanish League	الدوري الإسباني
+Italian League	الدوري الإيطالي
+German League	الدوري الألماني
+French League	الدوري الفرنساوي
+Saudi League	الدوري السعودي
+American League	الدوري الأمريكاني
+Egyptian League	الدوري المصري
+Fan Club	نادي جماهيري
+Biggest crowds: top ticket income and the strongest home advantage.	أكبر جمهور: أعلى دخل تذاكر وأقوى أفضلية أرض.
+Fans turn fast after losses.	الجمهور بيقلب بسرعة بعد الخسارة.
+Win the league and the cup	اكسب الدوري والكاس
+Sell out the stadium	املا الاستاد على آخره
+Keep your fan favourite all season	خلي حبيب الجمهور معاك طول الموسم
+Investment	استثماري
++150 starting coins and the biggest transfer budget.	+150 كوينز في الأول وأكبر ميزانية انتقالات.
+Impatient board.	إدارة مالهاش صبر.
+Win the league or the cup	اكسب الدوري أو الكاس
+Have a 90+ player in your XI	يبقى عندك لعيب 90+ في التشكيلة
+Sign a star mid-season	هات نجم في نص الموسم
+Academy	أكاديمية
+Young players grow faster. Better scouts.	الصغيرين بيكبروا أسرع. كشافين أحسن.
+100 fewer starting coins.	100 كوين أقل في الأول.
+Finish in the top half	خلّص في النص الفوقاني
+Profit from player sales	اكسب من بيع اللعيبة
+Under-21s play 30% of minutes	تحت 21 يلعبوا 30% من الدقايق
+Commercial	تجاري
+Sponsors pay 0.1M for every goal you score.	الرعاة بيدفعوا 0.1M على كل جون.
+Sponsors cut money when you score under 1 a game.	الرعاة بيقطعوا الفلوس لو جبت أقل من جون في الماتش.
+Finish in the top 6	خلّص في التوب 6
+Score a lot of goals	جيب أجوان كتير
+Start an attacking star	نزّل نجم هجومي أساسي
+Historic	عريق
+Steady morale. New tactics are learned faster.	معنويات ثابتة. الخطط الجديدة بتتحفظ أسرع.
+Lower income.	دخل أقل.
+Top 8 and no losing streaks	توب 8 ومن غير سلسلة خساير
+Reach a cup semi-final	وصّل لنص نهائي الكاس
+Keep your captain	خلي الكابتن معاك
+Legend	أسطورة
+Gold	دهبي
+Silver	فضي
+Bronze	برونزي
+Soft	ناعم
+Hard	خشن
+Stay on feet	خليك واقف
+Few fouls and cards, but they get past you more easily.	فاولات وكروت قليلة، بس بيعدّوا منك أسهل.
+Win the ball fairly.	اخطف الكورة بالأدب.
+Get stuck in	ادخل بقوة
+Win the ball back more often, but more fouls, free kicks, cards and penalties. Strict referees and derbies make it worse.	بتخطف الكورة أكتر، بس فاولات وكروت وبلنتيات أكتر. الحكام الشداد والديربيات بيزوّدوها.
+Gegenpress	جيجن برس
+Keep the ball, short passes, high line.	احتفظ بالكورة، باصات قصيرة، خط عالي.
+Win it back high and fast. Tiring.	اخطفها من فوق وبسرعة. مُتعب.
+Sit deep, stay compact, hit on the break.	ارجع ورا، خليك مقفول، واضرب بالمرتدة.
+Stretch them wide and cross. Balanced.	وسّع الملعب وعرّض. متوازن.
+Skip midfield, go direct to the strikers.	اقفز على الوسط، وعلى المهاجمين على طول.
+Shoot from anywhere. Good vs deep blocks.	شوّط من أي حتة. حلو قدام الدفاع المتأخر.
+Defensive line	خط الدفاع
+Crosses	عرضيات
+Through balls	بينيات
+Work it in	دخّلها بالباص
+Shoot early	شوّط بدري
+{0}% fewer injuries, {1} day(s) shorter	{0}% إصابات أقل، و{1} يوم أقصر
++{0}% fitness recovery per day	+{0}% استشفاء لياقة في اليوم
+Training {0}% faster{1}	التمرين أسرع {0}%{1}
+, 3 players at once	، 3 لعيبة مع بعض
+Staff	الموظفين
+Safe	أمان
+1M per win, 0.5M per draw. Nothing for a defeat.	1M على الكسبة، 0.5M على التعادل. ولا حاجة على الخسارة.
+Bonus	بونص
+1.5M per win, 0.2M per draw, plus 0.1M for every goal. Nothing for a defeat.	1.5M على الكسبة، 0.2M على التعادل، و0.1M على كل جون. ولا حاجة على الخسارة.
+Target	تارجت
+0.8M per win, 0.3M per draw, plus 9M if you hit your board target. Nothing for a defeat.	0.8M على الكسبة، 0.3M على التعادل، و9M لو حققت هدف الإدارة. ولا حاجة على الخسارة.
+Pre-season window	ميركاتو قبل الموسم
+First-round window	ميركاتو الدور الأول
+Closed · opens when the second round starts	مقفول · هيفتح مع بداية الدور التاني
+Second-round window	ميركاتو الدور التاني
+Closed until next season	مقفول لحد الموسم الجاي
+Plain	سادة
+Stripes	مقلّم
+Halves	نصين
+Hoops	خطوط بالعرض
+Sash	وشاح
+Third kit	الطقم التالت
+Stays on his line: better saves.	واقف على خطه: صدّات أحسن.
+Exposed behind a high line.	مكشوف ورا الخط العالي.
+Sweeps up behind the defence and starts attacks.	بينضّف ورا الدفاع وبيبدأ الهجمات.
+Lobbed more often.	بيتلعب عليه لوب أكتر.
+Runs past his winger: more crosses.	بيجري ورا الجناح بتاعه: عرضيات أكتر.
+Leaves space behind him.	بيسيب مساحة وراه.
+Full-back: tucks into midfield to keep the ball. Wide midfielder: cuts in to shoot.	ظهير: بيدخل الوسط يحافظ على الكورة. لعيب وسط طرف: بيدخل يشوّط.
+Fewer crosses down that side.	عرضيات أقل من الجنب ده.
+Steps out to win duels and headers.	بيطلع يكسب الالتحامات والراسيات.
+Slower to recover when beaten.	بيرجع أبطأ لو اتعدّى.
+Covers the whole flank: crosses and cover.	بيغطي الجنب كله: عرضيات وتغطية.
+Tires fast; space behind.	بيتعب بسرعة؛ ومساحة وراه.
+Covers behind the line: stops through balls.	بيغطي ورا الخط: بيوقف البينيات.
+Offside trap works less.	مصيدة التسلل بتشتغل أقل.
+Hits long balls to the forwards: more counters.	بيلعب كور طويلة للمهاجمين: مرتدات أكتر.
+Gives the ball away more.	بيضيّع الكورة أكتر.
+Steps into midfield to help keep the ball.	بيطلع الوسط يساعد في الاستحواذ.
+Space behind if it is lost.	مساحة وراه لو الكورة ضاعت.
+Defender: attacks corners and set pieces. CAM: gets into the box to score.	مدافع: بيطلع في الكورنرات والكور الثابتة. صانع ألعاب: بيدخل الصندوق يجيب جون.
+Leaves gaps behind him.	بيسيب خروم وراه.
+Sits in front of the defence and shields it.	قاعد قدام الدفاع وبيحميه.
+Adds little going forward.	مش بيضيف كتير قدام.
+Man-marks their danger man: their finishing drops.	رقابة لصيقة على أخطر واحد عندهم: إنهائهم بيقع.
+Gets dragged out of shape.	بيتسحب من مكانه.
+Drops between the centre-backs and starts every move.	بينزل بين قلبين الدفاع وبيبدأ كل هجمة.
+Softer in the tackle.	أطرى في الالتحام.
+Covers for an attacking full-back on his side.	بيغطي على الظهير الهجومي اللي في جنبه.
+Leaves the middle thinner.	بيسيب النص خفيف.
+Free role: long balls and through balls from deep.	دور حر: كور طويلة وبينيات من ورا.
+Gets caught when pressed.	بيتمسك لما يتضغط عليه.
+Helps at both ends.	بيساعد قدام وورا.
+Tires faster.	بيتعب أسرع.
+Drives forward with the ball and sets the tempo.	بيطلع بالكورة لقدام وبيظبط الريتم.
+Loses the ball more.	بيضيّع الكورة أكتر.
+Splits defences: more through balls and assists.	بيقسم الدفاعات: بينيات وأسيستات أكتر.
+Does little defending.	مش بيدافع كتير.
+Shoots from outside the box.	بيشوّط من برا الصندوق.
+Wastes some attacks.	بيضيّع شوية هجمات.
+Helps out on the flank: crosses and cover.	بيساعد على الطرف: عرضيات وتغطية.
+Midfield thinner in the middle.	الوسط بيبقى خفيف في النص.
+Drifts to the wing to cross and overload it.	بيطلع على الجناح يعرّض ويزحم الطرف.
+Fewer bodies in the box.	ناس أقل في الصندوق.
+Crosses early from deep: great with a target man.	بيعرّض بدري من ورا: جامد مع المهاجم المحطة.
+Weak if nobody wins headers.	ضعيف لو محدش بيكسب الراسيات.
+Cuts inside to shoot.	بيدخل لجوا يشوّط.
+Fewer crosses.	عرضيات أقل.
+Stays wide, beats his man, crosses.	واقف على الخط، بيعدّي الراجل بتاعه ويعرّض.
+Scores less himself.	بيجيب أجوان أقل هو شخصيًا.
+Runs into the box beside the striker.	بيدخل الصندوق جنب المهاجم.
+Does not track back.	مش بيرجع يدافع.
+Runs in behind the defence: deadly on the break.	بيجري ورا الدفاع: قاتل في المرتدات.
+Caught offside more.	بيتمسك تسلل أكتر.
+Lives in the box and finishes chances.	عايش في الصندوق وبيخلّص الفرص.
+Does not link play.	مش بيربط اللعب.
+Wins headers and holds the ball up.	بيكسب الراسيات وبيستلم الكورة ويحميها.
+Slow: fewer counters.	بطيء: مرتدات أقل.
+Drops deep to link play and opens space for the wingers.	بيرجع ورا يربط اللعب وبيفتح مساحة للأجنحة.
+Near post	القايم القريب
+Far post	القايم البعيد
+Short	قصير
+Never sulks for long. Trains hard.	مش بيقمص كتير. بيتمرن جامد.
+Hates the bench. Wants trophies.	بيكره الدكة. عايز بطولات.
+Takes setbacks well. Loves the club.	بيستحمل الضربات. بيحب النادي.
+Big mood swings. Picks up cards.	مزاجه متقلب. بياخد كروت.
+Calms the dressing room. Talks work twice as well.	بيهدّي غرفة اللبس. الكلام معاه بيجيب نتيجة الضعف.
+Big-game player	لعيب ماتشات كبيرة
+Raises his game in derbies and cup ties.	بيعلّي مستواه في الديربيات وماتشات الكاس.
+Professional	محترف
+Ambitious	طموح
+Loyal	وفي
+Temperamental	عصبي
+Leader	قائد
+Clear	صافي
+Perfect conditions.	ظروف مثالية.
+Heavy rain	مطر جامد
+Short passing is riskier. Long balls skid.	الباص القصير بقى أخطر. الكور الطويلة بتزحلق.
+Heat	حر
+Legs tire 25% faster. Pressing hurts.	الرجلين بتتعب أسرع 25%. الضغط بيوجع.
+Strong wind	هوا جامد
+Crosses and long balls lose accuracy.	العرضيات والكور الطويلة بتفقد دقتها.
+Snow	تلج
+Slow pitch. Pace matters less.	الأرض تقيلة. السرعة بتفرق أقل.
+Lenient	رايق
+Strict	شديد
+Aggression	العصبية
+Pressing: stamina and work rate	الضغط: النَفَس والمجهود
+High line: defenders' pace	الخط العالي: سرعة المدافعين
+Deep block: defending	الدفاع المتأخر: الدفاع
+Defensive: tackling	دفاعي: الالتحام
+Short build-up: passing	البناء القصير: الباص
+Direct: target up front	المباشر: محطة قدام
+Crosses: crossers	العرضيات: اللي بيعرّضوا
+Crosses: headers in the box	العرضيات: الراسيات في الصندوق
+Through balls: vision	البينيات: الرؤية
+Through balls: runners' pace	البينيات: سرعة اللي بيجروا
+Work it in: technique	دخّلها بالباص: التكنيك
+Shoot early: long shots	شوّط بدري: الشوط البعيد
+Wide play: pace on the flanks	اللعب على الأطراف: سرعة الأجناب
+Fast tempo: stamina	الريتم السريع: النَفَس
+Slow tempo: composure	الريتم البطيء: الهدوء
+Attacking: finishing	هجومي: اللمسة الأخيرة
+WorkRate	المجهود
+FirstTouch	اللمسة الأولى
+Strength	القوة
+Jumping	الارتقاء
+Agility	الرشاقة
+Technique	التكنيك
+Decisions	القرارات
+Teamwork	الجماعية
+Leadership	القيادة

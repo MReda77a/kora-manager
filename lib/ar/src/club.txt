@@ -1,0 +1,166 @@
+🏋️ Training done: {0}	🏋️ التمرين خلص: {0}
+🏋️ Training done	🏋️ التمرين خلص
+That player is not in your squad.	اللعيب ده مش في فريقك.
+He is already training.	بيتمرن أصلًا.
+All training slots are busy. A 4-star coach adds a third slot.	كل أماكن التمرين مشغولة. مدرب 4 نجوم بيزوّد مكان تالت.
+Pick a position.	اختار مركز.
+He already plays there.	بيلعب هناك أصلًا.
+Keepers and outfield players cannot swap.	الحراس ولعيبة الملعب مينفعش يتبدلوا.
+Pick a skill.	اختار مهارة.
+He has reached his limit in this skill this season.	وصل للحد بتاعه في المهارة دي الموسم ده.
+Already world class at this.	عالمي فيها أصلًا.
+Win promotion (top {0})	اطلع الدرجة اللي فوق (توب {0})
+Now {0}{1} · target top {2}	دلوقتي {0}{1} · الهدف توب {2}
+Season not started	الموسم لسه مبدأش
+Reach the cup semi-final	وصّل لنص نهائي الكاس
+Win the cup	اكسب الكاس
+Winners!	أبطال!
+Knocked out	خرجنا
+Still in it	لسه فيها
+FAILED	فشل
+{0} goals a game · target 1.5	{0} جون في الماتش · الهدف 1.5
+{0}M from sales	{0}M من البيع
+You have a 90+ star	عندك نجم 90+
+No 90+ player yet	لسه مفيش لعيب 90+
+Cup run counts	مشوار الكاس بيتحسب
+Sponsors	الرعاة
+Judged at the end of the season	بيتحكم عليه آخر الموسم
+Finish in the top {0}. Every win counts: pick your best XI, a plan that suits your players and counters the opponent (the analyst helps), and keep them fresh.	خلّص في التوب {0}. كل كسبة بتفرق: نزّل أحسن 11، وخطة لايقة على لعيبتك وبتكسر الخصم (المحلل هيساعدك)، وخليهم فريش.
+Prepare the next match	جهّز للماتش الجاي
+Win your cup ties. Cup matches are one-off knock-outs (penalties if level), so play your strongest team in them.	اكسب ماتشات الكاس. الكاس خروج مغلوب من ماتش واحد (ترجيح لو تعادل)، فنزّل أقوى تشكيلة.
+See the cup	شوف الكاس
+Fill the stadium: fans come with wins (most in derbies), leave after defeats and protests. Do not expand the stadium beyond what you can fill.	املا الاستاد: الجمهور بييجي مع الكسب (أكتر في الديربي) وبيمشي بعد الخسارة والاحتجاجات. متوسّعش الاستاد أكتر ما تقدر تملاه.
+Stadium below	الاستاد تحت
+Have a 90+ rated player in your squad: buy one in the market or train a 88-89 player up.	خلي عندك لعيب 90+ في الفريق: اشتري واحد من السوق أو مرّن لعيب 88-89 لحد ما يوصل.
+Find a star	دوّر على نجم
+Make 10M from selling players: list players at a fair price in your Squad, or accept offers from other clubs.	اكسب 10M من بيع اللعيبة: اعرض لعيبة بسعر معقول من الفريق، أو اقبل عروض الأندية التانية.
+Sell a player	بيع لعيب
+Score 1.5 goals a game: attacking mentality, shoot-on-sight or wing play, and strikers in a scoring role (poacher, shadow striker).	جيب 1.5 جون في الماتش: عقلية هجومية، شوّط من أي حتة أو لعب على الأطراف، ومهاجمين في أدوار تهديف (خطّاف، مهاجم ضل).
+Set up to attack	جهّز للهجوم
+Go far in the cup: the sponsors pay attention to a semi-final run.	روح بعيد في الكاس: الرعاة بيركزوا لو وصلت نص النهائي.
+Do not sell or loan out your fan favourite, and play him often.	متبيعش ولا تسلّف حبيب الجمهور، ولعّبه كتير.
+See your squad	شوف فريقك
+Sign a big-name player while the season is on.	هات لعيب اسمه كبير والموسم شغال.
+Open the market	افتح السوق
+Give young players (21 and under) about a third of the minutes: start them in the Match plan.	ادي الصغيرين (21 وأقل) حوالي تلت الدقايق: نزّلهم أساسيين في خطة الماتش.
+Pick young players	اختار الصغيرين
+Start an attacking star (85+ forward) in most matches.	نزّل نجم هجومي (مهاجم 85+) أساسي في أغلب الماتشات.
+Pick your XI	اختار الـ11
+Keep your captain at the club and give him the armband.	خلي الكابتن في النادي وادّيله الشارة.
+Choose a captain	اختار كابتن
+Hit it: the board backs you (confidence up, bigger prize money). Miss it: confidence drops and fans protest.	لو حققته: الإدارة في ضهرك (ثقة أعلى وجوايز أكبر). لو فشلت: الثقة بتقع والجمهور بيحتج.
+Hit it: sponsors pay more next season.	لو حققته: الرعاة هيدفعوا أكتر الموسم الجاي.
+Hit it: dressing-room morale and board confidence go up.	لو حققته: معنويات غرفة اللبس وثقة الإدارة بيطلعوا.
+Win: +{0} confidence. Loss: −{1}. Draws change nothing.	كسب: +{0} ثقة. خسارة: −{1}. التعادل مش بيغيّر حاجة.
+Big words at a press conference raise the stakes: a win then counts more, a defeat hurts more.	الكلام الكبير في المؤتمر الصحفي بيعلّي الرهان: الكسب بيتحسب أكتر، والخسارة بتوجع أكتر.
+Below 55 the fans can protest (−3 and fewer fans).	تحت 55 الجمهور ممكن يحتج (−3 وجمهور أقل).
+At the end of the season it goes back to 60.	آخر الموسم بترجع 60.
+Unknown sponsor deal.	عقد راعي مش معروف.
+You already signed a sponsor this season.	مضيت مع راعي الموسم ده خلاص.
+Stadium name needs at least 3 letters.	اسم الاستاد لازم 3 حروف على الأقل.
+Expansion costs 6M (max 80,000 seats).	التوسعة بـ6M (أقصى حاجة 80,000 كرسي).
+Write something first.	اكتب حاجة الأول.
+No upcoming match to talk about.	مفيش ماتش جاي نتكلم عنه.
+Premier Division	الممتاز
+First Division	الدرجة الأولى
+Second Division	الدرجة التانية
+Division {0}	الدرجة {0}
+{0} are the champions of {1}!	{0} أبطال {1}!
+{0} win the {1}!	{0} كسبوا {1}!
+Promoted from the {0}	طالعين من {0}
+{0} are promoted to the {1}!	{0} طلعوا {1}!
+💼 You hit the sponsor target: +{0}M bonus.	💼 حققت هدف الراعي: +{0}M بونص.
+🏛️ The board is delighted: {0} place met the target (top {1}).	🏛️ الإدارة طايرة من الفرحة: المركز {0} حقق الهدف (توب {1}).
+🏛️ The board expected top {0}. You finished {1}.	🏛️ الإدارة كانت مستنية توب {0}. وإنت خلّصت {1}.
+Manager of the Season	مدرب الموسم
+Season {0} is over! The league creator can start season {1} from the Home tab.	الموسم {0} خلص! صاحب الدوري يقدر يبدأ الموسم {1} من الرئيسية.
+🏁 Season over	🏁 الموسم خلص
+Season {0} is over. See where you finished, the awards and your trophy cabinet.	الموسم {0} خلص. شوف خلّصت فين والجوايز ودولاب البطولات.
+Golden Boot	الحذاء الدهبي
+Player of the Season	لعيب الموسم
+Young Player of the Season	أحسن لعيب صغير في الموسم
+{0} avg rating, age {1}	متوسط تقييم {0}، سن {1}
+Golden Glove	القفاز الدهبي
+Playmaker Award	جايزة صانع الألعاب
+Only the league creator can start the next season.	صاحب الدوري بس اللي يبدأ الموسم الجاي.
+The season is not over yet.	الموسم لسه مخلصش.
+The new season is already being prepared.	الموسم الجديد بيتجهز أهو.
+Season {0} begins!	الموسم {0} بدأ!
+🏁 The first round has started! Every team plays every other team once.	🏁 الدور الأول بدأ! كل فريق هيلعب مع كل فريق مرة.
+🔓 The transfer window is OPEN for {0} days, then it shuts.	🔓 الميركاتو مفتوح {0} أيام، وبعدين يقفل.
+⚽ Season {0} is here	⚽ الموسم {0} وصل
+The first round starts. The transfer window is open for {0} days.	الدور الأول بدأ. الميركاتو مفتوح {0} أيام.
+🔁 {0} is back from his loan.	🔁 {0} رجع من الإعارة.
+👋 {0} ({1}) has retired. Thank you for everything.	👋 {0} ({1}) اعتزل. شكرًا على كل حاجة.
+End of an era: {0} retires at {1}.	نهاية حقبة: {0} بيعتزل في سن {1}.
+🎓 Your squad is full ({0}), so this year's academy graduates joined other clubs.	🎓 فريقك كامل ({0})، فولاد الأكاديمية السنة دي راحوا أندية تانية.
+{0} ({1}, {2}, potential {3})	{0} ({1}، {2}، إمكانيات {3})
+🎓 Youth intake: {0} join from the academy.	🎓 دفعة الناشئين: {0} طالعين من الأكاديمية.
+💰 Season {0} prize money: {1}M, plus 300 coins for the new season.	💰 جايزة الموسم {0}: {1}M، و300 كوينز للموسم الجديد.
+Player not found in this league.	اللعيب مش موجود في الدوري ده.
+Pick buy, loan or swap.	اختار شرا أو إعارة أو تبديل.
+He already plays for you.	بيلعب ليك أصلًا.
+{0} is on loan there and can't be moved until the summer.	{0} معار هناك ومينفعش يتحرك لحد الصيف.
+That is too much money.	ده فلوس كتير أوي.
+Offer at least 0.1M.	قدّم 0.1M على الأقل.
+You only have {0}.	معاك {0} بس.
+Pick one of your players to swap.	اختار لعيب من بتوعك للتبديل.
+You can not swap a player you have on loan.	مينفعش تبدّل لعيب معار ليك.
+You already have an open offer for him.	عندك عرض مفتوح عليه أصلًا.
+🔥 BIDDING WAR: {0} and {1} are fighting over {2}!	🔥 حرب عروض: {0} و{1} بيتخانقوا على {2}!
+RUMOUR: {0} have made a move for {1}'s {2}.	شايعة: {0} اتحركوا على {2} بتاع {1}.
+📨 {0} offer {1} for {2}. Answer in Market › Offers.	📨 {0} عارضين {1} على {2}. رد من السوق › العروض.
+Offer sent to {0}. They will answer soon.	العرض اتبعت لـ{0}. هيردوا قريب.
+(fee {0})	(بمبلغ {0})
+{0}: "He is a key player. Not for loan."	{0}: "ده لعيب أساسي. مش للإعارة."
+{0}: "{1} is not good enough for us."	{0}: "{1} مش قدنا."
+{0} laughed at the offer. He is worth far more.	{0} ضحكوا على العرض. هو يستاهل أكتر بكتير.
+{0} ended the talks: "You are not serious."	{0} قفلوا الكلام: "إنتوا مش جادين."
+{0}: "We are going round in circles. He is not for sale to you."	{0}: "إحنا بنلف في دواير. مش هنبيعهولكم."
+say: "{0} and he's yours."	بيقولوا: "{0} وهو بتاعك."
+say: "{0}. That is our last word."	بيقولوا: "{0}. وده آخر كلام."
+{0} say: "{1} and he's yours."	{0} بيقولوا: "{1} وهو بتاعك."
+{0} say: "{1}. That is our last word."	{0} بيقولوا: "{1}. وده آخر كلام."
+The window closed.	الميركاتو قفل.
+He has moved on.	مشي خلاص.
+That player has already moved.	اللعيب ده اتنقل خلاص.
+The swap player has gone.	لعيب التبديل مشي.
+The swap player is no longer at the club.	لعيب التبديل مبقاش في النادي.
+{0}'s squad is full.	فريق {0} كامل.
+{0} can't afford {1}.	{0} مش قادرين على {1}.
+This offer was already answered.	العرض ده اترد عليه خلاص.
+SWAP DEAL: {0} joins {1}, {2} goes to {3}{4}.	صفقة تبديل: {0} رايح {1}، و{2} رايح {3}{4}.
+❌ {0} signed for {1}. Your offer is off.	❌ {0} مضى لـ{1}. عرضك اتلغى.
+Offer off	العرض اتلغى
+✅ Done deal: {0}	✅ الصفقة تمت: {0}
+Done deal	الصفقة تمت
+Offer not found.	العرض مش موجود.
+❌ {0} turned down your offer for {1}.	❌ {0} رفضوا عرضك على {1}.
+Offer turned down	العرض اترفض
+Rejected.	اترفض.
+Name your price.	قول سعرك.
+{0} walked away: "{1} is too much."	{0} مشيوا: "{1} كتير أوي."
+📨 {0} raise their bid for {1} to {2}.	📨 {0} زوّدوا عرضهم على {1} لـ{2}.
+Better offer	عرض أحسن
+↩️ {0} want {1} for {2}. Accept or walk away in Market › Offers.	↩️ {0} عايزين {1} في {2}. وافق أو امشي من السوق › العروض.
+Counter-offer	عرض مضاد
+Counter-offer sent.	العرض المضاد اتبعت.
+Withdrawn.	اتسحب.
+Name your offer.	قول عرضك.
+Your swap player has gone.	لعيب التبديل بتاعك مشي.
+📨 {0} come back with {1} for {2}. Answer in Market › Offers.	📨 {0} رجعوا بـ{1} على {2}. رد من السوق › العروض.
+New offer sent to {0}.	عرض جديد اتبعت لـ{0}.
+You can not do that with this offer.	مينفعش تعمل كده في العرض ده.
+📨 {0} bid {1} for {2}{3}. Answer in Market › Offers.	📨 {0} عرضوا {1} على {2}{3}. رد من السوق › العروض.
+(he asked to leave)	(هو طالب يمشي)
+RUMOUR: {0} are in for {1}'s {2}.	شايعة: {0} عايزين {2} بتاع {1}.
+{0} sign {1} from {2} for {3}M.	{0} ضمّوا {1} من {2} بـ{3}M.
+Player sold	لعيب اتباع
+🌍 {0} players from clubs abroad are on the market this window. Find them in Transfers.	🌍 {0} لعيب من أندية برا في السوق الميركاتو ده. هتلاقيهم في الانتقالات.
+This player has already signed for someone else.	اللعيب ده مضى لحد تاني خلاص.
+He has just signed for another club.	لسه ماضي لنادي تاني.
+The transfer window is closed: nobody can buy him until it opens again.	الميركاتو مقفول: محدش يقدر يشتريه لحد ما يفتح تاني.
+Nobody can buy him while you have only {0} players (minimum {1}).	محدش يقدر يشتريه وإنت معاك {0} لعيب بس (الحد الأدنى {1}).
+You asked {0}× his value ({1}M).	إنت طالب {0}× قيمته ({1}M).
+Chance to sell each day: {0}.{1}	فرصة البيع كل يوم: {0}.{1}
+{0} joins {1} from {2} for {3}M.	{0} انضم لـ{1} من {2} بـ{3}M.
