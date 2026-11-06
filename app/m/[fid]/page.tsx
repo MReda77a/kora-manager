@@ -162,7 +162,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const clockSkew = useRef(new Date(d.now).getTime() - Date.now()).current;
   const elapsed = () => (Date.now() + clockSkew - liveFrom) / 1000;
   const isLiveNow = d.fixture.status !== 'done' && elapsed() < TOTAL;
-  const [phase, setPhase] = useState<'intro' | 'play' | 'ft'>(skip ? 'ft' : isLiveNow ? 'play' : 'intro');
+  // while it is live the result is not settled: skipping hands the match to your assistant instead
+  const [phase, setPhase] = useState<'intro' | 'play' | 'ft' | 'left'>(skip ? (isLiveNow ? 'left' : 'ft') : isLiveNow ? 'play' : 'intro');
+  const toResult = () => setPhase(isLiveNow || rep.partial ? 'left' : 'ft');
   const [live] = useState(isLiveNow);
   const liveGm = () => { const e = elapsed(); return e >= TOTAL ? 90.6 : minuteAt(e, HT, LIVE); };
   const [gm, setGm] = useState(isLiveNow ? liveGm() : 0);
@@ -210,9 +212,17 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   // pick up the other manager's changes while live
   useEffect(() => {
     if (!live || phase !== 'play') return;
-    const i = setInterval(async () => { try { const n = await api(`/api/fixtures/${d.fixture.id}`); if (n.report) setD(n); } catch {} }, 6000);
+    const i = setInterval(async () => { try { const n = await api(`/api/fixtures/${d.fixture.id}`); if (n.report) setD(n); } catch {} }, 4000);
     return () => clearInterval(i);
   }, [live, phase]);
+  // the final whistle: wait for the settled result before the full-time screen
+  useEffect(() => {
+    if (phase !== 'left' && !(phase === 'play' && gm >= 90.5 && rep.partial)) return;
+    const i = setInterval(async () => {
+      try { const n = await api(`/api/fixtures/${d.fixture.id}`); if (n.report && !n.report.partial && n.fixture.status === 'done') { setD(n); setPhase('ft'); } } catch {}
+    }, phase === 'left' ? 15000 : 3000);
+    return () => clearInterval(i);
+  }, [phase, gm >= 90.5, rep.partial]);
   // events -> animations + sound
   useEffect(() => {
     if (phase !== 'play') return;
@@ -288,7 +298,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       const close = Math.abs(a - b) <= 1 && gm > 75 ? 0.3 : 0;
       crowdLevel(0.3 + Math.min(0.4, recentHot * 0.2) + close + (d.derby ? 0.15 : 0));
     }
-    if (gm >= 90.5) { const t = setTimeout(() => setPhase('ft'), 1800); return () => clearTimeout(t); }
+    if (gm >= 90.5 && !rep.partial) { const t = setTimeout(() => setPhase('ft'), 1800); return () => clearTimeout(t); }
   }, [revealed, gm, phase]);
   useEffect(() => {
     if (!fx) return;
@@ -311,8 +321,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const change = async (body: Record<string, unknown>, msg: string) => {
     setReact(null);
     try {
-      const r = await api(`/api/fixtures/${d.fixture.id}/change`, body);
-      setD({ ...raw, report: r.report });
+      await api(`/api/fixtures/${d.fixture.id}/change`, body);
+      const n = await api(`/api/fixtures/${d.fixture.id}`);
+      if (n.report) setD(n);
       toast.ok(msg);
       setPanel(null); setSubOut(null);
     } catch (e: any) { toast.bad(e.message); }
@@ -344,12 +355,29 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </div>
         <div className="row center" style={{ gap: 12 }}>
           <button className="cta shine" style={{ minHeight: 56, minWidth: 200 }} onClick={() => setPhase('play')}><span>Watch ({Math.round(LIVE / 60)} min)</span></button>
-          <button className="ghost" style={{ minHeight: 56 }} onClick={() => setPhase('ft')}><span>Skip to result</span></button>
+          <button className="ghost" style={{ minHeight: 56 }} onClick={toResult}><span>{isLiveNow ? 'Leave it to my assistant' : 'Skip to result'}</span></button>
         </div>
         <span className="tiny muted" style={{ textAlign: 'center' }}>No spoilers: the score stays hidden until you watch or skip.</span>
       </div>
     );
   }
+  if (phase === 'left') {
+    const mins = Math.max(0, Math.ceil((TOTAL - elapsed()) / 60));
+    return (
+      <div style={{ padding: '8px 14px', minHeight: '100dvh', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <header className="row" style={{ gap: 12 }}><Back d={d} /><span className="lz" style={{ fontSize: 22 }}>{d.home.name} v {d.away.name}</span><span className="tag cyan"><span>● LIVE</span></span></header>
+        <div className="panel cut col" style={{ gap: 8, maxWidth: 560, margin: '20px auto 0', alignItems: 'center', textAlign: 'center' }}>
+          <span className="lz" style={{ fontSize: 24 }}>Your assistant has the match</span>
+          <span className="small" style={{ fontWeight: 700 }}>He follows your rules from Match plan › More. The match is still being played, so nobody knows the result yet: it comes at full time{mins ? `, in about ${mins} min` : ''}.</span>
+          <div className="row" style={{ gap: 10 }}>
+            <button className="cta" onClick={() => setPhase('play')}><span>Back to the match</span></button>
+            <a className="ghost" href={`/l/${d.fixture.leagueId}?tab=fixtures`}><span>Fixtures</span></a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (phase === 'ft' && rep.partial) return <div style={{ padding: 40 }} className="col center"><span className="lz" style={{ fontSize: 26 }}>FULL TIME</span><span className="small muted">Settling the result…</span></div>;
   if (phase === 'ft') return <FullTime d={d} skipped={skip} reload={reload} />;
 
   // the live match centre
@@ -398,7 +426,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         <div className="row" style={{ gap: 4 }}>
           {!live && [1, 2, 4].map((sp) => <button key={sp} className={`seg ${speed === sp ? 'on' : ''}`} onClick={() => setSpeed(sp)}><span>{sp}x</span></button>)}
           <SoundButton />
-          <button className="ghost mc-skip" onClick={() => setPhase('ft')}><span>{live ? 'Result' : 'Skip'}</span></button>
+          <button className="ghost mc-skip" onClick={toResult}><span>{live ? 'Leave' : 'Skip'}</span></button>
         </div>
       </header>
       <div className="mc-cond tiny muted row">

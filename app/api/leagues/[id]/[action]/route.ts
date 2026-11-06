@@ -21,7 +21,7 @@ export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string; action: string }> };
 
-const FX_SELECT = `SELECT f.id, f.matchday, f.day, f.comp, f.round, f.division, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.home_id, f.away_id, f.winner_id, f.live_from,
+const FX_SELECT = `SELECT f.id, f.matchday, f.day, f.comp, f.round, f.division, f.kickoff_at, f.status, CASE WHEN f.status='done' THEN f.home_goals END AS home_goals, CASE WHEN f.status='done' THEN f.away_goals END AS away_goals, f.home_id, f.away_id, CASE WHEN f.status='done' THEN f.winner_id END AS winner_id, f.live_from,
   h.name AS home, h.short AS hs, h.color1 AS hc, h.color2 AS hc2, h.shape AS hsh, h.emblem AS hem, h.club_type AS ht, h.user_id AS hu,
   a.name AS away, a.short AS as_, a.color1 AS ac, a.color2 AS ac2, a.shape AS ash, a.emblem AS aem, a.club_type AS at, a.user_id AS au
   FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id`;

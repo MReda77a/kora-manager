@@ -42,7 +42,7 @@ export default function LiveAlert({ live, club }: { live: any[]; club: any }) {
         <span className="small muted">Your match has started. Watch it live (5 minutes, with a half-time break) and make changes, or let your assistant handle it and see the result.</span>
         <div className="row" style={{ gap: 10 }}>
           <a className="cta shine" href={`/m/${f.id}`} onClick={dismiss}><span>Watch live</span></a>
-          <a className="ghost" href={`/m/${f.id}?skip=1`} onClick={dismiss}><span>Skip to result</span></a>
+          <a className="ghost" href={`/m/${f.id}?skip=1`} onClick={dismiss}><span>Leave it to my assistant</span></a>
         </div>
         {'Notification' in globalThis && typeof Notification !== 'undefined' && Notification.permission === 'default' && (
           <button className="tiny" style={{ color: 'var(--cyan)', fontWeight: 800 }} onClick={() => Notification.requestPermission()}>Turn on kick-off notifications</button>

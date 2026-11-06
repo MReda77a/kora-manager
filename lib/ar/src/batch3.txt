@@ -91,3 +91,11 @@ Swap for {0}	تبديل بـ{0}
 +6 coins · fans steady	+6 كوينز · الجمهور ثابت
 💼 You had no sponsor, so the board signed the Safe deal for you (1M per win, 0.5M per draw). You can still choose another in the Club Office.	💼 مكانش عندك راعي، فالإدارة مضت عقد "أمان" بالنيابة عنك (1M على الكسبة، 0.5M على التعادل). لسه تقدر تختار غيره من مكتب النادي.
 TV money (0.2M a match), wins, home gates and your sponsor bring money in. Every player costs a wage, the best ones the most.	فلوس التلفزيون (0.2M كل ماتش) والكسب وتذاكر الأرض والراعي بيدخّلوا فلوس. وكل لعيب ليه مرتب، والأحسن مرتبه أعلى.
+Leave it to my assistant	سيبها للمساعد
+Leave	سيبها
+Your assistant has the match	المساعد ماسك الماتش
+He follows your rules from Match plan › More. The match is still being played, so nobody knows the result yet: it comes at full time, in about {0} min.	بيمشي على تعليماتك من خطة الماتش › كمان. الماتش لسه بيتلعب، فمحدش يعرف النتيجة لسه: هتظهر مع صافرة النهاية، بعد حوالي {0} دقيقة.
+He follows your rules from Match plan › More. The match is still being played, so nobody knows the result yet: it comes at full time.	بيمشي على تعليماتك من خطة الماتش › كمان. الماتش لسه بيتلعب، فمحدش يعرف النتيجة لسه: هتظهر مع صافرة النهاية.
+Back to the match	ارجع للماتش
+Settling the result…	بنثبّت النتيجة…
+{0} v {1}	{0} ضد {1}

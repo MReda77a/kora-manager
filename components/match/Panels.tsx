@@ -45,7 +45,8 @@ export function Lineups({ d, gm, shown }: { d: any; gm: number; shown: Ev[] }) {
     if (e.type === 'sub' && e.pid && e.pid2) { off.add(e.pid2); on.add(e.pid); }
   }
   // the rating builds up as the match goes on, toward the one he finishes with
-  const rating = (id: string) => { const l = lines.get(id); if (!l) return null; return Math.round((6 + (l.r - 6) * c01(gm / 90)) * 10) / 10; };
+  // (while live the report carries the rating as it stands; afterwards it builds toward the final one)
+  const rating = (id: string) => { const l = lines.get(id); if (!l) return null; return rep.partial ? l.r : Math.round((6 + (l.r - 6) * c01(gm / 90)) * 10) / 10; };
   const side = (s: 0 | 1) => {
     const c = s === 0 ? d.home : d.away;
     const xi: string[] = rep.lineups[s].xi, bench: string[] = rep.lineups[s].bench.filter((id: string) => on.has(id));
