@@ -184,7 +184,7 @@ function Finance({ f, season }: { f: any; season: number }) {
         {f.last ? (
           <>
             <span className="small" style={{ fontWeight: 800 }}><span style={{ color: 'var(--mint)' }}>+{Number(f.last.income).toFixed(2)}M</span> in · <span style={{ color: '#FF8A80' }}>−{Number(f.last.wages).toFixed(2)}M</span> wages</span>
-            <span className="tiny muted">Wins, home gates and your sponsor bring money in. Every player costs a wage, the best ones the most.</span>
+            <span className="tiny muted">TV money (0.2M a match), wins, home gates and your sponsor bring money in. Every player costs a wage, the best ones the most.</span>
           </>
         ) : <span className="tiny muted">No match yet{f.wagesOn ? '' : `. From season ${f.wagesFrom} every player is paid after each match, the best ones the most`}.</span>}
       </div>

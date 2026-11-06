@@ -188,6 +188,12 @@ export const BOOSTS: Record<string, { cost: number; name: string }> = {
   analyst: { cost: 35, name: 'The next analyst up, for one match' },
 };
 
+// TV money every club gets after every match, and the end-of-season prize: a base for everyone plus
+// more the higher you finish (in a 14-club top flight: about 11M for the champions, 4.5M for the last).
+export const TV_MONEY = 0.2;
+export const seasonPrize = (clubs: number, pos: number, div: number) =>
+  (div === 1 ? 4 : div === 2 ? 3 : 2) + Math.max(0, clubs - pos + 1) * (div === 1 ? 0.5 : div === 2 ? 0.3 : 0.2);
+
 // A player's wage, in millions per match: about 0.01M at 75, doubling every 5-6 points.
 // A typical squad's wages take 60-70% of what a club earns from its matches.
 export const wageOf = (ovr: number) => Math.round(0.01 * Math.exp((ovr - 75) / 8) * 1000) / 1000;

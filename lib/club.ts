@@ -216,7 +216,7 @@ export async function officeView(uid: number, leagueId: number) {
       'At the end of the season it goes back to 60.',
     ],
     sponsors: (Object.keys(SPONSORS) as SponsorKey[]).map((k) => ({ key: k, ...SPONSORS[k], estimate: est(k) })),
-    canChooseSponsor: !club.sponsor,
+    canChooseSponsor: !club.sponsor || !!club.sponsor_auto,
     attendance: Math.min(club.capacity, club.fans), gate: Math.round(Math.min(club.capacity, club.fans) * 0.00002 * 100) / 100,
     grade: club.board >= 75 ? 'A' : club.board >= 60 ? 'B' : club.board >= 45 ? 'C' : club.board >= 30 ? 'D' : 'F',
     finance: await financeOf(l, club),
@@ -238,7 +238,7 @@ async function financeOf(l: Row, club: Row) {
 export async function chooseSponsor(uid: number, leagueId: number, key: string) {
   const club = await myClub(uid, leagueId);
   if (!(key in SPONSORS)) fail(400, 'Unknown sponsor deal.');
-  const r = await q('UPDATE clubs SET sponsor=$2 WHERE id=$1 AND sponsor IS NULL RETURNING id', [club.id, key]);
+  const r = await q('UPDATE clubs SET sponsor=$2, sponsor_auto=false WHERE id=$1 AND (sponsor IS NULL OR sponsor_auto) RETURNING id', [club.id, key]);
   if (!r[0]) fail(400, 'You already signed a sponsor this season.');
   await news(leagueId, club.id, 'sponsor', `${club.name} sign the ${SPONSORS[key as SponsorKey].name} sponsor deal.`);
   return { ok: true };

@@ -86,3 +86,8 @@ M · wage	M · المرتب
 M/match	M/ماتش
 Swap for {0} · {1}M	تبديل بـ{0} · {1}M
 Swap for {0}	تبديل بـ{0}
++8 coins · fans up · board +3	+8 كوينز · الجمهور مبسوط · الإدارة +3
++6 coins · fans down · board −4	+6 كوينز · الجمهور زعلان · الإدارة −4
++6 coins · fans steady	+6 كوينز · الجمهور ثابت
+💼 You had no sponsor, so the board signed the Safe deal for you (1M per win, 0.5M per draw). You can still choose another in the Club Office.	💼 مكانش عندك راعي، فالإدارة مضت عقد "أمان" بالنيابة عنك (1M على الكسبة، 0.5M على التعادل). لسه تقدر تختار غيره من مكتب النادي.
+TV money (0.2M a match), wins, home gates and your sponsor bring money in. Every player costs a wage, the best ones the most.	فلوس التلفزيون (0.2M كل ماتش) والكسب وتذاكر الأرض والراعي بيدخّلوا فلوس. وكل لعيب ليه مرتب، والأحسن مرتبه أعلى.

@@ -6,7 +6,7 @@ import { notify, notifyMany } from './push.ts';
 import { wakeTimer } from './wake.ts';
 import { abroadMarket } from './transfers.ts';
 import { fail } from './errors.ts';
-import { CLUB_TYPES, LINE, MAX_SQUAD, SPONSORS, WINDOW_DAYS, type ClubTypeKey } from './game.ts';
+import { CLUB_TYPES, LINE, MAX_SQUAD, SPONSORS, WINDOW_DAYS, seasonPrize, type ClubTypeKey } from './game.ts';
 import { getLeague, news, standings } from './league.ts';
 import { youthPlayer, type RawPlayer } from './academy.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -274,11 +274,11 @@ async function rollClubs(l: Row) {
   // prize money by final position, 300 coins, a fresh sponsor choice, board patience restored
   const prizes = clubs.map((c) => {
     const pos = c.prev_pos || l.max_clubs;
-    const prize = Math.max(1, (l.max_clubs - pos + 1) * (c.division === 1 ? 0.8 : c.division === 2 ? 0.5 : 0.3));
+    const prize = seasonPrize(l.max_clubs, pos, c.division);
     inboxMsg(c.id, `💰 Season ${l.season} prize money: ${prize.toFixed(1)}M, plus 300 coins for the new season.`);
     return { id: c.id, prize: Math.round(prize * 100) / 100 };
   });
-  w.add(`UPDATE clubs c SET money=c.money+x.prize, coins=c.coins+300, sponsor=NULL, board=60 FROM jsonb_to_recordset($1::jsonb) AS x(id int, prize numeric) WHERE c.id=x.id`, [JSON.stringify(prizes)]);
+  w.add(`UPDATE clubs c SET money=c.money+x.prize, coins=c.coins+300, sponsor=NULL, sponsor_auto=false, board=60 FROM jsonb_to_recordset($1::jsonb) AS x(id int, prize numeric) WHERE c.id=x.id`, [JSON.stringify(prizes)]);
   w.add(`UPDATE squad SET fitness=100, fit_at=now(), out_until=0, out_reason=NULL, form_mod=0, form_until=0, form_note=NULL,
            morale=70 + (morale-70)/2, promise_day=0, talk_day=0 WHERE league_id=$1`, [l.id]);
   for (const t of ['comments', 'listings']) w.add(`DELETE FROM ${t} WHERE league_id=$1`, [l.id]);

@@ -402,6 +402,8 @@ CREATE TABLE IF NOT EXISTS transfers (
 );
 CREATE INDEX IF NOT EXISTS transfers_league ON transfers (league_id, id DESC);
 
+-- a Safe sponsor picked for a manager who forgot: they can still choose their own
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS sponsor_auto BOOLEAN NOT NULL DEFAULT false;
 -- the language a manager plays in, for phone notifications
 ALTER TABLE users ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'en';
 -- wages: leagues already playing start paying them next season, new leagues from their first match

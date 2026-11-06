@@ -828,7 +828,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
               <div key={p.id} className="row small between" style={{ fontWeight: 800 }}><span className="ellipsis">{name(p.id)}{p.g ? ` ⚽${p.g > 1 ? p.g : ''}` : ''}{p.inj ? ' ✚' : ''}</span><b style={{ color: p.r >= 7.5 ? '#2EE6A0' : p.r < 6 ? '#FF8A80' : undefined }}>{p.r.toFixed(1)}</b></div>
             ))}
           </div>
-          {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'color-mix(in srgb, var(--mint) 12%, transparent)', fontWeight: 800, color: 'var(--mint)' }}>{won ? '+10 coins · fans up · board +3' : lost ? '+3 coins · fans down · board −4' : '+5 coins · fans steady'}</div>}
+          {mine >= 0 && <div className="tiny" style={{ padding: '6px 10px', background: 'color-mix(in srgb, var(--mint) 12%, transparent)', fontWeight: 800, color: 'var(--mint)' }}>{won ? '+8 coins · fans up · board +3' : lost ? '+6 coins · fans down · board −4' : '+6 coins · fans steady'}</div>}
         </section>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>

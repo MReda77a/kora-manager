@@ -11,6 +11,8 @@ import {
   shortName, type ClubTypeKey, type SponsorKey, type Tactic, bestLeader, leadership,
   windowFromDays, WINDOW_DAYS, roleFit, rolesFor, slotLabel,
   wageOf,
+  TV_MONEY,
+  seasonPrize,
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -627,12 +629,20 @@ async function finalizeFixture(f: Row) {
   for (const [c, gf, ga, isHome] of [[home, hg, ag, true], [away, ag, hg, false]] as [Row, number, number, boolean][]) {
     const won = winnerId ? winnerId === c.id : gf > ga;
     const lost = winnerId ? winnerId !== c.id : gf < ga;
-    const coins = won ? 10 : lost ? 3 : 5;
+    // coins barely depend on the result, so the boosts they buy help a side that is struggling too
+    const coins = won ? 8 : 6;
+    // a manager who forgot to sign a sponsor gets the Safe deal (and can still pick another)
+    if (c.user_id && !c.sponsor) {
+      c.sponsor = 'safe';
+      await q(`UPDATE clubs SET sponsor='safe', sponsor_auto=true WHERE id=$1 AND sponsor IS NULL`, [c.id]);
+      await news(l.id, c.id, 'inbox', `💼 You had no sponsor, so the board signed the Safe deal for you (1M per win, 0.5M per draw). You can still choose another in the Club Office.`);
+    }
     const sp = c.sponsor && SPONSORS[c.sponsor as SponsorKey];
     // sponsor money depends on the result: a defeat earns nothing from them
     let money = won ? (sp ? sp.win : 0.5) : lost ? 0 : (sp ? sp.draw : 0.15);
     if (!lost && sp) money += gf * sp.perGoal;
     if (c.club_type === 'commercial' && !lost) money += gf * 0.1;
+    money += TV_MONEY; // TV money: every club, every match, whatever the result
     if (isHome) money += Math.min(c.capacity || 30000, c.fans || 20000) * 0.00002 * (derby ? 1.5 : 1);
     if (f.comp === 'cup' && won) money += f.round && rep ? 1 : 0;
     // big words before the match raise the stakes: a win means more, a defeat hurts more
@@ -819,7 +829,7 @@ async function roundPrize(l: Row, round: number) {
   for (let dv = 1; dv <= D; dv++) {
     const t = await standings(l.id, dv);
     t.forEach((c, i) => {
-      const prize = Math.round(Math.max(0.5, (l.max_clubs - i) * (dv === 1 ? 0.8 : dv === 2 ? 0.5 : 0.3)) * 0.5 * 10) / 10;
+      const prize = Math.round(seasonPrize(l.max_clubs, i + 1, dv) * 0.5 * 10) / 10;
       prizes.push({ id: c.id, prize });
       if (c.user_id) w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'inbox',$3)`, [l.id, c.id, `💰 First-round prize money: ${prize.toFixed(1)}M for finishing the round ${i + 1}${['st', 'nd', 'rd'][i] || 'th'}.`]);
     });
