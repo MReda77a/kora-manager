@@ -29,22 +29,12 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
   const star = club.star;
   return (
     <div className="col" style={{ gap: 10, minHeight: '100%' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 1.15fr) minmax(220px, 1fr) minmax(150px, 170px)', gap: 12 }} className="home-grid">
+      {league.status === 'running' && <Today lid={lid} go={go} stamp={d} />}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 1.3fr) minmax(200px, 1fr) minmax(150px, 170px)', gap: 12 }} className="home-grid">
         {next ? <NextMatch f={next} club={club} now={now} go={go} /> : league.status === 'finished' || league.status === 'rolling'
           ? <SeasonOver lid={lid} d={d} reload={reload} toast={toast} go={go} />
           : <div className="panel cut lz" style={{ fontSize: 22, justifyContent: 'center' }}>No more matches</div>}
         <div className="col" style={{ gap: 12 }}>
-          <section className="panel cut rise" style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <div className="col" style={{ alignItems: 'center', gap: 4 }}>
-              <span className="tag"><span>Team</span></span>
-              <Ring v={club.strength} size={84} label={club.strength} font={30} color="var(--mint)" />
-            </div>
-            <div className="col grow" style={{ gap: 10 }}>
-              <Stat label="Morale" v={club.morale} color="var(--cyan)" />
-              <Stat label="Fitness" v={club.fitness} color="var(--cyan)" />
-              <Stat label="Fans" v={Math.round(Math.min(100, (club.fans / club.capacity) * 100))} color="var(--mint)" note={`${(club.fans / 1000).toFixed(1)}k`} />
-            </div>
-          </section>
           <section className="panel cut rise" style={{ gap: 4, animationDelay: '.08s' }}>
             <div className="row between"><span className="tag"><span>{league.divisions > 1 ? league.divisionNames[club.division - 1] : `${league.poolName.replace(' League', '')} League`}</span></span><button className="tiny" style={{ color: 'var(--muted)', fontWeight: 800, minHeight: 30, padding: '0 8px' }} onClick={() => go('table')}>TABLE ›</button></div>
             {slice.map((t: any) => {
@@ -81,7 +71,6 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
           {club.offers > 0 && <span className="tag" style={{ background: '#2EE6A0' }}><span>{club.offers} offer{club.offers > 1 ? 's' : ''} for your players</span></span>}
         </button>
       )}
-      {league.status === 'running' && <Today lid={lid} go={go} stamp={d} />}
       <Inbox club={club} go={go} />
       <MoreHome d={d} go={go} />
       {league.isOwner && <OwnerSchedule lid={lid} league={league} toast={toast} reload={reload} />}

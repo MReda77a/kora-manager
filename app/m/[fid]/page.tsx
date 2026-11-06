@@ -92,12 +92,7 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
   const cd = s >= 86400 ? `${Math.floor(s / 86400)}d ${hms.slice(0, 5)}` : hms;
   const rivals = d.home.human && d.away.human; // pre-match words count when two managers meet
   const mine = d.home.mine || d.away.mine;
-  const [text, setText] = useState('');
-  const [tone, setTone] = useState('confident');
   const title = d.derby ? `THE ${d.home.name.split(' ')[0].toUpperCase()} DERBY` : d.fixture.comp === 'cup' ? d.fixture.roundName : `Matchday ${d.fixture.matchday}`;
-  const post = async () => {
-    try { await api(`/api/leagues/${d.fixture.leagueId}/comment`, { text, tone: rivals ? tone : undefined }); setText(''); toast.ok('Sent to the matchday paper'); reload(); } catch (e: any) { toast.bad(e.message); }
-  };
   const tension = d.derby ? 70 + ((d.home.id * 7 + d.away.id * 13) % 25) : 0;
   return (
     <div style={{ padding: '8px 14px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: '100dvh', maxWidth: 1320, margin: '0 auto' }}>
@@ -142,13 +137,7 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
             <>
               <a className="cta" href={`/l/${d.fixture.leagueId}?tab=lineup`} style={{ minHeight: 56 }}><span>Set lineup</span></a>
               <a className="ghost" href={`/l/${d.fixture.leagueId}?tab=tactics`}><span>Tactics, penalties & assistant</span></a>
-              <div className="panel cut" style={{ gap: 6 }}>
-                <span className="kicker">{rivals ? 'Mind games' : 'Say something to the paper'}</span>
-                {rivals && <div className="segrow">{(['calm', 'confident', 'provocative'] as const).map((t) => <button key={t} className={`seg ${tone === t ? 'on' : ''}`} onClick={() => setTone(t)}><span>{t[0].toUpperCase() + t.slice(1)}</span></button>)}</div>}
-                {rivals && <span className="tiny muted">{tone === 'calm' ? 'Calm: no effect.' : tone === 'confident' ? 'Confident: your players +1 tonight.' : 'Provocative: +2, but the game gets dirtier.'}</span>}
-                <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={160} rows={2} placeholder="Your words go in the matchday paper…" style={{ background: 'rgba(6, 14, 26,0.45)', border: '1px solid rgba(255,255,255,0.12)', color: 'inherit', padding: 8, resize: 'none', font: 'inherit' }} />
-                <button className={`cta small ${d.derby ? 'gold' : ''}`} disabled={text.trim().length < 2} onClick={post}><span>Send to the matchday paper</span></button>
-              </div>
+              <a className="ghost" href={`/l/${d.fixture.leagueId}?tab=press`}><span>{rivals ? '🎙️ Mind games: talk to the press' : '🎙️ Talk to the press'}</span></a>
             </>
           ) : <div className="panel cut small muted">Comes on at the kick-off time. Open this page then to watch it live.</div>}
           <span className="tiny muted">The match plays at kick-off whether you watch or not. Watching live lets you change tactics and make subs. If you skip, your assistant follows your rules.</span>

@@ -68,18 +68,7 @@ export default function PressTab({ lid, d, go, toast }: TabProps) {
   const outlet = useMemo(() => OUTLETS[(qi * 7 + (v?.fixtureId || 0)) % OUTLETS.length], [qi, v?.fixtureId]);
 
   if (!v) return <Spinner />;
-  if (!v.available) {
-    return (
-      <div className="col" style={{ gap: 10 }}>
-        <BackHead title="Press conference" />
-        <div className="panel cut col" style={{ gap: 8, maxWidth: 560 }}>
-          <span className="lz" style={{ fontSize: 22 }}>🎙️ No press conference right now</span>
-          <span className="small" style={{ fontWeight: 700 }}>The press room opens before the big ones: a <b style={{ color: '#F2C14E' }}>derby</b> (two Fan Club managers) and the <b style={{ color: '#F2C14E' }}>cup final</b>.</span>
-          <span className="small muted">Five questions about the table, the form, the stars, the referee and what the other manager said. Every answer changes the match: your team's spirit, the rival's anger, the referee's patience and what the fans expect. Everything you say is printed in the news.</span>
-        </div>
-      </div>
-    );
-  }
+  if (!v.available) return <TalkRoom lid={lid} toast={toast} />;
 
   const fire = (big: boolean) => setFlash((f) => ({ n: f.n + 1, big }));
   const begin = () => {
@@ -264,6 +253,63 @@ function Flashes({ n, big }: { n: number; big: boolean }) {
     <div className="press-flashes" aria-hidden="true">
       {big && <div className="press-white" />}
       {spots.map((p, i) => <i key={i} style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.s, height: p.s, animationDelay: `${p.d}s` }} />)}
+    </div>
+  );
+}
+
+// Everything you say in public, in one place: a word before the next match (printed in the paper; the
+// tone counts when you face another manager) and an answer to your fans after the last one.
+// The full press conference takes over this room before a derby or a cup final.
+function TalkRoom({ lid, toast }: { lid: number; toast: TabProps['toast'] }) {
+  const [pv, setPv] = useState<any>(null);
+  const [so, setSo] = useState<any>(null);
+  const [text, setText] = useState('');
+  const [tone, setTone] = useState('confident');
+  const load = () => {
+    api(`/api/leagues/${lid}/talk`).then(setPv).catch(() => setPv({}));
+    api(`/api/leagues/${lid}/social`).then(setSo).catch(() => setSo({}));
+  };
+  useEffect(load, [lid]);
+  if (!pv || !so) return <Spinner />;
+  const next = pv.next;
+  const said = pv.said;
+  const rivals = !!next?.rivals;
+  const say = async () => {
+    try { await api(`/api/leagues/${lid}/comment`, { text, tone: rivals ? tone : undefined }); setText(''); toast.ok('Your words go to print'); load(); } catch (e: any) { toast.bad(e.message); }
+  };
+  const reply = async (choice: string) => {
+    try { const r = await api(`/api/leagues/${lid}/fans-reply`, { choice, line: so.want?.find((w: any) => w.line)?.line }); toast.ok(r.note); load(); } catch (e: any) { toast.bad(e.message); }
+  };
+  return (
+    <div className="col" style={{ gap: 10 }}>
+      <BackHead title="Press room" sub="Everything you say in public, in one place" />
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
+        <section className="panel cut" style={{ gap: 8 }}>
+          <span className="kicker">Before the match</span>
+          {next ? <b className="small">{next.home} v {next.away}{next.derby ? ' · DERBY' : ''}</b> : <span className="small muted">No match coming up.</span>}
+          {said && <span className="small" style={{ fontWeight: 700 }}>You said: “{said.text}”{said.tone ? <span className="tiny muted"> · {said.tone}</span> : null}</span>}
+          {next && <>
+            {rivals ? (
+              <>
+                <div className="segrow">{(['calm', 'confident', 'provocative'] as const).map((t) => <button key={t} className={`seg ${tone === t ? 'on' : ''}`} onClick={() => setTone(t)}><span>{t[0].toUpperCase() + t.slice(1)}</span></button>)}</div>
+                <span className="tiny muted">{tone === 'calm' ? 'Calm: no effect.' : tone === 'confident' ? 'Confident: your players +1 tonight.' : 'Provocative: +2, but the game gets dirtier.'}</span>
+              </>
+            ) : <span className="tiny muted">Against an AI club your words only go in the paper. Against another manager, the tone changes the match.</span>}
+            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={160} rows={2} placeholder={said ? 'Say something else…' : 'Your words go in the matchday paper…'} className="talk-input" />
+            <button className="cta small" disabled={text.trim().length < 2} onClick={say}><span>{said ? 'Change what you said' : 'Say it'}</span></button>
+          </>}
+        </section>
+        <section className="panel cut" style={{ gap: 8 }}>
+          <span className="kicker">Your fans</span>
+          {so.mood !== undefined && <b className="small" style={{ color: so.mood >= 60 ? 'var(--mint)' : so.mood >= 35 ? '#F2C14E' : '#FF5C6C' }}>{so.mood >= 60 ? 'Happy' : so.mood >= 35 ? 'Restless' : 'Angry'} · {so.mood}</b>}
+          {so.replyTo ? <>
+            <span className="small" style={{ fontWeight: 700 }}>{so.replyTo.handle}: “{so.replyTo.text}”</span>
+            {so.replied ? <span className="small muted">You answered this matchday. Next chance after the next match.</span>
+              : so.options.map((o: any) => <button key={o.key} className="seg fan-reply" title={o.note} onClick={() => reply(o.key)}><span>{o.text}<small>{o.note}</small></span></button>)}
+          </> : <span className="small muted">Quiet so far. The fans start posting after the first matchday.</span>}
+        </section>
+      </div>
+      <span className="tiny muted">Before a derby or a cup final this room hosts a full press conference: five questions, and every answer changes the match.</span>
     </div>
   );
 }

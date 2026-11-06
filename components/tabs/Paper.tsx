@@ -7,18 +7,12 @@ import type { TabProps } from './types.ts';
 export default function PaperTab({ lid, d: ov, toast, go }: TabProps) {
   const [d, setD] = useState<any>(null);
   const [idx, setIdx] = useState(-1); // -1 = preview of the next day
-  const [text, setText] = useState('');
-  const [tone, setTone] = useState('confident');
   const load = () => api(`/api/leagues/${lid}/paper`).then((r) => { setD(r); });
   useEffect(() => { load(); }, [lid]);
   if (!d) return <Spinner />;
   const ed = idx >= 0 ? d.editions[idx] : null;
   const pv = d.preview;
   const name = d.name || ov.league.poolName;
-  const myDerby = pv?.fixtures.some((f: any) => f.derby && (f.home === ov.club.name || f.away === ov.club.name));
-  const post = async () => {
-    try { await api(`/api/leagues/${lid}/comment`, { text, tone: myDerby ? tone : undefined }); setText(''); toast.ok('Your words go to print'); load(); } catch (e: any) { toast.bad(e.message); }
-  };
   const date = (s: string) => new Date(s).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
   return (
     <div className="col" style={{ gap: 8 }}>
@@ -86,17 +80,7 @@ export default function PaperTab({ lid, d: ov, toast, go }: TabProps) {
               <div style={{ borderLeft: '1px solid #1B1410', paddingLeft: 12 }}>
                 <div className="kick">On the card</div>
                 {pv.fixtures.map((f: any) => <div key={f.id} style={{ fontFamily: 'Cairo, sans-serif', fontWeight: 800, fontSize: 13, padding: '2px 0', background: f.derby ? 'rgba(242,193,78,0.35)' : undefined }}>{f.home} v {f.away}</div>)}
-                <div className="kick" style={{ marginTop: 10 }}>Your words</div>
-                {myDerby && (
-                  <div className="row" style={{ gap: 4, margin: '4px 0' }}>
-                    {(['calm', 'confident', 'provocative'] as const).map((t) => <button key={t} onClick={() => setTone(t)} style={{ flex: 1, padding: '3px 0', fontFamily: 'Cairo', fontWeight: 900, fontSize: 11, background: tone === t ? '#1B1410' : 'transparent', color: tone === t ? '#F4ECDC' : '#1B1410', border: '1px solid #1B1410' }}>{t.toUpperCase()}</button>)}
-                  </div>
-                )}
-                {myDerby && <div style={{ fontFamily: 'Cairo', fontSize: 11, fontWeight: 700, color: '#6A5A4A' }}>{tone === 'calm' ? 'Calm: no effect.' : tone === 'confident' ? 'Confident: your players +1 in the derby.' : 'Provocative: +2, but the derby gets dirtier.'}</div>}
-                <div className="row" style={{ gap: 4, marginTop: 4 }}>
-                  <input value={text} onChange={(e) => setText(e.target.value)} maxLength={160} placeholder="Say something…" style={{ background: '#fff', color: '#1B1410', borderColor: '#1B1410', height: 34, fontFamily: 'Cairo' }} />
-                  <button onClick={post} disabled={text.trim().length < 2} style={{ background: '#1B1410', color: '#F4ECDC', padding: '0 12px', fontFamily: 'Cairo', fontWeight: 900, height: 34 }}>Post</button>
-                </div>
+                <button onClick={() => go('press')} style={{ marginTop: 10, background: '#1B1410', color: '#F4ECDC', padding: '6px 12px', fontFamily: 'Cairo', fontWeight: 900 }}>Talk to the press ›</button>
               </div>
             </div>
           </>

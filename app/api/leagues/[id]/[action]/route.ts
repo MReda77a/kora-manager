@@ -76,7 +76,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
       league: { id: fresh.id, name: fresh.name, code: fresh.code, pool: fresh.pool, poolName: POOLS[fresh.pool], cupName: CUP_NAMES[fresh.pool], status: fresh.status, kickoffUtcMin: fresh.kickoff_utc_min, maxClubs: fresh.max_clubs, aiLevel: fresh.ai_level, isOwner: fresh.owner_id === s.uid,
         season: fresh.season, divisions: fresh.divisions || 1, divisionNames: Array.from({ length: fresh.divisions || 1 }, (_, i) => K.divisionName(i + 1)), movers: K.movers(fresh.max_clubs), startDivision: fresh.start_division },
       club: club ? { ...club, money: Number(club.money), type: CLUB_TYPES[club.club_type as ClubTypeKey], pos, targetPos: (club.division || 1) > 1 ? K.movers(fresh.max_clubs) : CLUB_TYPES[club.club_type as ClubTypeKey].targetPos(fresh.max_clubs), ...extra } : null,
-      table, division, window: win, fixtures: mine, live, news: newsRows, matchdays: md, pending: run.remaining, now: new Date().toISOString(),
+      table, division, window: win, packsOpen: fresh.status === 'setup' || (fresh.status === 'running' && !(md?.played)), fixtures: mine, live, news: newsRows, matchdays: md, pending: run.remaining, now: new Date().toISOString(),
     };
   }
   if (action === 'squad') {
@@ -139,6 +139,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
   if (action === 'social') { mustClub(); return { ...(await MD.socialFeed(s.uid, lid)), options: MD.replyOptions() }; }
   if (action === 'clubview') { mustClub(); return V.clubView(lid, Number(new URL(req.url).searchParams.get('club'))); }
   if (action === 'friendly') return FR.friendlyView(s.uid, lid);
+  if (action === 'talk') return C.talkView(s.uid, lid);
   if (action === 'analyst') return A.analystReport(s.uid, lid, new URL(req.url).searchParams.get('refresh') === '1');
   if (action === 'scout') {
     const c = mustClub();
@@ -189,7 +190,9 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'schedule': return L.updateSchedule(s.uid, lid, b);
     case 'pack': {
       const l = await L.getLeague(lid);
-      if (l.status !== 'setup' && !(await L.windowFor(l)).open) fail(400, 'Packs open while the transfer window is open: pre-season and the first 5 days of each round.');
+      // packs are a pre-season thing: before the first match of each season, then coins buy boosts
+      const played = await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM fixtures WHERE league_id=$1 AND comp='league' AND status='done'`, [lid]);
+      if (!(l.status === 'setup' || (l.status === 'running' && !played?.n))) fail(400, 'Packs are only sold before the season starts. Spend your coins on boosts.');
       if (b.pack === 'staff') return L.openStaffPack(s.uid, lid);
       if (!(b.pack in PACKS)) fail(400, 'Unknown pack.');
       return L.openPack(s.uid, lid, b.pack);
@@ -199,6 +202,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'unlist': return L.unlist(s.uid, lid, Number(b.listingId));
     case 'buy': return Number(b.listingId) < 0 ? T.buyAbroad(s.uid, lid, -Number(b.listingId)) : L.buy(s.uid, lid, Number(b.listingId));
     case 'train': return C.startTraining(s.uid, lid, b);
+    case 'boost': return C.useBoost(s.uid, lid, b);
     case 'untrain': return C.cancelTraining(s.uid, lid, Number(b.id));
     case 'sponsor': return C.chooseSponsor(s.uid, lid, String(b.key));
     case 'stadium': return C.renameStadium(s.uid, lid, String(b.name));

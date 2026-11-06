@@ -3,7 +3,7 @@
 import { notifyEach } from './push.ts';
 import { q, one, type Row, writes } from './db.ts';
 import { fail } from './errors.ts';
-import { recoveryPerDay, CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey } from './game.ts';
+import { recoveryPerDay, CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey , wageOf, BOOSTS, fitNow } from './game.ts';
 import { getLeague, myClub, news, squadOf, standings } from './league.ts';
 import { inboxOf } from './people.ts';
 import { movers } from './career.ts';
@@ -219,6 +219,19 @@ export async function officeView(uid: number, leagueId: number) {
     canChooseSponsor: !club.sponsor,
     attendance: Math.min(club.capacity, club.fans), gate: Math.round(Math.min(club.capacity, club.fans) * 0.00002 * 100) / 100,
     grade: club.board >= 75 ? 'A' : club.board >= 60 ? 'B' : club.board >= 45 ? 'C' : club.board >= 30 ? 'D' : 'F',
+    finance: await financeOf(l, club),
+  };
+}
+
+// The club's money at a glance: the balance, what the squad costs per match, the last match's books.
+async function financeOf(l: Row, club: Row) {
+  const sq = await q<{ o: number }>('SELECT p.ovr + s.ovr_delta AS o FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1', [club.id]);
+  const wageBill = Math.round(sq.reduce((a, x) => a + wageOf(Number(x.o)), 0) * 100) / 100;
+  const from = l.wages_from ?? 1;
+  return {
+    money: Number(club.money), wageBill, players: sq.length,
+    wagesOn: l.season >= from, wagesFrom: from,
+    last: club.fin && club.fin.day ? club.fin : null,
   };
 }
 
@@ -248,6 +261,18 @@ export async function expandStadium(uid: number, leagueId: number) {
 }
 
 // ---------------------------------------------------------------- the paper
+// The press room's 'before the match' card: your next match and what you have said about it.
+export async function talkView(uid: number, leagueId: number) {
+  const club = await myClub(uid, leagueId);
+  const f = await one(
+    `SELECT f.id, f.day, h.name AS home, a.name AS away, h.user_id AS hu, a.user_id AS au, h.club_type AS ht, a.club_type AS at
+     FROM fixtures f JOIN clubs h ON h.id=f.home_id JOIN clubs a ON a.id=f.away_id
+     WHERE f.league_id=$1 AND f.status='scheduled' AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.day LIMIT 1`, [leagueId, club.id]);
+  if (!f) return { next: null, said: null };
+  const said = await one('SELECT text, tone FROM comments WHERE club_id=$1 AND day=$2', [club.id, f.day]);
+  return { next: { home: f.home, away: f.away, rivals: !!f.hu && !!f.au, derby: f.ht === 'fan' && f.at === 'fan' && !!f.hu && !!f.au }, said };
+}
+
 export async function postComment(uid: number, leagueId: number, b: { text: string; tone?: string }) {
   const club = await myClub(uid, leagueId);
   const text = String(b.text || '').trim().slice(0, 160);
@@ -278,7 +303,7 @@ export async function paperView(leagueId: number, uid: number) {
     );
     preview = {
       day: nd.day, kind: nd.kind, matchday: nd.matchday, kickoff: nd.kickoff_at,
-      fixtures: fx.map((f) => ({ id: f.id, home: f.home, away: f.away, derby: f.ht === 'fan' && f.at === 'fan' && !!f.hu && !!f.au })),
+      fixtures: fx.map((f) => ({ id: f.id, home: f.home, away: f.away, derby: f.ht === 'fan' && f.at === 'fan' && !!f.hu && !!f.au, rivals: !!f.hu && !!f.au, mine: f.hu === uid || f.au === uid })),
       comments,
     };
   }
@@ -287,3 +312,41 @@ export async function paperView(leagueId: number, uid: number) {
 }
 
 export { news };
+
+// ---------------------------------------------------------------- coin boosts
+export async function useBoost(uid: number, leagueId: number, b: Row) {
+  const kind = String(b.kind || '');
+  const boost = BOOSTS[kind];
+  if (!boost) fail(400, 'Unknown boost.');
+  const club = await myClub(uid, leagueId);
+  const day = await nextDay(leagueId, club.id);
+  let apply: () => Promise<unknown>;
+  // check everything first, then take the coins, then do it
+  if (kind === 'train') {
+    const t = await one('SELECT id FROM training WHERE id=$1 AND club_id=$2 AND done=false', [Number(b.id), club.id]);
+    if (!t) fail(400, 'There is no training to finish.');
+    apply = async () => { await q('UPDATE training SET ends_at=now() WHERE id=$1', [t!.id]); await applyTrainings(leagueId); };
+  } else if (kind === 'heal') {
+    const p = await one('SELECT player_id, out_until, out_reason FROM squad WHERE club_id=$1 AND player_id=$2', [club.id, String(b.playerId)]);
+    if (!p || (p.out_until ?? 0) < day || p.out_reason === 'Suspended') fail(400, 'He is not injured.');
+    const left = p!.out_until - day + 1;
+    apply = () => q('UPDATE squad SET out_until=$3 WHERE club_id=$1 AND player_id=$2', [club.id, p!.player_id, day - 1 + Math.floor(left / 2)]);
+  } else if (kind === 'recover') {
+    const p = await one('SELECT player_id, fitness, fit_at, rec_day FROM squad WHERE club_id=$1 AND player_id=$2', [club.id, String(b.playerId)]);
+    if (!p) fail(400, 'That player is not in your squad.');
+    if (p!.rec_day === day) fail(400, 'He already had a recovery session before this match.');
+    const now = fitNow(p!.fitness, p!.fit_at, (await staffLevels(club.id)).physio);
+    if (now >= 98) fail(400, 'He is already fresh.');
+    apply = () => q('UPDATE squad SET fitness=$3, fit_at=now(), rec_day=$4 WHERE club_id=$1 AND player_id=$2', [club.id, p!.player_id, Math.min(100, Math.round(now + 20)), day]);
+  } else {
+    const f = await one(`SELECT id FROM fixtures WHERE league_id=$1 AND status='scheduled' AND (home_id=$2 OR away_id=$2) ORDER BY day, id LIMIT 1`, [leagueId, club.id]);
+    if (!f) fail(400, 'No match coming up.');
+    if (Math.max(Number(club.analyst) || 1, club.club_type === 'academy' ? 2 : 1) >= 3) fail(400, 'You already have the best analyst.');
+    if (club.analyst_boost_fx === f!.id) fail(400, 'Already boosted for this match.');
+    apply = () => q('UPDATE clubs SET analyst_boost_fx=$2 WHERE id=$1', [club.id, f!.id]);
+  }
+  const paid = await q('UPDATE clubs SET coins=coins-$1 WHERE id=$2 AND coins>=$1 RETURNING coins', [boost.cost, club.id]);
+  if (!paid[0]) fail(400, `Not enough coins: this costs ${boost.cost}.`);
+  await apply!();
+  return { ok: true, coins: paid[0].coins };
+}

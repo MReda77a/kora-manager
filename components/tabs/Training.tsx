@@ -12,7 +12,7 @@ const SKILLS: Record<string, string[]> = {
   FWD: ['Finishing', 'Pace', 'Dribbling', 'Heading', 'Composure', 'Crossing'],
 };
 
-export default function TrainingTab({ lid, toast }: TabProps) {
+export default function TrainingTab({ lid, toast, reload }: TabProps) {
   const [d, setD] = useState<any>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [mode, setMode] = useState<'attr' | 'pos'>('attr');
@@ -27,6 +27,8 @@ export default function TrainingTab({ lid, toast }: TabProps) {
     try { await api(`/api/leagues/${lid}/train`, { playerId: p.id, kind: mode, target }); toast.ok(`${p.name} started training`); setTarget(null); load(); } catch (e: any) { toast.bad(e.message); }
   };
   const cancel = async (id: number) => { await api(`/api/leagues/${lid}/untrain`, { id }); load(); };
+  // coins: finish it now
+  const rush = async (id: number) => { try { await api(`/api/leagues/${lid}/boost`, { kind: 'train', id }); toast.ok('Training done'); load(); reload?.(); } catch (e: any) { toast.bad(e.message); } };
   const cur = p && target && mode === 'attr' ? p.attrs[target] ?? 50 : 0;
   const gain = cur < 70 ? 3 : 2;
   const busy = p && activeFor(p.id);
@@ -53,6 +55,7 @@ export default function TrainingTab({ lid, toast }: TabProps) {
               <div className="col" style={{ gap: 8 }}>
                 <div className="row-item sel" style={{ minHeight: 48 }}>
                   <span className="grow"><b>{busy.kind === 'pos' ? `Learning to play ${busy.target}` : `Improving ${busy.target} (+${busy.amount})`}</b><br /><span className="tiny muted">Ready {when(busy.ends_at)}</span></span>
+                  <button className="seg" onClick={() => rush(busy.id)} title="Spend coins to finish it now"><span>⚡ Finish now · 30 coins</span></button>
                   <button className="seg" onClick={() => cancel(busy.id)}><span>Stop</span></button>
                 </div>
                 <Bar v={Math.min(100, ((Date.now() - new Date(busy.started_at).getTime()) / (new Date(busy.ends_at).getTime() - new Date(busy.started_at).getTime())) * 100)} color="#2EE6A0" h={8} />
@@ -82,7 +85,7 @@ export default function TrainingTab({ lid, toast }: TabProps) {
                 {target && (
                   <div className="panel" style={{ background: 'rgba(6, 14, 26,0.35)', gap: 6 }}>
                     <div className="row between"><b>{mode === 'attr' ? target : `New position: ${target}`}</b>{mode === 'attr' && <span className="lz" style={{ fontSize: 22 }}>{cur} → <span style={{ color: '#2EE6A0' }}>{Math.min(99, cur + gain)}</span></span>}</div>
-                    <span className="tiny muted">{mode === 'attr' ? `About ${Math.round(16 * (1 - d.coach * 0.1))} hours for +1 or +2. Up to +6 per skill each season.` : `About ${Math.round(36 * (1 - d.coach * 0.1))} hours. He then plays ${target} without the out-of-position penalty.`}</span>
+                    <span className="tiny muted">{mode === 'attr' ? `About ${Math.round(16 * (1 - d.coach * 0.1))} hours for +1 or +2. Every 2 points add 1 to his overall, up to his potential.` : `About ${Math.round(36 * (1 - d.coach * 0.1))} hours. He then plays ${target} without the out-of-position penalty.`}</span>
                     <button className="cta small" onClick={start} disabled={d.active.length >= d.slots}><span>{d.active.length >= d.slots ? 'All slots busy' : 'Start training'}</span></button>
                   </div>
                 )}

@@ -142,7 +142,7 @@ table.t td.num, table.t th.num { text-align: right; }
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 16px), 50% 100%, 0 calc(100% - 16px), 0 12px);
   display: flex; flex-direction: column;
 }
-.pcard .no { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 54px; opacity: 0.35; padding-bottom: 8px; }
+.pcard .no { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 54px; opacity: 0.16; padding-bottom: 8px; }
 .pcard .ovr { font-family: var(--display); font-size: 22px; line-height: 1; }
 .pcard .pos { font-size: 11px; font-weight: 900; }
 .pcard .nm { margin-top: auto; text-align: center; font-weight: 900; font-size: 11px; line-height: 1.1; padding-bottom: 12px; position: relative; }
@@ -761,3 +761,8 @@ html.ar, html.ar body, html.ar .shell, html.ar .main { overflow-x: clip; }
 .why-next { font-weight: 900; color: #F2C14E; letter-spacing: 0.06em; }
 @media (max-width: 640px) { .why { grid-template-columns: 1fr; gap: 8px; } }
 @media (max-height: 430px) { .why-title { font-size: 21px; } .why-r { font-size: 13px; } }
+
+.fin-card { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 640px) { .fin-card { grid-template-columns: 1fr; } }
+
+.mini-btn { padding: 2px 8px !important; min-height: 26px !important; font-size: 12px !important; }

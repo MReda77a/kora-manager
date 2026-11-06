@@ -2,7 +2,7 @@
 import { timeLeft } from '../WindowSplash.tsx';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/client.ts';
-import { LINE } from '../../lib/game.ts';
+import { LINE , wageOf } from '../../lib/game.ts';
 import { Bar, BackHead, PlayerCard, Spinner } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
@@ -64,7 +64,7 @@ function Listings({ lid, toast, reload }: TabProps) {
               {['Pace', 'Passing', 'Finishing', 'Tackling', 'Stamina'].map((k) => (
                 <div key={k} className="row tiny" style={{ gap: 6 }}><span style={{ width: 62 }} className="muted">{k}</span><Bar v={sel.attrs?.[k] ?? 0} /><b style={{ width: 22, textAlign: 'right' }}>{sel.attrs?.[k]}</b></div>
               ))}
-              <div className="row between"><span className="lz" style={{ fontSize: 26, color: 'var(--cyan)' }}>{sel.price.toFixed(1)}M</span><span className="tiny muted">value ≈ {sel.attrs?.v}M</span></div>
+              <div className="row between"><span className="lz" style={{ fontSize: 26, color: 'var(--cyan)' }}>{sel.price.toFixed(1)}M</span><span className="tiny muted">value ≈ {sel.attrs?.v}M · wage {wageOf(sel.ovr).toFixed(3)}M/match</span></div>
               {sel.sellerId === d.myClub ? <span className="tag"><span>Your listing</span></span> : <button className="cta" disabled={!d.window.open || d.money < sel.price} onClick={() => buy(sel)}><span>{d.money < sel.price ? 'Not enough money' : 'Buy now'}</span></button>}
             </>
           ) : <span className="small muted">Pick a player to see details.</span>}
@@ -161,7 +161,7 @@ function MakeOffer({ lid, toast, reload }: TabProps) {
         <aside className="panel cut" style={{ gap: 8 }}>
           {!sel ? <span className="small muted">Pick any player at another club. AI clubs answer straight away; managers answer from their inbox. Offers only work while the window is open.</span> : (
             <>
-              <div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.ovr} OVR · {sel.club}</span><span className="tiny muted">Value ≈ {sel.v.toFixed(1)}M{sel.loan ? ' · on loan (can not move)' : ''}</span></div>
+              <div className="col" style={{ gap: 1 }}><b>{sel.name}</b><span className="tiny muted">{sel.pos} · {sel.age} yrs · {sel.ovr} OVR · {sel.club}</span><span className="tiny muted">Value ≈ {sel.v.toFixed(1)}M · wage {wageOf(sel.ovr).toFixed(3)}M/match{sel.loan ? ' · on loan (can not move)' : ''}</span></div>
               <div className="row" style={{ gap: 4 }}>{Object.entries(KIND_LABEL).map(([k, l]) => <button key={k} className={`seg ${kind === k ? 'on' : ''}`} onClick={() => { setKind(k); setAmount(suggest(sel, k)); }}><span>{l}</span></button>)}</div>
               {kind === 'swap' && (
                 <select value={swap} onChange={(e) => { setSwap(e.target.value); setAmount(suggest(sel, 'swap', e.target.value)); }} style={{ height: 34 }}>
@@ -207,7 +207,7 @@ function OffersInbox({ lid, toast, reload }: TabProps) {
         <div className="row" style={{ gap: 6 }}>
           <button className="seg on" onClick={() => act(o.id, 'accept')}><span>Accept</span></button>
           <button className="seg" onClick={() => act(o.id, 'reject')}><span>Reject</span></button>
-          <input type="number" step="0.1" placeholder="Your price" value={counter[o.id] || ''} onChange={(e) => setCounter({ ...counter, [o.id]: e.target.value })} style={{ width: 90, height: 30 }} />
+          <input type="number" step="0.1" placeholder="Price (M)" value={counter[o.id] || ''} onChange={(e) => setCounter({ ...counter, [o.id]: e.target.value })} style={{ width: 110, minWidth: 110, height: 30 }} />
           <button className="seg" disabled={!counter[o.id]} onClick={() => act(o.id, 'counter', Number(counter[o.id]))}><span>Counter</span></button>
         </div>
       )}

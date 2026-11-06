@@ -12,8 +12,8 @@ import { previewSides, recentPlans } from './season.ts';
 
 export const ANALYST_LEVELS = {
   1: { name: 'Part-time analyst', price: 0, sims: 0, text: 'Spots their weak points and gives a rough plan. Can be wrong.' },
-  2: { name: 'Match analyst', price: 5, sims: 12, text: 'Plays the match through hundreds of times. Knows their habits.' },
-  3: { name: 'Head of analysis', price: 12, sims: 30, text: 'The sharpest advice, and what their manager is likely to pick.' },
+  2: { name: 'Match analyst', price: 5, sims: 30, text: 'Plays the match through hundreds of times. Knows their habits.' },
+  3: { name: 'Head of analysis', price: 12, sims: 60, text: 'The sharpest advice, and what their manager is likely to pick.' },
 } as const;
 type Lvl = 1 | 2 | 3;
 
@@ -39,12 +39,15 @@ const pct = (x: number) => Math.round(x * 100);
 export async function analystReport(uid: number, leagueId: number, refresh = false) {
   const l = await getLeague(leagueId);
   const club = await myClub(uid, leagueId);
-  const level = analystLevel(club);
-  const staff = { level, ...ANALYST_LEVELS[level], next: level < 3 ? { level: level + 1, ...ANALYST_LEVELS[(level + 1) as Lvl] } : null };
+  const own = analystLevel(club);
   const f = await one(`SELECT * FROM fixtures WHERE league_id=$1 AND status='scheduled' AND (home_id=$2 OR away_id=$2) ORDER BY day, id LIMIT 1`, [leagueId, club.id]);
+  // a coin boost lends you the next analyst up for one match
+  const boosted = !!f && club.analyst_boost_fx === f.id && own < 3;
+  const level = (boosted ? own + 1 : own) as Lvl;
+  const staff = { level, own, boosted, ...ANALYST_LEVELS[level], next: own < 3 ? { level: own + 1, ...ANALYST_LEVELS[(own + 1) as Lvl] } : null };
   if (!f) return { staff, report: null };
   // the report is kept until your plan, shape or line-up changes
-  const key = String(hashSeed('v2', level, JSON.stringify(club.tactic || {}), JSON.stringify(club.lineup || [])));
+  const key = String(hashSeed('v3', level, JSON.stringify(club.tactic || {}), JSON.stringify(club.lineup || [])));
   if (!refresh) {
     const c = await one('SELECT data FROM analyst_reports WHERE club_id=$1 AND fixture_id=$2 AND key=$3', [club.id, f.id, key]);
     if (c) return { staff, report: c.data };
@@ -170,6 +173,11 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
         if (winnerMine === true || (winnerMine === null && x > y)) w += wt; else if (winnerMine === false || (winnerMine === null && x < y)) lo += wt; else d += wt;
       }
     }
+    // a handful of simulated matches can come out 100-0-0; nothing in football is that sure, so the
+    // numbers lean a little towards an ordinary match (as if 8 more had ended 35/30/35)
+    const n = top.length * sims, k = 8;
+    const sm = (x: number, prior: number) => (x * n + prior * k) / (n + k);
+    w = sm(w, 0.35); d = sm(d, 0.3); lo = sm(lo, 0.35);
     return { plan, score: 3 * w + d, win: pct(w), draw: pct(d), loss: pct(lo) };
   }).sort((a, b) => b.score - a.score);
 
@@ -194,7 +202,11 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
     return p && rn ? { name: p.name, role: rn, tip: COUNTER_TIP[rn] || null } : null;
   }).filter(Boolean).slice(0, 6) : [];
   const gap = best.score - second.score;
-  const confidence = level === 1 ? (gap > 0.05 ? 'Medium' : 'Low') : level === 2 ? (gap > 0.15 ? 'Medium' : 'Low') : gap > 0.12 ? 'High' : 'Medium';
+  // how sure the analyst is of the result: a clear favourite is sure whichever top plan you pick
+  const fav = best.win ?? 0;
+  const confidence = level === 1 ? (gap > 0.05 ? 'Medium' : 'Low')
+    : fav >= 65 || gap > (level === 2 ? 0.15 : 0.12) ? (level === 3 ? 'High' : 'Medium')
+    : level === 3 ? 'Medium' : 'Low';
   // why the pick makes sense, in two lines, and how well your players suit it
   const pickWhy = mu[best.plan].why.slice(0, 2);
   if (!pickWhy.length) pickWhy.push(level === 1 ? 'Nothing stands out between the two squads: it suits your players best.' : 'It came out on top when your analyst played the match through.');

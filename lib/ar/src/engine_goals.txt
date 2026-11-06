@@ -1,18 +1,50 @@
 GOAL! {0}, assisted by {1} with a header from a corner	جووول! {0}، أسيست {1} براسية من كورنر
 GOAL! {0} with a header from a corner	جووول! {0} براسية من كورنر
+GOAL! {0}, assisted by {1} rising highest at a corner	جووول! {0}، أسيست {1} طالع أعلى واحد في الكورنر
+GOAL! {0} rising highest at a corner	جووول! {0} طالع أعلى واحد في الكورنر
+GOAL! {0}, assisted by {1} bundling it in from a corner	جووول! {0}، أسيست {1} بيزقها جوه من كورنر
+GOAL! {0} bundling it in from a corner	جووول! {0} بيزقها جوه من كورنر
 GOAL! {0}, assisted by {1} with a stunning free kick	جووول! {0}، أسيست {1} بفاول يجنن
 GOAL! {0} with a stunning free kick	جووول! {0} بفاول يجنن
+GOAL! {0}, assisted by {1} curling a free kick into the top corner	جووول! {0}، أسيست {1} بفاول ملفوف في المقص
+GOAL! {0} curling a free kick into the top corner	جووول! {0} بفاول ملفوف في المقص
+GOAL! {0}, assisted by {1} from a free kick the keeper never saw	جووول! {0}، أسيست {1} بفاول الحارس ما شافهوش
+GOAL! {0} from a free kick the keeper never saw	جووول! {0} بفاول الحارس ما شافهوش
 GOAL! {0}, assisted by {1} with a header from a cross	جووول! {0}، أسيست {1} براسية من عرضية
 GOAL! {0} with a header from a cross	جووول! {0} براسية من عرضية
+GOAL! {0}, assisted by {1} meeting the cross at the far post	جووول! {0}، أسيست {1} بيقابل العرضية في القايم البعيد
+GOAL! {0} meeting the cross at the far post	جووول! {0} بيقابل العرضية في القايم البعيد
+GOAL! {0}, assisted by {1} with a diving header	جووول! {0}، أسيست {1} براسية طايرة
+GOAL! {0} with a diving header	جووول! {0} براسية طايرة
 GOAL! {0}, assisted by {1} running onto a through ball	جووول! {0}، أسيست {1} بعد بينية حلوة
 GOAL! {0} running onto a through ball	جووول! {0} بعد بينية حلوة
+GOAL! {0}, assisted by {1} slotting it past the keeper one on one	جووول! {0}، أسيست {1} بيحطها جنب الحارس انفراد
+GOAL! {0} slotting it past the keeper one on one	جووول! {0} بيحطها جنب الحارس انفراد
+GOAL! {0}, assisted by {1} after a perfect pass in behind	جووول! {0}، أسيست {1} بعد باصة مظبوطة ورا الدفاع
+GOAL! {0} after a perfect pass in behind	جووول! {0} بعد باصة مظبوطة ورا الدفاع
 GOAL! {0}, assisted by {1} after a patient move	جووول! {0}، أسيست {1} بعد هجمة صبورة
 GOAL! {0} after a patient move	جووول! {0} بعد هجمة صبورة
+GOAL! {0}, assisted by {1} finishing off a flowing move	جووول! {0}، أسيست {1} بيخلّص هجمة سلسة
+GOAL! {0} finishing off a flowing move	جووول! {0} بيخلّص هجمة سلسة
+GOAL! {0}, assisted by {1} after a long passing move	جووول! {0}، أسيست {1} بعد باصات كتير ورا بعض
+GOAL! {0} after a long passing move	جووول! {0} بعد باصات كتير ورا بعض
 GOAL! {0}, assisted by {1} from distance	جووول! {0}، أسيست {1} من بعيد
 GOAL! {0} from distance	جووول! {0} من بعيد
+GOAL! {0}, assisted by {1} with a rocket from 25 yards	جووول! {0}، أسيست {1} بصاروخ من 25 ياردة
+GOAL! {0} with a rocket from 25 yards	جووول! {0} بصاروخ من 25 ياردة
+GOAL! {0}, assisted by {1} with a low drive from outside the box	جووول! {0}، أسيست {1} بشوطة أرضية من برا الصندوق
+GOAL! {0} with a low drive from outside the box	جووول! {0} بشوطة أرضية من برا الصندوق
 GOAL! {0}, assisted by {1} on the counter	جووول! {0}، أسيست {1} من مرتدة
 GOAL! {0} on the counter	جووول! {0} من مرتدة
+GOAL! {0}, assisted by {1} finishing a lightning break	جووول! {0}، أسيست {1} بيخلّص مرتدة صاروخية
+GOAL! {0} finishing a lightning break	جووول! {0} بيخلّص مرتدة صاروخية
+GOAL! {0}, assisted by {1} after a three-on-two break	جووول! {0}، أسيست {1} بعد مرتدة تلاتة على اتنين
+GOAL! {0} after a three-on-two break	جووول! {0} بعد مرتدة تلاتة على اتنين
 GOAL! {0}, assisted by {1} after winning it high up the pitch	جووول! {0}، أسيست {1} بعد ما خطفوها من فوق
 GOAL! {0} after winning it high up the pitch	جووول! {0} بعد ما خطفوها من فوق
+GOAL! {0}, assisted by {1} after pinching the ball off a defender	جووول! {0}، أسيست {1} بعد ما خطف الكورة من مدافع
+GOAL! {0} after pinching the ball off a defender	جووول! {0} بعد ما خطف الكورة من مدافع
+GOAL! {0}, assisted by {1} punishing a mistake at the back	جووول! {0}، أسيست {1} بيعاقب غلطة الدفاع
+GOAL! {0} punishing a mistake at the back	جووول! {0} بيعاقب غلطة الدفاع
 GOAL! {0}, assisted by {1} from the spot	جووول! {0}، أسيست {1} من البلنتي
 GOAL! {0} from the spot	جووول! {0} من البلنتي

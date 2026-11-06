@@ -401,4 +401,16 @@ CREATE TABLE IF NOT EXISTS transfers (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS transfers_league ON transfers (league_id, id DESC);
+
+-- the language a manager plays in, for phone notifications
+ALTER TABLE users ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'en';
+-- wages: leagues already playing start paying them next season, new leagues from their first match
+ALTER TABLE leagues ADD COLUMN IF NOT EXISTS wages_from INT;
+UPDATE leagues SET wages_from = season + 1 WHERE wages_from IS NULL;
+ALTER TABLE leagues ALTER COLUMN wages_from SET DEFAULT 1;
+-- the last match's money: what came in and what went out in wages
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS fin JSONB NOT NULL DEFAULT '{}'::jsonb;
+-- coin boosts: a recovery session once per player per day, an analyst boost for one match
+ALTER TABLE squad ADD COLUMN IF NOT EXISTS rec_day INT NOT NULL DEFAULT 0;
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS analyst_boost_fx INT;
 `;

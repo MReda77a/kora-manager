@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getSession, type Session } from './auth.ts';
 
 import { HttpError, fail } from './errors.ts';
@@ -8,13 +9,19 @@ export { HttpError, fail };
 
 // when each manager last opened the game (written at most every few minutes per server instance)
 const seen = new Map<number, number>();
+const langs = new Map<number, string>();
 export async function requireUser(): Promise<Session> {
   const s = await getSession();
   if (!s) fail(401, 'Please log in first.');
   const now = Date.now();
-  if ((seen.get(s.uid) ?? 0) < now - 3 * 60_000) {
+  // the language they play in (the EN/ع switch sets a cookie), so their phone notifications match
+  let lang = 'en';
+  try { lang = (await cookies()).get('vamos-lang')?.value === 'ar' ? 'ar' : 'en'; } catch {}
+  const langChanged = langs.has(s.uid) ? langs.get(s.uid) !== lang : lang === 'ar';
+  if ((seen.get(s.uid) ?? 0) < now - 3 * 60_000 || langChanged) {
     seen.set(s.uid, now);
-    try { await q('UPDATE users SET last_seen=now() WHERE id=$1', [s.uid]); } catch {}
+    langs.set(s.uid, lang);
+    try { await q('UPDATE users SET last_seen=now(), lang=$2 WHERE id=$1', [s.uid, lang]); } catch {}
   }
   return s;
 }

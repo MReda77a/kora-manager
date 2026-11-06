@@ -1,0 +1,17 @@
+What a stop from {0}!	إيه الصدّة دي من {0}!
+{0} gets down well to save!	{0} نزل صح وصدّها!
+{0} tips it over the bar!	{0} طلّعها فوق العارضة!
+Off the post! {0} so close.	في القايم! {0} كانوا قريبين أوي.
+{0} should have scored there!	{0} كان لازم يجيبوا جون هنا!
+Wide! {0} waste a golden chance.	برا! {0} ضيّعوا فرصة دهب.
+Saved! The keeper reads {0}'s penalty.	اتصدّت! الحارس قرا بلنتي {0}.
+{0} blazes the penalty over!	{0} طيّر البلنتي فوق!
+{0} goes into the book.	{0} خد كارت.
+{0} is booked for a late tackle.	{0} خد أصفر على التحام متأخر.
+Straight red for {0}!	أحمر مباشر لـ{0}!
+{0} picks up a second yellow and walks.	{0} خد أصفر تاني وطلع برا.
+We're under way: {0} vs {1}	الماتش بدأ: {0} ضد {1}
+{0} goes down injured	{0} وقع مصاب
+{0} limps off	{0} طالع بيعرج
+{0} lines up a free kick on the edge of the box...	{0} بيجهّز فاول على حدود الصندوق...
+Free kick in a dangerous position...	فاول في مكان خطير...

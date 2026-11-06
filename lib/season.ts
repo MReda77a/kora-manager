@@ -10,6 +10,7 @@ import {
   AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, LIVE_TOTAL, minuteAt, recoveryPerDay, PAPER_NAMES, PRESETS, SPONSORS,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic, bestLeader, leadership,
   windowFromDays, WINDOW_DAYS, roleFit, rolesFor, slotLabel,
+  wageOf,
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
@@ -406,7 +407,7 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
       [opp.id],
     );
     const mine = xi.reduce((a, p) => a + p.ovr, 0) / Math.max(1, xi.length);
-    boost = Math.max(0, (h?.a ?? mine) - mine) * [0, 0.05, 0.12][l.ai_level];
+    boost = Math.max(0, (h?.a ?? mine) - mine) * [0, 0, 0.08][l.ai_level]; // only a hard AI closes part of the gap
   }
   return {
     clubId: club.id, name: club.name, xi: xi.map(toE), bench: bench.map(toE), tactic, boost,
@@ -544,11 +545,11 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   }
   const all = [...changes, ch];
   const [hs, as] = f.sides as [ESide, ESide];
-  // an AI opponent reacts to a change of plan a few minutes later: normal sometimes, hard always
+  // a hard AI opponent reacts to a change of plan a few minutes later (most of the time)
   const l = await getLeague(f.league_id);
   const botSide = (1 - side) as 0 | 1;
   const botClub = await one('SELECT user_id FROM clubs WHERE id=$1', [botSide === 0 ? f.home_id : f.away_id]);
-  if (!botClub?.user_id && ch.kind === 'tactic' && l.ai_level > 0) {
+  if (!botClub?.user_id && ch.kind === 'tactic' && l.ai_level === 2) {
     const r = rng(hashSeed('react', f.id, minute));
     if (r.next() < (l.ai_level === 2 ? 0.6 : 0.3)) {
       const mine = side === 0 ? hs : as;
@@ -646,9 +647,20 @@ async function finalizeFixture(f: Row) {
         ? `🎙️ ${who}'s manager backed up his words: "${after.quote.text}" Delivered.`
         : `🎙️ "${after.quote.text}" ${who}'s manager will be eating those words tonight.`);
     }
+    // wages: managers' clubs pay their squad after every match (from the season the league starts them)
+    let wages = 0, inRed = 0;
+    if (c.user_id && l.season >= (l.wages_from ?? 1)) {
+      const sq = await q<{ o: number }>('SELECT p.ovr + s.ovr_delta AS o FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1', [c.id]);
+      wages = Math.round(sq.reduce((a, x) => a + wageOf(Number(x.o)), 0) * 100) / 100;
+      const after = Number(c.money) + money - wages;
+      if (after < 0) {
+        inRed = -2; // the board does not like debt
+        if (Number(c.money) >= 0) await news(l.id, c.id, 'inbox', `🔴 ${c.name} are in the red (${after.toFixed(1)}M). The board loses patience every match until you are back above zero, and you cannot buy players. Sell someone or cut the squad.`);
+      }
+    }
     await q(
-      `UPDATE clubs SET coins=coins+$1, money=money+$2, fans=GREATEST(3000, fans+$3), board=LEAST(100, GREATEST(0, board+$4)) WHERE id=$5`,
-      [coins, money.toFixed(2), fans, board, c.id],
+      `UPDATE clubs SET coins=coins+$1, money=money+$2, fans=GREATEST(3000, fans+$3), board=LEAST(100, GREATEST(0, board+$4)), fin=$6::jsonb WHERE id=$5`,
+      [coins, (money - wages).toFixed(2), fans, board + inRed, c.id, JSON.stringify({ income: Math.round(money * 100) / 100, wages, day: f.day })],
     );
     if (c.user_id) {
       // manager reputation, squad morale and how well the team knows its shape

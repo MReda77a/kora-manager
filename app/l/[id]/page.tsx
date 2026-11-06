@@ -127,8 +127,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'press' && <PressTab {...props} />}
           {tab === 'deals' && <DealsTab {...props} />}
           {tab === 'managers' && <ManagersTab {...props} />}
-          {tab === 'tv' && <TvTab {...props} />}
-          {tab === 'social' && <SocialTab {...props} />}
+          {(tab === 'tv' || tab === 'social') && <div className="col" style={{ gap: 12 }}><TvTab {...props} /><SocialTab {...props} /></div>}
           {tab === 'friendly' && <FriendlyTab {...props} />}
           {tab === 'players' && <PlayersTab {...props} />}
           {tab === 'training' && <TrainingTab {...props} />}

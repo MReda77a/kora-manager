@@ -180,6 +180,18 @@ export const WINDOW_DAYS = 5;
 /** fitness a player gets back per day of rest (a better physio speeds it up) */
 export const recoveryPerDay = (physio: number) => 40 + physio * 5;
 /** fitness now: what he had after his last game or session, plus the rest since then (real time) */
+// Coins during the season buy small boosts (packs are only sold before it starts).
+export const BOOSTS: Record<string, { cost: number; name: string }> = {
+  train: { cost: 30, name: 'Finish training now' },
+  heal: { cost: 40, name: 'Treat an injury (half the time out)' },
+  recover: { cost: 15, name: 'Recovery session (+20 fitness, once a day)' },
+  analyst: { cost: 35, name: 'The next analyst up, for one match' },
+};
+
+// A player's wage, in millions per match: about 0.01M at 75, doubling every 5-6 points.
+// A typical squad's wages take 60-70% of what a club earns from its matches.
+export const wageOf = (ovr: number) => Math.round(0.01 * Math.exp((ovr - 75) / 8) * 1000) / 1000;
+
 export function fitNow(stored: number, fitAt: string | Date | null | undefined, physio: number, now = Date.now()) {
   const hours = fitAt ? Math.max(0, (now - new Date(fitAt).getTime()) / 3_600_000) : 24;
   return Math.min(100, (stored ?? 100) + (recoveryPerDay(physio) * hours) / 24);

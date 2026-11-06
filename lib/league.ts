@@ -347,7 +347,8 @@ export function applyMods(p: Row, day: number): Row {
   return {
     ...p, attrs, nat_pos: p.pos, pos: p.pos_override || p.pos,
     age: (p.age || 0) + (p.age_add || 0),
-    ovr: Math.max(30, Math.min(99, p.ovr + delta + Math.floor(gain / 4))),
+    // every 2 points of trained skill add 1 to his overall, up to his potential
+    ovr: Math.max(30, Math.min(99, p.ovr + delta + Math.min(Math.floor(gain / 2), p.pot ? Math.max(0, p.pot - (p.ovr + delta)) : 99))),
     form: (p.form_until ?? 0) >= day ? p.form_mod || 0 : 0, // awards and press: whole points, shown on cards
     mod: ((p.form_until ?? 0) >= day ? p.form_mod || 0 : 0) + moraleMod(p.morale),
   };

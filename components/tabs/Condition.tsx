@@ -5,10 +5,14 @@ import { BackHead, Spinner, Stars } from '../ui.tsx';
 import { STAFF_PRICES } from '../../lib/game.ts';
 import type { TabProps } from './types.ts';
 
-export default function ConditionTab({ lid, go, reload, toast }: TabProps) {
+export default function ConditionTab({ lid, d: ov, go, reload, toast }: TabProps) {
   const [d, setD] = useState<any>(null);
   const load = () => api(`/api/leagues/${lid}/condition`).then(setD);
   useEffect(() => { load(); }, [lid]);
+  // coins: treat an injury (half the time out) or a recovery session (+20 fitness)
+  const boost = async (kind: string, playerId: string, name: string) => {
+    try { await api(`/api/leagues/${lid}/boost`, { kind, playerId }); toast.ok(kind === 'heal' ? `${name} is treated` : `${name} feels fresher`); load(); reload(); } catch (e: any) { toast.bad(e.message); }
+  };
   const hire = async (role: string, level: number) => {
     try { const r = await api(`/api/leagues/${lid}/hire`, { role, level }); toast.ok(`${r.staff.name} joins your staff`); load(); reload(); } catch (e: any) { toast.bad(e.message); }
   };
@@ -22,12 +26,16 @@ export default function ConditionTab({ lid, go, reload, toast }: TabProps) {
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(170px, 250px)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 8, gap: 0 }}>
           <div className="row tiny" style={{ color: 'var(--muted)', fontWeight: 900, padding: '0 8px 6px', gap: 8 }}>
-            <span className="grow" style={{ minWidth: 80 }}>PLAYER</span><span className="hide-sm" style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>OVR</span><span style={{ width: 76 }} title="Fitness right now">FIT NOW</span><span style={{ width: 44 }} title="Fitness he will have at kick-off">KICK-OFF</span><span style={{ width: 74 }}>STATUS</span>
+            <span className="grow" style={{ minWidth: 80 }}>PLAYER</span><span style={{ width: 96 }} title="Spend coins">BOOST</span><span className="hide-sm" style={{ width: 36 }}>POS</span><span style={{ width: 30 }}>OVR</span><span style={{ width: 76 }} title="Fitness right now">FIT NOW</span><span style={{ width: 44 }} title="Fitness he will have at kick-off">KICK-OFF</span><span style={{ width: 74 }}>STATUS</span>
           </div>
           <div className="col" style={{ gap: 2, maxHeight: 320, overflowY: 'auto' }}>
             {d.players.map((p: any) => (
               <div key={p.id} className="row small" style={{ gap: 8, padding: '4px 8px', background: p.out ? 'rgba(255,107,122,0.1)' : 'rgba(255,255,255,0.04)', fontWeight: 700 }}>
                 <span className="grow ellipsis" style={{ minWidth: 80 }}><b>{p.name}</b></span>
+                <span style={{ width: 96 }}>
+                  {p.out && p.out.reason !== 'Suspended' ? <button className="seg mini-btn" onClick={() => boost('heal', p.id, p.name)} title="Half the time out"><span>🩹 Treat · 40</span></button>
+                    : !p.out && p.fitness < 98 ? <button className="seg mini-btn" onClick={() => boost('recover', p.id, p.name)} title="+20 fitness, once before each match"><span>💪 +20 · 15</span></button> : null}
+                </span>
                 <span style={{ width: 36 }} className="muted hide-sm">{p.pos}</span>
                 <span className="lz" style={{ width: 30, fontSize: 17 }}>{p.ovr + (p.form || 0)}</span>
                 <span className="row" style={{ width: 76, gap: 4 }}>
@@ -64,7 +72,7 @@ export default function ConditionTab({ lid, go, reload, toast }: TabProps) {
                 </div>
               );
             })}
-            <button className="ghost small" onClick={() => go('store')}><span>Or try your luck: staff pack · 80 coins</span></button>
+            {ov?.packsOpen && <button className="ghost small" onClick={() => go('store')}><span>Or try your luck: staff pack · 80 coins</span></button>}
           </div>
           <div className="tiny muted" style={{ lineHeight: 1.5 }}>Fitness drops in every match, more with high pressing and fast tempo. Players recover about {d.recoveryPerDay}% a day. Starting tired players lowers the whole team, so rotate. Injury risk rises with tiredness and injury-prone players.</div>
         </section>

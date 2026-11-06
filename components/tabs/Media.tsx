@@ -125,7 +125,7 @@ export function TvTab({ lid }: TabProps) {
   );
 }
 
-export function SocialTab({ lid, toast }: TabProps) {
+export function SocialTab({ lid, go }: TabProps) {
   const [d, setD] = useState<any>(null);
   const [view, setView] = useState<'mine' | 'league'>('mine');
   const load = () => api(`/api/leagues/${lid}/social`).then(setD);
@@ -133,9 +133,6 @@ export function SocialTab({ lid, toast }: TabProps) {
   if (!d) return <Spinner />;
   const posts = view === 'mine' ? d.mine : d.league;
   const moodC = d.mood >= 60 ? 'var(--mint)' : d.mood >= 35 ? '#F2C14E' : '#FF5C6C';
-  const reply = async (choice: string) => {
-    try { const r = await api(`/api/leagues/${lid}/fans-reply`, { choice, line: d.want.find((w: any) => w.line)?.line }); toast.ok(r.note); load(); } catch (e: any) { toast.bad(e.message); }
-  };
   return (
     <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 260px)', gap: 10 }}>
       <section className="panel cut" style={{ gap: 6 }}>
@@ -144,7 +141,7 @@ export function SocialTab({ lid, toast }: TabProps) {
           <button className={`seg ${view === 'league' ? 'on' : ''}`} onClick={() => setView('league')}><span>Whole league</span></button>
         </div>
         {!posts.length && <span className="small muted">Quiet so far. The fans start posting after the first matchday.</span>}
-        <div className="col" style={{ gap: 5, overflowY: 'auto', maxHeight: 'calc(100dvh - 170px)' }}>
+        <div className="col" style={{ gap: 5, overflowY: 'auto', maxHeight: 360 }}>
           {posts.map((p: any) => (
             <div key={p.id} className="fan-post">
               <span className="fan-av" style={{ background: p.color }}>{p.club[0]}</span>
@@ -169,7 +166,7 @@ export function SocialTab({ lid, toast }: TabProps) {
         {d.replyTo && <>
           <span className="kicker" style={{ marginTop: 4 }}>Answer {d.replyTo.handle}</span>
           {d.replied ? <span className="small muted">You answered this matchday. Next chance after the next match.</span>
-            : d.options.map((o: any) => <button key={o.key} className="seg fan-reply" title={o.note} onClick={() => reply(o.key)}><span>{o.text}<small>{o.note}</small></span></button>)}
+            : <button className="seg" onClick={() => go('press')}><span>Answer in the Press room ›</span></button>}
         </>}
       </aside>
     </div>

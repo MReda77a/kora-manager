@@ -30,6 +30,7 @@ export default function OfficeTab({ lid, d: ov, toast, reload, go }: TabProps) {
         <Gauge v={fanPct} color="#2EE6A0" title="Fans" note={`${c.fans.toLocaleString()} supporters`} good={fanPct >= 70} />
         <Gauge v={Math.round(d.objectives.reduce((a: number, o: any) => a + o.progress, 0) / d.objectives.length * 100)} color="#5FD3F3" title="Targets" note={d.objectives.filter((o: any) => o.status === 'ON TRACK' || o.status === 'DONE').length + '/' + d.objectives.length + ' on track'} good />
       </div>
+      {d.finance && <Finance f={d.finance} season={ov.league.season} />}
       {rules && (
         <div className="panel obj-how" style={{ gap: 3 }}>
           <b className="small">What moves board confidence</b>
@@ -159,6 +160,34 @@ function Gauge({ v, color, title, note, good }: { v: number; color: string; titl
     <div className="panel cut" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
       <Ring v={v} size={52} color={color} font={18} />
       <div className="col" style={{ gap: 0 }}><b>{title}</b><span className="tiny" style={{ color: good ? '#2EE6A0' : '#FF8A80', fontWeight: 800 }}>{good ? '▲' : '▼'} {note}</span></div>
+    </div>
+  );
+}
+
+// The club's money: balance, wage bill per match and the last match's books.
+function Finance({ f, season }: { f: any; season: number }) {
+  const red = f.money < 0;
+  return (
+    <div className="panel cut fin-card">
+      <div className="col" style={{ gap: 2 }}>
+        <span className="tiny muted" style={{ fontWeight: 900 }}>CLUB MONEY</span>
+        <b className="lz" style={{ fontSize: 26, color: red ? '#FF8A80' : 'var(--mint)' }}>{f.money.toFixed(1)}M</b>
+        {red && <span className="tiny" style={{ color: '#FF8A80', fontWeight: 800 }}>In the red: board −2 every match, no buying until you are back above zero.</span>}
+      </div>
+      <div className="col" style={{ gap: 2 }}>
+        <span className="tiny muted" style={{ fontWeight: 900 }}>WAGES PER MATCH</span>
+        <b className="lz" style={{ fontSize: 22 }}>{f.wageBill.toFixed(2)}M</b>
+        <span className="tiny muted">{f.players} players{f.wagesOn ? '' : ` · wages start in season ${f.wagesFrom}`}</span>
+      </div>
+      <div className="col" style={{ gap: 2 }}>
+        <span className="tiny muted" style={{ fontWeight: 900 }}>LAST MATCH</span>
+        {f.last ? (
+          <>
+            <span className="small" style={{ fontWeight: 800 }}><span style={{ color: 'var(--mint)' }}>+{Number(f.last.income).toFixed(2)}M</span> in · <span style={{ color: '#FF8A80' }}>−{Number(f.last.wages).toFixed(2)}M</span> wages</span>
+            <span className="tiny muted">Wins, home gates and your sponsor bring money in. Every player costs a wage, the best ones the most.</span>
+          </>
+        ) : <span className="tiny muted">No match yet{f.wagesOn ? '' : `. From season ${f.wagesFrom} every player is paid after each match, the best ones the most`}.</span>}
+      </div>
     </div>
   );
 }

@@ -15,6 +15,11 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
   useEffect(() => { load(); }, [lid]);
   if (!a) return <div className="col center" style={{ gap: 10, padding: 30 }}><Spinner /><span className="small muted">Your analyst is studying the opponent…</span></div>;
   const s = a.staff, r = a.report;
+  const boost = async () => {
+    setBusy(true);
+    try { await api(`/api/leagues/${lid}/boost`, { kind: 'analyst' }); toast.ok('A sharper analyst is on this match'); setA(null); await load(true); reload(); } catch (e: any) { toast.bad(e.message); }
+    setBusy(false);
+  };
   const upgrade = async () => {
     setBusy(true);
     try { await api(`/api/leagues/${lid}/analyst`, {}); toast.ok('New analyst hired!'); setA(null); await load(true); reload(); } catch (e: any) { toast.bad(e.message); }
@@ -29,6 +34,8 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
   const staffBox = (
     <div className="row wrap" style={{ gap: 8 }}>
       <span className="tag cyan"><span>Level {s.level} · {s.name}</span></span>
+      {s.boosted && <span className="tag" style={{ background: 'rgba(242,193,78,0.25)', color: '#F2C14E' }}><span>⚡ Boosted for this match</span></span>}
+      {s.next && !s.boosted && <button className="ghost small" disabled={busy} onClick={boost} title="The next analyst up studies this match for you"><span>⚡ This match only · 35 coins</span></button>}
       {s.next && <button className="ghost small" disabled={busy} onClick={upgrade}><span>Hire {s.next.name} · {s.next.price}M</span></button>}
     </div>
   );

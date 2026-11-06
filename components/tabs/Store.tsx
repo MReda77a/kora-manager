@@ -19,7 +19,7 @@ export default function StoreTab({ lid, d: ov, reload, toast }: TabProps) {
   const [opening, setOpening] = useState<{ key: string; players?: any[]; staff?: any } | null>(null);
   const [busy, setBusy] = useState(false);
   const coins = ov.club.coins;
-  const canOpen = ov.league.status === 'setup' || ov.window.open;
+  const canOpen = !!ov.packsOpen;
   const open = async (key: string) => {
     setBusy(true);
     try {
@@ -72,7 +72,7 @@ export default function StoreTab({ lid, d: ov, reload, toast }: TabProps) {
           {([['GK', 2], ['DEF', 5], ['MID', 5], ['FWD', 4]] as [string, number][]).map(([l, need]) => (
             <div key={l} className="row tiny" style={{ gap: 8, fontWeight: 900 }}><span style={{ width: 30 }}>{l}</span><div className="bar"><i style={{ width: `${Math.min(100, (count(l) / need) * 100)}%`, background: count(l) >= need ? '#2EE6A0' : '#2EE6A0' }} /></div><span style={{ width: 30, textAlign: 'right' }}>{count(l)}/{need}</span></div>
           ))}
-          <div className="tiny muted" style={{ marginTop: 'auto' }}>{canOpen ? '1000 coins at the start. Go for stars, balance or depth. You earn coins from every match too.' : 'Packs open while the transfer window is open: pre-season and the first 5 days of each round.'}</div>
+          <div className="tiny muted" style={{ marginTop: 'auto' }}>{canOpen ? '1000 coins at the start. Go for stars, balance or depth. You earn coins from every match too.' : 'Packs are only sold before the season starts. During the season your coins buy boosts: finish training, treat an injury, a recovery session or a sharper analyst.'}</div>
         </aside>
       </div>
       {opening && (

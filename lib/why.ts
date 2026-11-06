@@ -74,7 +74,7 @@ export function whyReport(rep: Report, me: 0 | 1, names: [string, string]): Why 
   // ---- your shooting: lots of shots from distance are worth little
   if (mine.length >= 10) {
     const far = mine.filter((s) => s.kind === 'long shot' || s.kind === 'free kick');
-    if (far.length / mine.length >= 0.45 && sum(far) / far.length < 0.075) {
+    if (far.length / mine.length >= 0.45 && sum(far) / far.length < 0.1) {
       c.push({ tone: 'bad', w: 1.5 + far.length / mine.length * 2, text: `${far.length} of your ${mine.length} shots came from outside the box. They are worth little: ${f2(sum(far))} xG between them.`,
         tip: 'Your plan shoots from distance. In Match plan › Style, set Final third to Work it in or Through, and give your striker a scoring role (Poacher).' });
     }

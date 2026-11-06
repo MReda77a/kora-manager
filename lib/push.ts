@@ -37,18 +37,29 @@ export async function removeSubscription(uid: number, endpoint: string) {
   await q('DELETE FROM push_subs WHERE endpoint=$1 AND user_id=$2', [endpoint, uid]);
 }
 
+// Notifications go out in the language the manager plays in.
+let tr: ((s: string) => string | null) | null = null;
+async function inLang<T extends { title: string; body: string }>(msg: T, lang?: string): Promise<T> {
+  if (lang !== 'ar') return msg;
+  if (!tr) {
+    const [{ makeTranslator }, { DICTS }] = await Promise.all([import('./i18n.ts'), import('./ar/index.ts')]);
+    tr = makeTranslator(DICTS);
+  }
+  return { ...msg, title: tr(msg.title) ?? msg.title, body: tr(msg.body) ?? msg.body };
+}
+
 // Send to every device of a user. Never throws: a notification must not break a match.
 export async function notify(userId: number | null | undefined, msg: { title: string; body: string; url?: string; tag?: string }) {
   if (!userId) return;
   try {
-    const subs = await q<{ endpoint: string; keys: { p256dh: string; auth: string } }>('SELECT endpoint, keys FROM push_subs WHERE user_id=$1', [userId]);
+    const subs = await q<{ endpoint: string; keys: { p256dh: string; auth: string }; lang: string }>('SELECT s.endpoint, s.keys, u.lang FROM push_subs s JOIN users u ON u.id=s.user_id WHERE s.user_id=$1', [userId]);
     if (!subs.length) return;
     const keys = await vapidKeys();
     const vapid = { subject: 'mailto:kora-manager@users.noreply.github.com', publicKey: keys.publicKey, privateKey: keys.privateKey };
     for (const s of subs) {
       const sub: PushSubscription = { endpoint: s.endpoint, expirationTime: null, keys: s.keys };
       try {
-        const payload = await buildPushPayload({ data: JSON.stringify(msg), options: { ttl: 3600, urgency: 'high', topic: msg.tag?.slice(0, 32) } }, sub, vapid);
+        const payload = await buildPushPayload({ data: JSON.stringify(await inLang(msg, s.lang)), options: { ttl: 3600, urgency: 'high', topic: msg.tag?.slice(0, 32) } }, sub, vapid);
         const res = await fetch(s.endpoint, payload);
         if (res.status === 404 || res.status === 410) await q('DELETE FROM push_subs WHERE endpoint=$1', [s.endpoint]);
       } catch (e) {
@@ -65,14 +76,14 @@ export async function notifyMany(userIds: (number | null | undefined)[], msg: { 
   const ids = userIds.filter((x): x is number => !!x);
   if (!ids.length) return;
   try {
-    const subs = await q<{ endpoint: string; keys: { p256dh: string; auth: string } }>('SELECT endpoint, keys FROM push_subs WHERE user_id = ANY($1::int[])', [ids]);
+    const subs = await q<{ endpoint: string; keys: { p256dh: string; auth: string }; lang: string }>('SELECT s.endpoint, s.keys, u.lang FROM push_subs s JOIN users u ON u.id=s.user_id WHERE s.user_id = ANY($1::int[])', [ids]);
     if (!subs.length) return;
     const keys = await vapidKeys();
     const vapid = { subject: 'mailto:kora-manager@users.noreply.github.com', publicKey: keys.publicKey, privateKey: keys.privateKey };
     await Promise.all(subs.map(async (s) => {
       try {
         const sub: PushSubscription = { endpoint: s.endpoint, expirationTime: null, keys: s.keys };
-        const payload = await buildPushPayload({ data: JSON.stringify(msg), options: { ttl: 3600, urgency: 'high', topic: msg.tag?.slice(0, 32) } }, sub, vapid);
+        const payload = await buildPushPayload({ data: JSON.stringify(await inLang(msg, s.lang)), options: { ttl: 3600, urgency: 'high', topic: msg.tag?.slice(0, 32) } }, sub, vapid);
         await fetch(s.endpoint, payload);
       } catch (e) { console.error('push failed', e); }
     }));
@@ -86,14 +97,14 @@ export async function notifyEach(list: { uid: number | null | undefined; msg: { 
   const ids = [...new Set(list.map((x) => x.uid).filter((x): x is number => !!x))];
   if (!ids.length) return;
   try {
-    const subs = await q<{ user_id: number; endpoint: string; keys: { p256dh: string; auth: string } }>('SELECT user_id, endpoint, keys FROM push_subs WHERE user_id = ANY($1::int[])', [ids]);
+    const subs = await q<{ user_id: number; endpoint: string; keys: { p256dh: string; auth: string }; lang: string }>('SELECT s.user_id, s.endpoint, s.keys, u.lang FROM push_subs s JOIN users u ON u.id=s.user_id WHERE s.user_id = ANY($1::int[])', [ids]);
     if (!subs.length) return;
     const keys = await vapidKeys();
     const vapid = { subject: 'mailto:kora-manager@users.noreply.github.com', publicKey: keys.publicKey, privateKey: keys.privateKey };
     await Promise.all(list.flatMap((x) => subs.filter((s) => s.user_id === x.uid).map(async (s) => {
       try {
         const sub: PushSubscription = { endpoint: s.endpoint, expirationTime: null, keys: s.keys };
-        const payload = await buildPushPayload({ data: JSON.stringify(x.msg), options: { ttl: 3600, urgency: 'high', topic: x.msg.tag?.slice(0, 32) } }, sub, vapid);
+        const payload = await buildPushPayload({ data: JSON.stringify(await inLang(x.msg, s.lang)), options: { ttl: 3600, urgency: 'high', topic: x.msg.tag?.slice(0, 32) } }, sub, vapid);
         await fetch(s.endpoint, payload);
       } catch (e) { console.error('push failed', e); }
     })));

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/client.ts';
-import { LINE } from '../../lib/game.ts';
+import { LINE , wageOf } from '../../lib/game.ts';
 import { BackHead, Bar, FitBar, PlayerCard, Spinner } from '../ui.tsx';
 import { useSquad } from './Lineup.tsx';
 import type { TabProps } from './types.ts';
@@ -68,7 +68,7 @@ export default function PlayersTab({ lid, d: ov, toast, go }: TabProps) {
               <div className="col grow" style={{ gap: 2 }}>
                 <b style={{ fontSize: 15 }}>{sel.name}</b>
                 <span className="tiny muted">{sel.pos}{sel.natPos !== sel.pos ? ` (was ${sel.natPos})` : ''} · {sel.age} yrs · {sel.foot === 'L' ? 'Left' : 'Right'} foot · {sel.nat}</span>
-                <span className="tiny muted">Potential {sel.pot}{sel.ovrDelta ? <b style={{ color: sel.ovrDelta > 0 ? '#2EE6A0' : '#FF8A80' }}> · {sel.ovrDelta > 0 ? '+' : ''}{sel.ovrDelta} since signing</b> : null} · Value {sel.value ?? sel.attrs?.v ?? '?'}M{sel.academy ? ' · Academy' : ''}</span>
+                <span className="tiny muted">Potential {sel.pot}{sel.ovrDelta ? <b style={{ color: sel.ovrDelta > 0 ? '#2EE6A0' : '#FF8A80' }}> · {sel.ovrDelta > 0 ? '+' : ''}{sel.ovrDelta} since signing</b> : null} · Value {sel.value ?? sel.attrs?.v ?? '?'}M · Wage {wageOf(sel.ovr).toFixed(3)}M/match{sel.academy ? ' · Academy' : ''}</span>
                 <div className="row tiny" style={{ gap: 6 }}><span className="muted">Fitness</span><FitBar v={sel.fitness} /><b>{sel.fitness}%</b></div>
               </div>
             </div>

@@ -1,0 +1,88 @@
+2. Pick a plan that suits your players	2. اختار خطة لايقة على لعيبتك
+In Match plan › Style, every plan shows how well it suits your squad. A great striker in the air loves crosses, fast forwards love through balls, a fit midfield can press. Before each match, Prepare shows the plan your analyst recommends and why.	في خطة الماتش › الأسلوب، كل خطة بتوريك هي لايقة على فريقك قد إيه. المهاجم الجامد في الراس بيحب العرضيات، والمهاجمين السريعين بيحبوا البينيات، والوسط اللي نَفَسه حلو يقدر يضغط. وقبل كل ماتش، "جهّز" بيوريك الخطة اللي المحلل شايفها وليه.
+Open the match plan	افتح خطة الماتش
+At kick-off you get a notification. Watch it live (5 minutes, with a half-time break) to switch plans, change mentality and make subs, or let your assistant follow your rules. Prepare Plan B and Plan C in Match plan for one-tap switches. After the match, the Why card tells you what decided it.	مع بداية الماتش هيجيلك إشعار. اتفرج لايف (5 دقايق، وفيه استراحة بين الشوطين) عشان تقلب الخطط وتغيّر العقلية وتعمل تغييرات، أو سيب المساعد يمشي على تعليماتك. جهّز خطة B وC في خطة الماتش عشان تقلب بدوسة. وبعد الماتش، كارت "ليه" بيقولك إيه اللي حسمه.
+Price (M)	السعر (M)
+Packs are only sold before the season starts. Spend your coins on boosts.	الباكات بتتباع قبل الموسم بس. اصرف الكوينز على البوستات.
+🎙️ Talk to the press	🎙️ اتكلم مع الصحافة
+🎙️ Mind games: talk to the press	🎙️ حرب نفسية: اتكلم مع الصحافة
+A sharper analyst is on this match	محلل أشطر ماسك الماتش ده
+The next analyst up studies this match for you	المحلل اللي أعلى منك بيذاكر الماتش ده بس
+⚡ This match only · 35 coins	⚡ الماتش ده بس · 35 كوين
+⚡ Boosted for this match	⚡ متقوّي للماتش ده
+Spend coins	اصرف كوينز
+BOOST	بوست
+Half the time out	نص مدة الغياب
+🩹 Treat · 40	🩹 علاج · 40
++20 fitness, once before each match	+20 لياقة، مرة قبل كل ماتش
+💪 +20 · 15	💪 +20 · 15
+Answer in the Press room ›	رد من أوضة الصحافة ›
+Wins, home gates and your sponsor bring money in. Every player costs a wage, the best ones the most.	الكسب وتذاكر ماتشات الأرض والراعي بيدخّلوا فلوس. وكل لعيب ليه مرتب، والأحسن مرتبه أعلى.
+No match yet	لسه مفيش ماتش
+No match yet.	لسه مفيش ماتش.
+No match yet. From season {0} every player is paid after each match, the best ones the most.	لسه مفيش ماتش. من الموسم {0} كل لعيب هياخد مرتبه بعد كل ماتش، والأحسن مرتبه أعلى.
+Talk to the press ›	اتكلم مع الصحافة ›
+Back to Prepare	ارجع لـ"جهّز"
+Before the match	قبل الماتش
+You said: “{0}”	قلت: "{0}"
+Against an AI club your words only go in the paper. Against another manager, the tone changes the match.	قدام نادي بوت كلامك بيتنشر في الجرنال بس. قدام مدرب تاني، النبرة بتغيّر الماتش.
+Say something else…	قول حاجة تانية…
+Change what you said	غيّر كلامك
+Say it	قولها
+Press room	أوضة الصحافة
+Everything you say in public, in one place	كل كلامك قدام الناس، في مكان واحد
+Before a derby or a cup final this room hosts a full press conference: five questions, and every answer changes the match.	قبل الديربي أو نهائي الكاس، الأوضة دي بيبقى فيها مؤتمر صحفي كامل: خمس أسئلة، وكل إجابة بتغيّر الماتش.
+Your fans	جمهورك
+Packs are only sold before the season starts. During the season your coins buy boosts: finish training, treat an injury, a recovery session or a sharper analyst.	الباكات بتتباع قبل الموسم بس. وفي الموسم الكوينز بتشتري بوستات: تخلّص تمرين، تعالج إصابة، جلسة استشفاء، أو محلل أشطر.
+Training done	التمرين خلص
+Spend coins to finish it now	اصرف كوينز وخلّصه دلوقتي
+⚡ Finish now · 30 coins	⚡ خلّصه دلوقتي · 30 كوين
+TV & fans	التلفزيون والجمهور
+Fans	الجمهور
+Unknown boost.	بوست مش معروف.
+There is no training to finish.	مفيش تمرين تخلّصه.
+He is not injured.	هو مش مصاب.
+He already had a recovery session before this match.	خد جلسة استشفاء قبل الماتش ده خلاص.
+He is already fresh.	هو فريش أصلًا.
+Already boosted for this match.	متقوّي للماتش ده خلاص.
+You already have the best analyst.	عندك أحسن محلل خلاص.
+Not enough coins: this costs {0}.	الكوينز مش مكفية: ده بـ{0}.
+{0} is treated	{0} اتعالج
+{0} feels fresher	{0} بقى فريش أكتر
+{0} improved {1} by {2}.	{0} طوّر {1} بـ{2}.
+{0} can now play {1}.	{0} يقدر يلعب {1} دلوقتي.
+CLUB MONEY	فلوس النادي
+WAGES PER MATCH	المرتبات في الماتش
+LAST MATCH	آخر ماتش
+In the red: board −2 every match, no buying until you are back above zero.	بالسالب: الإدارة −2 كل ماتش، ومفيش شرا لحد ما ترجع فوق الصفر.
+{0} players · wages start in season {1}	{0} لعيب · المرتبات تبدأ الموسم {1}
+{0} players	{0} لعيب
++{0}M in	+{0}M دخل
+−{0}M wages	−{0}M مرتبات
+in	دخل
+wages	مرتبات
+{0}M/match	{0}M/ماتش
+Wage {0}M/match	المرتب {0}M/ماتش
+wage {0}M/match	المرتب {0}M/ماتش
+🔴 {0} are in the red ({1}M). The board loses patience every match until you are back above zero, and you cannot buy players. Sell someone or cut the squad.	🔴 {0} بالسالب ({1}M). الإدارة صبرها بيقل كل ماتش لحد ما ترجع فوق الصفر، ومينفعش تشتري لعيبة. بيع حد أو قلّل الفريق.
+Finish training now	خلّص التمرين دلوقتي
+Treat an injury (half the time out)	عالج إصابة (نص مدة الغياب)
+Recovery session (+20 fitness, once a day)	جلسة استشفاء (+20 لياقة، مرة في اليوم)
+The next analyst up, for one match	المحلل اللي أعلى، لماتش واحد
+Unknown action.	طلب مش معروف.
+wages start in season {0}	المرتبات تبدأ الموسم {0}
+players	لعيب
+{loser} did everything except the one thing that matters: scoring.	{loser} عملوا كل حاجة إلا الحاجة الوحيدة المهمة: الجون.
+{winner} were {wp} in the table this morning. {lm} made them look like champions.	{winner} كانوا {wp} في الجدول الصبح. و{lm} خلاهم شكلهم أبطال.
+{m} loves {preset} more than some people love their family.	{m} بيحب {preset} أكتر من ناس بتحب عيلتها.
+{player} was the only one who turned up today	{player} الوحيد اللي حضر النهارده
+{0} talked big	{0} اتكلم كلام كبير
+{0} offer for your players are waiting for an answer.	{0} عرض على لعيبتك مستني رد.
+{0} offers for your players are waiting for an answer.	{0} عروض على لعيبتك مستنية رد.
+Close call with	قريبة جدًا من
+either is a good choice.	الاتنين اختيار كويس.
+M · Wage	M · المرتب
+M · wage	M · المرتب
+M/match	M/ماتش
+Swap for {0} · {1}M	تبديل بـ{0} · {1}M
+Swap for {0}	تبديل بـ{0}

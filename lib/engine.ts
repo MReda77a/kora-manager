@@ -221,6 +221,19 @@ function mkLine(p: EPlayer, side: 0 | 1, onAt: number): PlayerLine {
 
 const last = (n: string) => n.split(' ').slice(-1)[0];
 
+const SHOT_LOST = 0.25;
+const HOW: Record<string, string[]> = {
+  corner: ['with a header from a corner', 'rising highest at a corner', 'bundling it in from a corner'],
+  'free kick': ['with a stunning free kick', 'curling a free kick into the top corner', 'from a free kick the keeper never saw'],
+  cross: ['with a header from a cross', 'meeting the cross at the far post', 'with a diving header'],
+  'through ball': ['running onto a through ball', 'slotting it past the keeper one on one', 'after a perfect pass in behind'],
+  'build-up': ['after a patient move', 'finishing off a flowing move', 'after a long passing move'],
+  'long shot': ['from distance', 'with a rocket from 25 yards', 'with a low drive from outside the box'],
+  counter: ['on the counter', 'finishing a lightning break', 'after a three-on-two break'],
+  'high turnover': ['after winning it high up the pitch', 'after pinching the ball off a defender', 'punishing a mistake at the back'],
+  penalty: ['from the spot'],
+};
+
 export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts = {}): Report {
   const r = makeRng(seed);
   const lines: PlayerLine[] = [];
@@ -259,6 +272,9 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const T = (i: number) => S[i].tactic;
   const A = (i: number, k: string) => S[i].agg[k];
   const log = (type: string, side: 0 | 1, text: string, pid?: string, pid2?: string) => ev.push({ m: minute, type, side, text, pid, pid2 });
+  // a line from a few ways of saying it; chosen from the minute and the event count, not the match RNG,
+  // so the result of a match never depends on its commentary
+  const say = (opts: string[]) => opts[(ev.length * 7 + minute * 3) % opts.length];
 
   const pickScorer = (side: 0 | 1, kind: string) => {
     const outfield = S[side].pitch.filter((o) => o.slot !== 'GK');
@@ -278,8 +294,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 
   const shot = (a: 0 | 1, baseXg: number, kind: string) => {
     const b = (1 - a) as 0 | 1;
+    // a quarter of the attempts are blocked or cleared before a shot: fewer shots, each worth a bit more
+    if (r.next() < SHOT_LOST) return;
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
-    let q = 0.73 * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
+    let q = (0.73 / (1 - SHOT_LOST)) * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
     if (S[b].flags.mark > 0) q *= 1 - 0.07 * Math.min(1.5, S[b].flags.mark); // their danger man is man-marked
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
@@ -288,7 +306,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (goals[a] >= MAX_GOALS) q = 0;
     shots[a]++;
     xg[a] += q;
-    const onTarget = r.next() < Math.min(0.95, 0.32 + q * 1.6);
+    const onTarget = r.next() < Math.min(0.9, 0.16 + q * 1.1); // a third of shots hit the target, like real football
     const [sx, sy] = spot(a, kind);
     if (r.next() < q) {
       const sc = pickScorer(a, kind === 'corner' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
@@ -311,8 +329,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         as.line.r += 0.6;
         txt += `, assisted by ${last(as.p.name)}`;
       }
-      const how: Record<string, string> = { corner: 'with a header from a corner', 'free kick': 'with a stunning free kick', cross: 'with a header from a cross', 'through ball': 'running onto a through ball', 'build-up': 'after a patient move', 'long shot': 'from distance', counter: 'on the counter', 'high turnover': 'after winning it high up the pitch', penalty: 'from the spot' };
-      log('goal', a, `${txt} ${how[kind] || ''}`.trim(), sc.p.id, as?.p.id);
+      log('goal', a, `${txt} ${say(HOW[kind] || [''])}`.trim(), sc.p.id, as?.p.id);
       S[b].pitch.filter((o) => o.slot === 'DEF' || o.slot === 'GK').forEach((o) => (o.line.r -= 0.25));
     } else {
       shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: onTarget });
@@ -320,9 +337,9 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         onT[a]++;
         const gk = S[b].pitch.find((o) => o.slot === 'GK');
         if (gk) gk.line.r += 0.15;
-        if (q > 0.25 && gk) log('save', b, `Big save by ${gk.p.name}!`, gk.p.id);
-      } else if (q > 0.3) {
-        log('miss', a, `Huge chance missed for ${S[a].s.name}.`);
+        if (q > 0.25 && gk) log('save', b, say([`Big save by ${gk.p.name}!`, `What a stop from ${gk.p.name}!`, `${gk.p.name} gets down well to save!`, `${gk.p.name} tips it over the bar!`]), gk.p.id);
+      } else if (q > 0.28) {
+        log('miss', a, say([`Huge chance missed for ${S[a].s.name}.`, `Off the post! ${S[a].s.name} so close.`, `${S[a].s.name} should have scored there!`, `Wide! ${S[a].s.name} waste a golden chance.`]));
       }
       // saves and blocks give corners
       if (kind !== 'corner' && kind !== 'penalty' && r.next() < (onTarget ? 0.3 : 0.22) + (kind === 'cross' ? 0.1 : 0)) corner(a);
@@ -352,7 +369,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const sp = S[a].s.setpieces || {};
     const t = taker(a, sp.fk, 'LongShots');
     const skill = t ? (S[a].val(t, 'LongShots') + S[a].val(t, 'Composure')) / 2 : 65;
-    log('freekick', a, `Free kick in a dangerous position. ${t ? t.p.name : ''} stands over it...`, t?.p.id);
+    log('freekick', a, t ? say([`Free kick in a dangerous position. ${t.p.name} stands over it...`, `${t.p.name} lines up a free kick on the edge of the box...`]) : 'Free kick in a dangerous position...', t?.p.id);
     shot(a, Math.max(0.02, 0.045 + (skill - 70) * 0.002), 'free kick');
   };
 
@@ -455,7 +472,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       if (saved) onT[a]++;
       shotsList[shotsList.length - 1].on = saved;
       taker.line.r -= 0.6;
-      log('penmiss', a, saved ? `${taker.p.name}'s penalty is SAVED!` : `${taker.p.name} misses the penalty!`, taker.p.id);
+      log('penmiss', a, saved ? say([`${taker.p.name}'s penalty is SAVED!`, `Saved! The keeper reads ${taker.p.name}'s penalty.`]) : say([`${taker.p.name} misses the penalty!`, `${taker.p.name} blazes the penalty over!`]), taker.p.id);
     }
   };
 
@@ -466,7 +483,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     o.line.r -= 0.3;
     yel[side]++;
     if (o.yc >= 2) return sendOff(side, o, false);
-    log('yellow', side, `Yellow card: ${o.p.name}`, o.p.id);
+    log('yellow', side, say([`Yellow card: ${o.p.name}`, `${o.p.name} goes into the book.`, `${o.p.name} is booked for a late tackle.`]), o.p.id);
     // the assistant calms things down when a defender is one tackle away from a red
     if (tk(side) === 2 && o.slot === 'DEF' && S[side].s.assistant?.cards) {
       S[side].tactic = { ...S[side].tactic, tackle: 1 };
@@ -480,7 +497,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     o.line.mins += minute;
     o.line.fitEnd = Math.round(100 - o.tired * 45);
     S[side].pitch = S[side].pitch.filter((x) => x !== o);
-    log('red', side, straight ? `RED CARD! ${o.p.name} is sent off` : `Second yellow: ${o.p.name} is off`, o.p.id);
+    log('red', side, straight ? say([`RED CARD! ${o.p.name} is sent off`, `Straight red for ${o.p.name}!`]) : say([`Second yellow: ${o.p.name} is off`, `${o.p.name} picks up a second yellow and walks.`]), o.p.id);
   };
 
   const substitute = (side: 0 | 1, out: OnPitch, reason: string) => {
@@ -660,7 +677,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     return sig(x);
   };
 
-  log('kickoff', 0, `Kick-off! ${home.name} vs ${away.name}`);
+  log('kickoff', 0, say([`Kick-off! ${home.name} vs ${away.name}`, `We're under way: ${home.name} vs ${away.name}`]));
   const stoppage1 = 1 + Math.floor(r.next() * 3), stoppage2 = 2 + Math.floor(r.next() * 5);
   const total = 90 + stoppage1 + stoppage2;
   for (let k = 1; k <= total; k++) {
@@ -680,7 +697,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       if (r.next() < 0.0009 * (S[i].s.injuryRisk ?? 1) * S[i].pitch.length / 11) {
         const v = r.weighted(S[i].pitch, (o) => (o.p.a.InjuryProne || 30) * (1 + o.tired));
         v.line.inj = true;
-        log('injury', i, `${v.p.name} is injured`, v.p.id);
+        log('injury', i, say([`${v.p.name} is injured`, `${v.p.name} goes down injured`, `${v.p.name} limps off`]), v.p.id);
         const autoSub = S[i].manual || (S[i].s.assistant || {}).injured !== false;
         if (!autoSub || !substitute(i, v, 'Injury')) {
           v.line.mins += minute;
@@ -814,7 +831,8 @@ export function aiPlan(o: { level: number; oppHistory: string[]; own: PlanPlayer
   if (o.level > 0) {
     const scored = names.map((n) => {
       let c = 0, w = 0;
-      o.oppHistory.slice(0, 4).forEach((h, i) => { const wt = [1, 0.55, 0.3, 0.2][i]; c += counterShare(n, h) * wt; w += wt; });
+      // only a hard AI studies your last plans and picks the one that beats them
+      if (o.level === 2) o.oppHistory.slice(0, 4).forEach((h, i) => { const wt = [1, 0.55, 0.3, 0.2][i]; c += counterShare(n, h) * wt; w += wt; });
       const counter = w ? c / w : 0.5;
       const fit = tacticFit(own, stripDesc(PRESETS[n])).fit;
       return { n, v: counter * 0.6 + fit * 0.06 + (r.next() - 0.5) * (o.level === 2 ? 0.06 : 0.12) };
@@ -824,7 +842,7 @@ export function aiPlan(o: { level: number; oppHistory: string[]; own: PlanPlayer
   const t: Tactic = { preset: pick, formation: o.formation, ...stripDesc(PRESETS[pick]) } as Tactic;
   if (o.level === 0) return t;
   // aim at weak spots (hard always, normal half the time)
-  if (r.next() < (o.level === 2 ? 0.6 : 0.35)) {
+  if (r.next() < (o.level === 2 ? 0.6 : 0.25)) {
     const paceGap = lineAvg(o.own, 'FWD', ['Pace']) - lineAvg(o.opp, 'DEF', ['Pace']);
     const airGap = lineAvg(o.own, 'FWD', ['Heading', 'Jumping', 'Strength']) - lineAvg(o.opp, 'DEF', ['Heading', 'Jumping', 'Strength']);
     const theirKeeper = lineAvg(o.opp, 'GK', ['Reflexes', 'Handling']);
