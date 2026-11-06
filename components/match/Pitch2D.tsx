@@ -293,7 +293,17 @@ export function buildPlan(rep: any, events: Ev[]) {
     const timeOf = (e: Ev) => {
       const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
       if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' ? s2.foul : s2.land; }
+      if (e.type === 'yellow' || e.type === 'red') return cardAt(e);
       return evAt(e);
+    };
+    /** a card is shown when the referee blows for the foul: with the free kick or penalty it gave, or else
+     * when the passage of play it happened in stops, never in the middle of a move */
+    const cardAt = (e: Ev): number => {
+      const i = events.indexOf(e);
+      const kick = events.find((x, j) => j > i && x.m === e.m && x.side !== e.side && (x.type === 'freekick' || x.type === 'penalty'));
+      if (kick) return timeOf(kick);
+      const at = evAt(e), q = plans.find((p) => p.t0 <= at && at < p.t1);
+      return q ? Math.max(at, q.t1 - 0.05) : at;
     };
     return { plans, F, occAt, shots, styleAt, timeOf, roleIn };
   }
@@ -676,7 +686,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
             <circle cx={spot[0]} cy={spot[1]} r={3.6} fill="none" stroke={e.type === 'red' ? '#FF4A5E' : '#FFE86B'} strokeWidth={0.35}><animate attributeName="r" values="2.6;4.2;2.6" dur="0.8s" repeatCount="indefinite" /></circle>
             <g transform={`translate(${Math.max(9, Math.min(L - 9, spot[0]))} ${Math.max(5, spot[1] - 5.2)})`}>
               <rect x={-8.5} y={-1.9} width={17} height={3.3} rx={0.5} fill="rgba(6, 14, 26,0.9)" stroke={e.type === 'red' ? '#FF4A5E' : '#FFE86B'} strokeWidth={0.2} />
-              <text y={0.6} textAnchor="middle" fontSize={1.8} fontWeight={900} fill="#FFE86B">{e.type === 'freekick' ? '📣 Foul · free kick' : e.type === 'yellow' ? '🟨 Yellow card' : e.type === 'red' ? '🟥 Sent off' : e.type === 'penalty' ? '📣 PENALTY' : '🚩 Offside'}</text>
+              <text y={0.6} textAnchor="middle" fontSize={1.8} fontWeight={900} fill="#FFE86B">{e.type === 'freekick' ? '📣 Foul · free kick' : e.type === 'yellow' ? '📣 Foul · 🟨 Yellow' : e.type === 'red' ? '📣 Foul · 🟥 Sent off' : e.type === 'penalty' ? '📣 PENALTY' : '🚩 Offside'}</text>
             </g>
           </g>
         ))}

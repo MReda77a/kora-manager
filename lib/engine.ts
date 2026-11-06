@@ -294,10 +294,12 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 
   const shot = (a: 0 | 1, baseXg: number, kind: string) => {
     const b = (1 - a) as 0 | 1;
-    // a quarter of the attempts are blocked or cleared before a shot: fewer shots, each worth a bit more
-    if (r.next() < SHOT_LOST) return;
+    // a quarter of the attempts are blocked or cleared before a shot: fewer shots, each worth a bit more.
+    // A free kick that has been given is always taken.
+    const lost = kind === 'free kick' ? 0 : SHOT_LOST;
+    if (lost && r.next() < lost) return;
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
-    let q = (0.73 / (1 - SHOT_LOST)) * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
+    let q = (0.73 / (1 - lost)) * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
     if (S[b].flags.mark > 0) q *= 1 - 0.07 * Math.min(1.5, S[b].flags.mark); // their danger man is man-marked
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
@@ -630,10 +632,11 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0) // hard tackling hurts short-passing sides most
       + S[a].flags.lose + (tb.press >= 2 ? S[a].flags.pressed : 0);
     if (r.next() < Math.max(0.03, pLose)) {
-      // tackles can bring fouls and cards, many more when the team gets stuck in
+      // tackles can bring fouls and cards, many more when the team gets stuck in. A booking is a foul: the
+      // referee stops play and gives the free kick, so the ball is not won (the card shows at the stop)
       if (r.next() < (0.2 + (tb.press >= 2 ? 0.08 : 0)) * [0.55, 1, 1.6][tk(b)]) {
         const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1));
-        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul * calm(b) * [0.7, 1, 1.15][tk(b)]) card(b, f, tk(b) === 2 ? 0.05 : 0);
+        if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul * calm(b) * [0.7, 1, 1.15][tk(b)]) { card(b, f, tk(b) === 2 ? 0.05 : 0); return; }
       }
       if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.25 : 0.2)) shot(b, tb.press === 3 ? 0.15 : 0.13, 'high turnover');
       else if (tb.mentality <= 1 && r.next() < 0.09 + 0.05 * (2 - tb.mentality)) counter(b);

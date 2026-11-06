@@ -173,3 +173,7 @@ Live pitch	الملعب لايف
 🟥 Sent off	🟥 طرد
 📣 PENALTY	📣 بلنتي
 🚩 Offside	🚩 تسلل
+📣 Foul · 🟨 Yellow	📣 فاول · 🟨 كارت أصفر
+📣 Foul · 🟥 Sent off	📣 فاول · 🟥 طرد
+🟨 Yellow	🟨 كارت أصفر
+📣 Foul	📣 فاول
