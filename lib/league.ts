@@ -73,7 +73,9 @@ export async function myLeagues(uid: number) {
        (SELECT COUNT(*)::int FROM clubs x WHERE x.league_id=l.id) AS clubs,
        (SELECT COUNT(*)::int FROM clubs x WHERE x.league_id=l.id AND x.user_id IS NOT NULL) AS humans
      FROM leagues l LEFT JOIN clubs c ON c.league_id=l.id AND c.user_id=$1
-     WHERE c.id IS NOT NULL OR l.owner_id=$1 ORDER BY l.created_at DESC`,
+     WHERE (c.id IS NOT NULL OR l.owner_id=$1)
+       AND (c.id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM league_left x WHERE x.league_id=l.id AND x.user_id=$1))
+     ORDER BY l.created_at DESC`,
     [uid],
   );
 }
@@ -644,6 +646,7 @@ export async function resign(uid: number, leagueId: number, confirmName: string)
   const user = await one('SELECT username FROM users WHERE id=$1', [uid]);
   const w = writes();
   w.add('UPDATE clubs SET user_id=NULL, captain=NULL, vice=NULL WHERE id=$1', [club.id]);
+  w.add('INSERT INTO league_left (league_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [leagueId, uid]);
   w.add(`UPDATE offers SET status='expired', note='The manager resigned.', updated_at=now() WHERE (from_club=$1 OR to_club=$1) AND status IN ('pending','countered')`, [club.id]);
   w.add('DELETE FROM listings WHERE seller_id=$1', [club.id]);
   w.add(`INSERT INTO news (league_id, club_id, kind, text) VALUES ($1,$2,'board',$3)`, [leagueId, club.id, `👋 ${user?.username ?? 'The manager'} has resigned from ${club.name}. The club carries on under an AI manager.`]);

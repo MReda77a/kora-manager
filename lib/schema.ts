@@ -402,6 +402,12 @@ CREATE TABLE IF NOT EXISTS transfers (
 );
 CREATE INDEX IF NOT EXISTS transfers_league ON transfers (league_id, id DESC);
 
+-- leagues a manager resigned from: gone from their list, even one they created
+CREATE TABLE IF NOT EXISTS league_left (league_id INT NOT NULL, user_id INT NOT NULL, at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (league_id, user_id));
+INSERT INTO league_left (league_id, user_id)
+  SELECT DISTINCT n.league_id, u.id FROM news n JOIN users u ON n.text LIKE '👋 ' || u.username || ' has resigned from %'
+  WHERE NOT EXISTS (SELECT 1 FROM clubs c WHERE c.league_id=n.league_id AND c.user_id=u.id)
+  ON CONFLICT DO NOTHING;
 -- a Safe sponsor picked for a manager who forgot: they can still choose their own
 ALTER TABLE clubs ADD COLUMN IF NOT EXISTS sponsor_auto BOOLEAN NOT NULL DEFAULT false;
 -- the language a manager plays in, for phone notifications
