@@ -1,0 +1,75 @@
+Why	ليه
+NEXT MATCH	الماتش الجاي
+Match plan ›	خطة الماتش ›
+DESERVED WIN	كسبة مستاهلة
+LUCKY WIN	كسبة بالحظ
+TIGHT WIN	كسبة على الشعرة
+THEY WERE BETTER	كانوا أحسن مننا
+UNLUCKY	حظ وحش
+FINE MARGINS	على الشعرة
+SHOULD HAVE WON	كان المفروض نكسب
+POINT SAVED	نقطة من بُق الأسد
+FAIR DRAW	تعادل عادل
+You made the better chances: {0} xG to {1}.	إنت عملت الفرص الأحسن: {0} xG قدام {1}.
+They made the better chances ({0} xG to {1}). Take the points, then fix it.	هما عملوا الفرص الأحسن ({0} xG قدام {1}). خد النقط، وبعدين صلّح.
+Very even on chances ({0} xG to {1}). The small things went your way.	الفرص متساوية جدًا ({0} xG قدام {1}). التفاصيل الصغيرة جت في صفك.
+They made the better chances: {0} xG to {1}. The result is fair.	هما عملوا الفرص الأحسن: {0} xG قدام {1}. النتيجة عادلة.
+You made the better chances ({0} xG to {1}) and still lost. That one was luck, not your plan.	إنت عملت الفرص الأحسن ({0} xG قدام {1}) وبرضه خسرت. دي حظ، مش خطتك.
+Even on chances ({0} xG to {1}). It could have gone either way.	الفرص متساوية ({0} xG قدام {1}). كانت ممكن تروح لأي حد.
+You made far better chances ({0} xG to {1}).	إنت عملت فرص أحسن بكتير ({0} xG قدام {1}).
+They made the better chances ({0} xG to {1}). A point is a good result.	هما عملوا الفرص الأحسن ({0} xG قدام {1}). النقطة نتيجة كويسة.
+Even on chances ({0} xG to {1}).	الفرص متساوية ({0} xG قدام {1}).
+{0} of your {1} shots came from outside the box. They are worth little: {2} xG between them.	{0} من {1} تسديدة ليك كانوا من برا الصندوق. ودول مالهمش قيمة: {2} xG كلهم على بعض.
+Your plan shoots from distance. In Match plan › Style, set Final third to Work it in or Through, and give your striker a scoring role (Poacher).	خطتك بتشوّط من بعيد. من خطة الماتش › الأسلوب، خلي التلت الأخير "دخّلها" أو "بينيات"، وادي المهاجم دور تهديف (خطّاف).
+{0}% of the ball but {1} shots to their {2}. Lots of passing, little danger.	{0}% من الكورة بس {1} تسديدات قدام {2} ليهم. باصات كتير وخطورة قليلة.
+Keep the ball with a purpose: a faster tempo or a Direct build-up, and runners up front (Line breaker, Inside forward).	خلي الاستحواذ ليه هدف: ريتم أسرع أو بناء مباشر، وناس بتجري قدام (كاسر الخطوط، مهاجم داخلي).
+{0} of their chances came on the counter ({1} xG): they won the ball and ran at your back line.	{0} من فرصهم جت من مرتدات ({1} xG): بيخطفوا الكورة ويجروا على دفاعك.
+Drop your defensive line a step, or put an Anchor in front of the defence. Quick centre-backs help too.	رجّع خط الدفاع خطوة، أو حط مرساة قدام الدفاع. وقلوب الدفاع السريعين بيفرقوا.
+{0} through balls got in behind your defence ({1} xG).	{0} بينيات عدّت ورا دفاعك ({1} xG).
+A lower defensive line, or a Sweeper behind it, stops runs in behind.	خط دفاع أوطى، أو ليبرو وراه، بيوقف الجري ورا الدفاع.
+{0} of their chances came from crosses ({1} xG): you lost the headers in your box.	{0} من فرصهم جت من عرضيات ({1} xG): خسرت الراسيات في صندوقك.
+Put a Stopper at centre-back, or close their wide men with Flank cover.	حط ستوبر في قلب الدفاع، أو اقفل أجنحتهم بغطا جنب.
+{0} of their chances came from corners ({1} xG): you lost the headers in your box.	{0} من فرصهم جت من كورنرات ({1} xG): خسرت الراسيات في صندوقك.
+Tall, strong centre-backs win corners. A Stopper role helps.	قلوب الدفاع الطوال التقال بيكسبوا الكورنرات. ودور الستوبر بيساعد.
+They won the ball high up the pitch {0} times and shot straight away ({1} xG). Your build-up was pressed.	خطفوا الكورة من فوق {0} مرات وشوّطوا على طول ({1} xG). البناء بتاعك اتضغط عليه.
+Against a high press, set Build-up to Mixed or Direct in Style.	قدام الضغط العالي، خلي البناء "مكس" أو "مباشر" من الأسلوب.
+They passed their way through your midfield {0} times ({1} xG).	عدّوا من وسطك بالباص {0} مرات ({1} xG).
+An Anchor or a Marker in midfield, or a more defensive mentality, closes the middle.	مرساة أو رقيب في الوسط، أو عقلية دفاعية أكتر، بيقفلوا النص.
+They made {0} xG: your defence gave away big chances all over the pitch.	عملوا {0} xG: دفاعك ادّاهم فرص كبيرة من كل حتة.
+Try a more defensive mentality and a lower line until it settles.	جرّب عقلية دفاعية أكتر وخط أوطى لحد ما الدنيا تهدى.
+Your defence held: they made only {0} xG all match.	دفاعك صمد: عملوا {0} xG بس طول الماتش.
+Most of your danger came from {0}: {1} xG.	أغلب خطورتك جت من {0}: {1} xG.
+counter-attacks	المرتدات
+through balls	البينيات
+crosses	العرضيات
+corners	الكورنرات
+winning the ball high	الخطف من فوق
+patient passing	الباص بالصبر
+shots from distance	الشوط من بعيد
+You made {0} xG and scored {1}. On another day that is {2} more.	عملت {0} xG وجبت {1}. في يوم تاني كانوا هيبقوا {2} زيادة.
+You scored {0} from {1} xG: very clinical.	جبت {0} من {1} xG: لمسة أخيرة قاتلة.
+They scored {0} from {1} xG: nearly everything went in.	جابوا {0} من {1} xG: كل حاجة تقريبًا دخلت.
+They wasted {0} xG and scored {1}. A lucky escape.	ضيّعوا {0} xG وجابوا {1}. نجينا.
+You led {0}. {1} sat back at {2} and they scored at {3}.	كنت كسبان {0}. {1} رجع ورا في الدقيقة {2} وهما جابوا جون في {3}.
+Your assistant	المساعد بتاعك
+You	إنت
+You led {0} and let it slip at {1}.	كنت كسبان {0} وضيّعتها في الدقيقة {1}.
+Sitting back invites pressure. In Match plan › More, untick "Shut it down when winning" to keep your plan to the end.	الرجوع لورا بيجيب الضغط عليك. من خطة الماتش › كمان، شيل علامة "اقفل الماتش وإنت كسبان" عشان خطتك تفضل لحد الآخر.
+Late on, fresh legs keep a lead better than a deep block: make your changes before 75'.	في الآخر، الرجلين الفريش بتحافظ على التقدم أحسن من الرجوع لورا: اعمل تغييراتك قبل 75'.
+After they switched to {0} at {1}, they made {2} xG.	بعد ما قلبوا على {0} في الدقيقة {1}، عملوا {2} xG.
+When they change plan, change back: the analyst shows which plan beats theirs.	لما يغيّروا الخطة، رد عليهم: المحلل بيوريك أنهي خطة تكسر خطتهم.
+Your switch to {0} at {1} worked: {2} xG after it.	تغييرك لـ{0} في الدقيقة {1} نفع: {2} xG بعده.
+After your switch to {0} at {1}, your attack dried up.	بعد ما قلبت على {0} في الدقيقة {1}، هجومك نشف.
+If a change does not work within ten minutes, go back to what did.	لو التغيير ما نفعش في عشر دقايق، ارجع للي كان نافع.
+A red card at {0}: you played {1} minutes with ten men.	كارت أحمر في الدقيقة {0}: لعبت {1} دقيقة بعشرة.
+With hard tackling and a strict referee, cards fly. Stay on your feet next time.	مع الالتحام الخشن والحكم الشديد، الكروت بتطير. خليك واقف المرة الجاية.
+{0} of your players finished on empty legs ({1}).	{0} من لعيبتك خلّصوا الماتش من غير رجلين ({1}).
+Tired players lose duels late on. Rotate them and check Condition before kick-off.	اللعيبة التعبانة بتخسر الالتحامات في الآخر. دوّرهم وشوف الحالة قبل الماتش.
+This plan works. Keep it, and watch for their changes during the match.	الخطة دي نافعة. خليك عليها، وخلي بالك من تغييراتهم في الماتش.
+A tight, cagey match: few real chances at either end.	ماتش مقفول: فرص حقيقية قليلة للفريقين.
+Nothing stood out: both sides made their chances, and the finishing decided it.	مفيش حاجة باينة: الفريقين عملوا فرصهم، واللمسة الأخيرة هي اللي حسمت.
+an offside trap	مصيدة تسلل
+no offside trap	من غير مصيدة تسلل
+harder tackling	التحام أخشن
+softer tackling	التحام أنعم
+normal tackling	التحام عادي

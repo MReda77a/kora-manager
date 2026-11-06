@@ -1,5 +1,6 @@
 'use client';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
+import { whyReport } from '../../../lib/why.ts';
 import { api, clock, shirt } from '../../../lib/client.ts';
 import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, minuteAt, type ClubTypeKey } from '../../../lib/game.ts';
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
@@ -58,8 +59,8 @@ function KitPair({ d, size = 34 }: { d: any; size?: number }) {
   const [h, a] = d.kits;
   return (
     <div className="row" style={{ gap: 10, alignItems: 'flex-end' }}>
-      <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={h.c1} c2={h.c2} pattern={h.pattern} size={size} label={`${d.home.name} ${h.label}`} /><span className="tiny muted">{h.label}</span></div>
-      <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={a.c1} c2={a.c2} pattern={a.pattern} size={size} label={`${d.away.name} ${a.label}`} /><span className="tiny" style={{ color: a.label === 'Home kit' ? undefined : '#F2C14E', fontWeight: 800 }}>{a.label}</span></div>
+      <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={h.c1} c2={h.c2} pattern={h.pattern} size={size} label={`${d.home.name} ${h.label}`} /><span className="tiny muted">{d.home.short}</span></div>
+      <div className="col" style={{ alignItems: 'center', gap: 0 }}><Kit c1={a.c1} c2={a.c2} pattern={a.pattern} size={size} label={`${d.away.name} ${a.label}`} /><span className="tiny muted">{d.away.short}</span></div>
     </div>
   );
 }
@@ -786,6 +787,7 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
         {skipped ? <span className="tag cyan simtag"><span>SIMULATED · YOU SKIPPED</span></span> : <span className="simtag"><KitPair d={d} size={26} /></span>}
       </header>
 
+      {mine >= 0 && <WhyCard d={d} mine={mine as 0 | 1} />}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, flex: 1 }}>
         <section className="panel cut" style={{ gap: 4, overflowY: 'auto', maxHeight: 330 }}>
           <span className="kicker">What happened · <span style={{ color: 'var(--cyan)' }}>AST</span> = your assistant</span>
@@ -846,6 +848,34 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
         {mine >= 0 && d.fixture.status === 'done' && <Press d={d} reload={reload} />}
       </div>
     </div>
+  );
+}
+
+// Why the match went the way it did: was the result deserved, the things that decided it, one change to try.
+function WhyCard({ d, mine }: { d: any; mine: 0 | 1 }) {
+  const w = whyReport(d.report, mine, [d.home.name, d.away.name]);
+  if (!w) return null;
+  const mark = { good: '✓', bad: '✗', luck: '🎲' } as const;
+  return (
+    <section className={`panel cut why why-${w.tone}`}>
+      <div className="why-head">
+        <span className="kicker">Why</span>
+        <b className="lz why-title">{w.title}</b>
+        <span className="small why-line">{w.line}</span>
+      </div>
+      <div className="why-reasons">
+        {w.reasons.map((r, i) => (
+          <div key={i} className={`why-r ${r.tone}`}><i aria-hidden>{mark[r.tone]}</i><span>{r.text}</span></div>
+        ))}
+      </div>
+      {w.tip && (
+        <div className="why-tip">
+          <span className="tiny why-next">NEXT MATCH</span>
+          <span className="small">{w.tip}</span>
+          <a className="seg" href={`/l/${d.fixture.leagueId}?tab=lineup`}><span>Match plan ›</span></a>
+        </div>
+      )}
+    </section>
   );
 }
 

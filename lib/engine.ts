@@ -294,7 +294,6 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       const sc = pickScorer(a, kind === 'corner' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
       // VAR checks every goal; a few are ruled out for offside
       if (kind !== 'free kick' && r.next() < 0.035) {
-        shots[a]++; xg[a] += q;
         shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: false });
         log('var', a, `VAR check... goal by ${sc.p.name} ruled out for offside!`, sc.p.id);
         return;
@@ -550,8 +549,12 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     sd.manual = true;
     if (c.kind === 'tactic') {
       const { preset, plan, ...rest } = c.tactic;
+      const was = sd.tactic;
       const before = sd.tactic.formation;
       sd.tactic = { ...sd.tactic, ...(preset && PRESETS[preset] ? stripDesc(PRESETS[preset]) : {}), ...rest, preset: preset || sd.tactic.preset };
+      const moved = (k: keyof Tactic) => JSON.stringify(sd.tactic[k]) !== JSON.stringify(was[k]);
+      const changed = (Object.keys(sd.tactic) as (keyof Tactic)[]).filter(moved);
+      if (!changed.length && !plan) return; // the same plan tapped again: nothing happens, nothing to report
       logStyle(c.side, sd.tactic);
       if (sd.tactic.formation !== before && FORMATIONS[sd.tactic.formation]) {
         // re-seat the players on the pitch into the new shape, natural positions first
@@ -571,9 +574,19 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         sd.pitch = [...placed, ...rest2];
       }
       // "switch to" marks a manager's own decision (the full-time screen tells it apart from the assistant)
-      const what = plan ? `Plan ${plan} (${sd.tactic.formation})`
-        : preset && PRESETS[preset] ? preset
-        : rest.mentality === 2 ? 'all-out attack' : rest.mentality === 0 && rest.line === 0 ? 'parking the bus' : rest.press === 3 ? 'a high press' : 'a new plan';
+      // name what actually changed, not what was sent (a plan sent again with one tweak is that tweak)
+      const t = sd.tactic;
+      const what = plan ? `Plan ${plan} (${t.formation})`
+        : preset && PRESETS[preset] && preset !== was.preset ? preset
+        : moved('mentality') && t.mentality === 2 ? 'all-out attack'
+        : t.mentality === 0 && t.line === 0 && (moved('mentality') || moved('line')) ? 'parking the bus'
+        : moved('press') && t.press === 3 ? 'a high press'
+        : changed.length === 1 && changed[0] === 'trap' ? (t.trap ? 'an offside trap' : 'no offside trap')
+        : changed.length === 1 && changed[0] === 'tackle' ? (t.tackle === 2 ? 'harder tackling' : t.tackle === 0 ? 'softer tackling' : 'normal tackling')
+        : 'a new plan';
+      // several changes in the same minute (the half-time break) read as one decision: the last one
+      const prev = ev[ev.length - 1];
+      if (prev && prev.type === 'tactic' && prev.side === c.side && prev.m === minute && prev.text.startsWith(`${sd.s.name} switch to `)) ev.pop();
       log('tactic', c.side, `${sd.s.name} switch to ${what}`);
       return;
     }

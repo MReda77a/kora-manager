@@ -742,3 +742,22 @@ html.ar .p2d-svg, html.ar .p2d, html.ar [data-ltr], html.ar .ticker, html.ar .mc
 html.ar .ticker .run > * { direction: rtl; unicode-bidi: isolate; }
 /* decorations that hang off the left edge (the header shine) would make an RTL page scroll sideways */
 html.ar, html.ar body, html.ar .shell, html.ar .main { overflow-x: clip; }
+
+/* full time: why the match went the way it did */
+.why { display: grid; grid-template-columns: minmax(170px, 0.8fr) minmax(0, 1.6fr) minmax(190px, 1fr); gap: 14px; align-items: start; }
+.why-head { display: flex; flex-direction: column; gap: 2px; }
+.why-title { font-size: 26px; line-height: 1.05; }
+.why-good .why-title { color: var(--mint); }
+.why-bad .why-title { color: #FF8A80; }
+.why-even .why-title { color: #F2C14E; }
+.why-line { color: var(--soft); font-weight: 700; }
+.why-reasons { display: flex; flex-direction: column; gap: 6px; }
+.why-r { display: flex; gap: 8px; align-items: flex-start; font-weight: 700; font-size: 14px; line-height: 1.3; }
+.why-r i { font-style: normal; font-weight: 900; width: 18px; flex: none; text-align: center; }
+.why-r.good i { color: var(--mint); }
+.why-r.bad i { color: #FF8A80; }
+.why-tip { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(242, 193, 78, 0.08); border-inline-start: 3px solid #F2C14E; }
+.why-tip .seg { align-self: flex-start; }
+.why-next { font-weight: 900; color: #F2C14E; letter-spacing: 0.06em; }
+@media (max-width: 640px) { .why { grid-template-columns: 1fr; gap: 8px; } }
+@media (max-height: 430px) { .why-title { font-size: 21px; } .why-r { font-size: 13px; } }
