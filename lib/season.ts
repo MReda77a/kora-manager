@@ -526,7 +526,11 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   const side = club.id === f.home_id ? 0 : club.id === f.away_id ? 1 : -1;
   if (side < 0) fail(403, 'This is not your match.');
   const now = Date.now();
-  const minute = Math.floor(liveMinute(f, now)) + 1;
+  // from the next minute, or after what this manager's pitch has already shown (it runs a little ahead of
+  // the match clock), so a change never rewrites a chance already watched; never more than 5 minutes on
+  const base = Math.floor(liveMinute(f, now)) + 1;
+  const seen = Math.floor(Number(b.after));
+  const minute = base >= 90 ? 90 : Math.min(89, Number.isFinite(seen) ? Math.max(base, Math.min(base + 4, seen + 1)) : base);
   if (minute >= 90 || now > new Date(f.live_from).getTime() + LIVE_MS) fail(400, 'The match is over.');
   const changes: Change[] = f.changes || [];
   if (changes.filter((c) => c.side === side).length >= 10) fail(400, 'Too many changes.');

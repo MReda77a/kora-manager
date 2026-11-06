@@ -6,7 +6,7 @@ import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, minuteAt, type ClubType
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
-import { Pitch2D, evAt, tm, usePlan } from '../../../components/match/Pitch2D.tsx';
+import { Pitch2D, evAt, tm, usePlan, shownUpTo } from '../../../components/match/Pitch2D.tsx';
 import { Commentary, Formation, KeyEvents, LiveStats, Lineups, Momentum, assistantTips, liveFit, useSmoothClock, type Tip } from '../../../components/match/Panels.tsx';
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
@@ -321,10 +321,11 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const change = async (body: Record<string, unknown>, msg: string) => {
     setReact(null);
     try {
-      await api(`/api/fixtures/${d.fixture.id}/change`, body);
+      // the change starts after what the pitch has already shown, so nothing you watched is rewritten
+      const r = await api(`/api/fixtures/${d.fixture.id}/change`, { ...body, after: shownUpTo(plan, gm) });
       const n = await api(`/api/fixtures/${d.fixture.id}`);
       if (n.report) setD(n);
-      toast.ok(msg);
+      toast.ok(r?.minute ? `${msg} (from ${r.minute}')` : msg);
       setPanel(null); setSubOut(null);
     } catch (e: any) { toast.bad(e.message); }
   };
@@ -388,7 +389,8 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const formSide = (mineSide >= 0 ? mineSide : 0) as 0 | 1;
   const tactics = canChange ? [
     { k: 'att', ico: '⚔️', t: 'All-out attack', s: 'Everyone forward, press high', go: () => change({ mentality: 2, press: 2 }, 'All out attack!') },
-    { k: 'bus', ico: '🚌', t: 'Park the bus', s: 'Sit deep, protect the lead', go: () => change({ mentality: 0, line: 0, press: 0 }, 'Park the bus') },
+    { k: 'bus', ico: '🚌', t: 'Park the bus', s: 'Sit deep. Risky against long shots', go: () => change({ mentality: 0, line: 0, press: 0 }, 'Park the bus') },
+    { k: 'compact', ico: '🧱', t: 'Stay compact', s: 'Defend on a mid line, no gaps', go: () => change({ mentality: 0, line: 1, press: 1 }, 'Stay compact') },
     { k: 'press', ico: '🔥', t: 'High press', s: 'Win the ball back high', go: () => change({ press: 3 }, 'High press on') },
     ...((d.plans || []).length > 1 ? d.plans.map((k: string) => ({ k: `plan${k}`, ico: '📋', t: `Plan ${k}`, s: 'Switch to your saved plan', go: () => change({ plan: k }, `Plan ${k}!`) })) : []),
   ] : [];

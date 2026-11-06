@@ -251,7 +251,14 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
     if (Math.max(leftOfMe, rightOfMe) >= theirAll.length * 0.7) tips.push({ key: `wing-${Math.floor(M / 20)}`, ico: '🧭', text: `Most of their chances come down our ${leftOfMe > rightOfMe ? 'left' : 'right'} side. A fresh full-back there would help.` });
   }
   if (M >= 65 && diff < 0 && diff >= -2) tips.push({ key: `behind-${score.join('-')}`, ico: '⏱', text: `We are ${-diff} down with ${90 - M} minutes left. Time to go for it.`, act: { label: 'All-out attack', body: { mentality: 2, press: 2 } } });
-  if (M >= 78 && diff === 1) tips.push({ key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. Protect it.`, act: { label: 'Park the bus', body: { mentality: 0, line: 0, press: 0 } } });
+  if (M >= 78 && diff === 1) {
+    // a deep block invites shots from range and long balls: against those, stay compact on a mid line
+    const theirNow = theirs.length ? theirs[theirs.length - 1].preset : rep.lineups?.[them]?.preset;
+    const compact = theirNow === 'Shoot on sight' || theirNow === 'Long ball';
+    tips.push(compact
+      ? { key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. They shoot from range, so do not sit too deep: stay compact.`, act: { label: 'Stay compact', body: { mentality: 0, line: 1, press: 1 } } }
+      : { key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. Protect it.`, act: { label: 'Park the bus', body: { mentality: 0, line: 0, press: 0 } } });
+  }
   return tips;
 }
 

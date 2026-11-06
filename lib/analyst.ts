@@ -47,7 +47,7 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
   const staff = { level, own, boosted, ...ANALYST_LEVELS[level], next: own < 3 ? { level: own + 1, ...ANALYST_LEVELS[(own + 1) as Lvl] } : null };
   if (!f) return { staff, report: null };
   // the report is kept until your plan, shape or line-up changes
-  const key = String(hashSeed('v3', level, JSON.stringify(club.tactic || {}), JSON.stringify(club.lineup || [])));
+  const key = String(hashSeed('v4', level, JSON.stringify(club.tactic || {}), JSON.stringify(club.lineup || [])));
   if (!refresh) {
     const c = await one('SELECT data FROM analyst_reports WHERE club_id=$1 AND fixture_id=$2 AND key=$3', [club.id, f.id, key]);
     if (c) return { staff, report: c.data };

@@ -10,7 +10,7 @@ import { shirt } from '../../lib/client.ts';
 import { lastName } from '../ui.tsx';
 
 export type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
-export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean };
+export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean; ghost?: boolean };
 type Flow = [number, 0 | 1, number, number];
 
 // match minute -> time on the clock of the watched match (stoppage time is squeezed in)
@@ -43,28 +43,58 @@ type Plan = {
   pre?: number; // the first part of the move that finishes the last one: celebration, keeper's ball, ball out for the corner
   kind: string; // the shot's kind ('' when there is no shot) // a save pushed out for the corner that follows
   spot?: [number, number]; // where the shot is taken from (% of the pitch, absolute)
+  m1: number; // the last match minute this move plays out (a live change only touches later minutes)
 };
 
 type Occ = { at: number; side: 0 | 1; out: string | null; inn: string | null }[];
 
 export function usePlan(rep: any, events: Ev[], now?: number) {
-  // during a live match the report is worked out again after every change; the moves already under way
-  // stay as they were and the new match carries on from the end of the current move, so nothing teleports
+  // during a live match the report is worked out again after every change (and polled every few seconds);
+  // the moves already under way stay as they were and the new match carries on from the end of the
+  // current move, so nothing teleports and no goal is squeezed into a split second
   const last = useRef<{ rep: any; plan: ReturnType<typeof buildPlan> } | null>(null);
   return useMemo(() => {
     const fresh = buildPlan(rep, events);
-    let out = fresh;
     const old = last.current;
-    if (old && old.rep !== rep && now != null && now > 0.5) {
-      const cur = old.plan.plans.find((q) => q.t0 <= now && q.t1 > now);
-      const cut = cur ? cur.t1 : now;
-      const keep = old.plan.plans.filter((q) => q.t1 <= cut + 1e-6);
-      const next = fresh.plans.filter((q) => q.t1 > cut + 1e-6).map((q) => (q.t0 < cut ? { ...q, t0: cut } : q));
-      out = { ...fresh, plans: [...keep, ...next].map((q, i) => (q.i === i ? q : { ...q, i })) };
-    }
+    const out = old && old.rep !== rep && now != null && now > 0.5 ? stitch(old.plan, fresh, now) : fresh;
     last.current = { rep, plan: out };
     return out;
   }, [rep, events]);
+}
+
+/** the last match minute the pitch has already shown or is showing now: a live change must start after it */
+export const shownUpTo = (plan: { plans: Plan[] }, now: number) => plan.plans.reduce((m, q) => (q.t0 <= now + 1e-6 ? Math.max(m, q.m1) : m), 0);
+
+const sameShot = (a?: Shot, b?: Shot) => !!a && !!b && a.m === b.m && a.side === b.side && a.x === b.x && a.y === b.y && a.kind === b.kind;
+
+/** the old moves up to the end of the one under way, then the new report's moves, each given the time it needs */
+export function stitch(old: ReturnType<typeof buildPlan>, fresh: ReturnType<typeof buildPlan>, now: number) {
+  const cur = old.plans.find((q) => q.t0 <= now && q.t1 > now);
+  const cut = cur ? cur.t1 : now;
+  const shots = [...fresh.shots];
+  // a move already on screen keeps its shot; if a change means that shot no longer happens, it stays a
+  // harmless effort (no goal) instead of borrowing a different shot of the new report
+  const keep = old.plans.filter((q) => q.t1 <= cut + 1e-6).map((q) => {
+    if (q.sh < 0 || sameShot(old.shots[q.sh], fresh.shots[q.sh])) return q;
+    const was = old.shots[q.sh];
+    if (!was) return { ...q, sh: -1 };
+    shots.push({ ...was, goal: false, on: false, ghost: true });
+    return { ...q, sh: shots.length - 1, out: q.out === 'goal' ? 'wide' : q.out };
+  });
+  // the new moves after the cut: none shorter than it takes to see it (an attack with a shot needs longer);
+  // a squeezed move pushes the next ones on until the pitch is back on the match clock
+  let at = cut;
+  const next: Plan[] = [];
+  const shown = new Set(keep.map((q) => q.sh).filter((k) => k >= 0));
+  for (const q of fresh.plans) {
+    if (q.sh >= 0 ? shown.has(q.sh) : q.t1 <= cut + 1e-6) continue; // already on screen
+    const need = q.sh >= 0 ? (q.kind === 'penalty' || q.kind === 'free kick' ? 1.1 : 0.9) : 0.4;
+    const t0 = Math.max(q.t0, at), t1 = Math.max(q.t1, t0 + need);
+    next.push(t0 === q.t0 && t1 === q.t1 ? q : { ...q, t0, t1, pre: q.pre && t0 !== q.t0 ? Math.min(0.6, (q.pre * (q.t1 - q.t0)) / (t1 - t0)) : q.pre });
+    at = t1;
+  }
+  const plans = [...keep, ...next].map((q, i) => (q.i === i ? q : { ...q, i }));
+  return { ...fresh, plans, shots, timeOf: fresh.timing(plans, shots) };
 }
 
 export function buildPlan(rep: any, events: Ev[]) {
@@ -77,7 +107,7 @@ export function buildPlan(rep: any, events: Ev[]) {
     // one move per minute: the one that mattered most; two quiet minutes in a row of the same team merge
     const groups = new Map<number, Flow[]>();
     for (const f of flow) { const g = groups.get(f[0]) || []; g.push(f); groups.set(f[0], g); }
-    const raw: { t0: number; t1: number; s: 0 | 1; r: number; sh: number; merged?: boolean }[] = [];
+    const raw: { t0: number; t1: number; s: 0 | 1; r: number; sh: number; merged?: boolean; m1: number }[] = [];
     for (const [m, g] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
       const rank = (f: Flow) => (f[3] >= 0 ? (shots[f[3]]?.goal ? 100 : 50 + shots[f[3]].xg * 10) : f[2]);
       const main = g.reduce((a, f) => (rank(f) >= rank(a) ? f : a), g[0]);
@@ -85,14 +115,14 @@ export function buildPlan(rep: any, events: Ev[]) {
       // two goals in one minute (or in stoppage time) are two moves, each with its own goal
       const goals = g.filter((f) => f[3] >= 0 && shots[f[3]]?.goal);
       if (goals.length > 1) {
-        goals.forEach((f, j) => raw.push({ t0: A + ((B - A) * j) / goals.length, t1: A + ((B - A) * (j + 1)) / goals.length, s: f[1], r: f[2], sh: f[3] }));
+        goals.forEach((f, j) => raw.push({ t0: A + ((B - A) * j) / goals.length, t1: A + ((B - A) * (j + 1)) / goals.length, s: f[1], r: f[2], sh: f[3], m1: m }));
         continue;
       }
       const last = raw[raw.length - 1];
       if (main[3] < 0 && last && last.sh < 0 && !last.merged && last.s === main[1] && Math.abs(last.t1 - A) < 1e-6 && m !== 46) {
-        last.t1 = B; last.merged = true; if (main[2] > last.r) last.r = main[2]; continue;
+        last.t1 = B; last.m1 = m; last.merged = true; if (main[2] > last.r) last.r = main[2]; continue;
       }
-      raw.push({ t0: A, t1: B, s: main[1], r: main[2], sh: main[3] });
+      raw.push({ t0: A, t1: B, s: main[1], r: main[2], sh: main[3], m1: m });
     }
     // possession that makes sense to the eye: a lone quiet minute of the other team between two minutes
     // of ours is our ball all along (no ping-pong), quiet minutes of one team merge into one longer spell
@@ -105,8 +135,8 @@ export function buildPlan(rep: any, events: Ev[]) {
     for (const m of raw) {
       const last = spells[spells.length - 1];
       const joinable = last && last.s === m.s && Math.abs(last.t1 - m.t0) < 1e-6 && !(last.t1 <= 45.01 && m.t0 >= 45);
-      if (joinable && last.sh < 0 && m.sh < 0 && m.t1 - last.t0 <= 3) { last.t1 = m.t1; last.r = Math.max(last.r, m.r); continue; }
-      if (joinable && last.sh < 0 && m.sh >= 0 && last.t1 - last.t0 <= 1.01) { last.t1 = m.t1; last.sh = m.sh; last.r = Math.max(last.r, m.r); continue; }
+      if (joinable && last.sh < 0 && m.sh < 0 && m.t1 - last.t0 <= 3) { last.t1 = m.t1; last.m1 = m.m1; last.r = Math.max(last.r, m.r); continue; }
+      if (joinable && last.sh < 0 && m.sh >= 0 && last.t1 - last.t0 <= 1.01) { last.t1 = m.t1; last.m1 = m.m1; last.sh = m.sh; last.r = Math.max(last.r, m.r); continue; }
       spells.push({ ...m });
     }
     raw.length = 0; raw.push(...spells);
@@ -128,7 +158,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       return pr ? { ...pr, preset: rep.lineups[side].preset } : { mentality: 1, press: 1, line: 1, build: 1, width: 1, tempo: 1 };
     };
     // stoppage time is squeezed into the last moments of the clock: its quiet moves fold into the one before
-    for (let i = raw.length - 1; i > 0; i--) if (raw[i].t0 >= 90 - 1e-6 && raw[i].sh < 0) { raw[i - 1].t1 = raw[i].t1; raw.splice(i, 1); }
+    for (let i = raw.length - 1; i > 0; i--) if (raw[i].t0 >= 90 - 1e-6 && raw[i].sh < 0) { raw[i - 1].t1 = raw[i].t1; raw[i - 1].m1 = Math.max(raw[i - 1].m1, raw[i].m1); raw.splice(i, 1); }
     // every move gets the time it needs to be followed: an attack that ends in a shot, a penalty, the keeper's
     // ball or the celebration that comes before the next move. A busy spell (chances at both ends) pushes the
     // clock of the pitch a little behind the match minute; the quiet moves after it catch up. Each half keeps
@@ -265,6 +295,11 @@ export function buildPlan(rep: any, events: Ev[]) {
       const P = q.restart === 'kickoff' && prev.out === 'goal' ? 0.95 : q.restart === 'clear' ? 0.9 : q.restart === 'corner' ? 0.6 : q.restart === 'keeper' ? (prev.out === 'wide' ? 0.5 : 0.4) : 0;
       if (P) q.pre = Math.min(0.6, P / Math.max(0.01, q.t1 - q.t0));
     });
+    const timeOf = timing(plans, shots);
+    return { plans, F, occAt, shots, styleAt, timeOf, roleIn, timing };
+  }
+  /** when each event shows on the pitch's clock, from the moves as they are shown */
+  function timing(plans: Plan[], shots: Shot[]) {
     // when each shot lands on the pitch (and when its foul was given), so events and animations show then
     const shotAt = new Map<number, { land: number; foul: number }>();
     for (const q of plans) if (q.sh >= 0) {
@@ -284,14 +319,14 @@ export function buildPlan(rep: any, events: Ev[]) {
         const f = linked[e.type];
         if (!f) continue;
         const u = (used[e.type] ||= new Set());
-        let k = shots.findIndex((x, j) => x.m === e.m && f(x, e) && shotAt.has(j) && !u.has(j));
-        if (k < 0) k = shots.findIndex((x, j) => x.m === e.m && f(x, e) && shotAt.has(j));
+        let k = shots.findIndex((x, j) => !x.ghost && x.m === e.m && f(x, e) && shotAt.has(j) && !u.has(j));
+        if (k < 0) k = shots.findIndex((x, j) => !x.ghost && x.m === e.m && f(x, e) && shotAt.has(j));
         if (k >= 0) { u.add(k); shotOf.set(e, k); }
       }
     }
     /** when an event shows on the pitch's clock */
-    const timeOf = (e: Ev) => {
-      const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
+    const rawTime = (e: Ev): number => {
+      const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => !x.ghost && x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
       if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' ? s2.foul : s2.land; }
       if (e.type === 'yellow' || e.type === 'red') return cardAt(e);
       return evAt(e);
@@ -300,12 +335,29 @@ export function buildPlan(rep: any, events: Ev[]) {
      * when the passage of play it happened in stops, never in the middle of a move */
     const cardAt = (e: Ev): number => {
       const i = events.indexOf(e);
-      const kick = events.find((x, j) => j > i && x.m === e.m && x.side !== e.side && (x.type === 'freekick' || x.type === 'penalty'));
-      if (kick) return timeOf(kick);
+      const isKick = (x: Ev) => x.m === e.m && x.side !== e.side && (x.type === 'freekick' || x.type === 'penalty');
+      const kick = events.find((x, j) => j > i && isKick(x)) ?? [...events.slice(Math.max(0, i - 3), i)].reverse().find(isKick);
+      if (kick) return rawTime(kick);
       const at = evAt(e), q = plans.find((p) => p.t0 <= at && at < p.t1);
-      return q ? Math.max(at, q.t1 - 0.05) : at;
+      // ...but never after whatever comes next (a goal, the half-time whistle): nothing waits behind a card
+      let nextT = Infinity;
+      for (let j = i + 1; j < events.length; j++) if (events[j].type !== 'yellow' && events[j].type !== 'red') { nextT = rawTime(events[j]); break; }
+      return Math.min(q ? Math.max(at, q.t1 - 0.05) : at, nextT - 0.01);
     };
-    return { plans, F, occAt, shots, styleAt, timeOf, roleIn };
+    // the page reveals events in order, so a sub, a tactic change or a card timed by the minute must never
+    // come later than the chance after it (the pitch can run a little ahead of the minute): those show a
+    // moment earlier instead, and no goal is ever held back behind them
+    const final = new Map<Ev, number>();
+    let after = Infinity;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i], t = rawTime(e);
+      const byShot = shotOf.has(e) || e.type === 'ft' || e.type === 'ht' || e.type === 'pens';
+      const v = byShot ? t : Math.min(t, after);
+      final.set(e, v);
+      after = Math.min(after, v);
+    }
+    const timeOf = (e: Ev) => final.get(e) ?? rawTime(e);
+    return timeOf;
   }
 }
 
@@ -315,13 +367,15 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
   const roleAt = (side: 0 | 1, k: number) => roleIn(side, idsNow[side][k]);
   // which flank a full-back bombs forward on (for the flank cover)
   const overlapY = [0, 1].map((side) => { const k = F[side].slots.findIndex((s2: string, kk: number) => s2 === 'DEF' && ['Overlap', 'Wing back'].includes(roleAt(side as 0 | 1, kk))); return k >= 0 ? F[side].xy[k][1] : null; });
-  // a change of set-up is walked into over about 2 seconds, never snapped
+  // a change of set-up is walked into over about 5 seconds (the players get the message and drop or push
+  // up together), never snapped
+  const SHIFT = 1.5;
   const styleSmooth = (side: 0 | 1) => {
-    const now = styleAt(side, t), before = styleAt(side, t - 0.6);
+    const now = styleAt(side, t), before = styleAt(side, t - SHIFT);
     if (now === before) return now;
     let tc = t;
-    for (let x = t - 0.6; x <= t; x += 0.05) if (styleAt(side, x) === now) { tc = x; break; }
-    const w = c01((t - tc) / 0.6);
+    for (let x = t - SHIFT; x <= t; x += 0.05) if (styleAt(side, x) === now) { tc = x; break; }
+    const w = ease(c01((t - tc) / SHIFT));
     const mix: any = { ...now };
     for (const k of ['mentality', 'press', 'line', 'build', 'width', 'tempo'] as const) mix[k] = lerp((before as any)[k], (now as any)[k], w);
     return mix as typeof now;
@@ -353,7 +407,8 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       // a pressing side pushes up onto the ball when the other team has it in its own half
       depth += (st.mentality - 1) * 4 + (st.line - 1) * (F[side].slots[k] === 'DEF' ? 4 : 2);
       if (att !== side) depth += (st.press - 1) * 3.5 * c01((ballD - 35) / 40);
-      if (att !== side && st.press === 0 && st.mentality === 0) depth = 12 + (depth - 12) * 0.8;
+      // a parked bus (no press, defensive) squeezes into its own third; it grows in step with the change
+      if (att !== side) depth = 12 + (depth - 12) * (1 - 0.2 * c01(1 - st.press) * c01(1 - st.mentality));
     }
     // the role shows in how he moves: in possession (a) and out of it
     const role = roleAt(side, k), a = att === side, hot = c01((ballD - 45) / 35);
@@ -391,7 +446,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       case 'False 9': if (a) depth -= 14; break;
     }
     depth = Math.max(3, Math.min(97, depth + Math.sin(t * 0.9 + k * 1.9 + side) * 1.6 + Math.sin(t * 2.3 + k) * 0.5));
-    const spread = att === side ? 0.82 + st.width * 0.12 : 0.86 - (st.press === 0 ? 0.08 : 0);
+    const spread = att === side ? 0.82 + st.width * 0.12 : 0.86 - 0.08 * c01(1 - st.press);
     let fy2 = 50 + (fy - 50) * spread;
     if (yPull) fy2 = lerp(fy2, yTo, yPull);
     const y0 = side === 0 ? fy2 : 100 - fy2;
@@ -439,7 +494,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       for (let c = 1; c < n; c++) if (q.chain[c] === k) fwd = Math.max(fwd, 3.2 * c01(1 - Math.abs(xNow - (c - 0.35)) / 1.1));
       const slot = F[side].slots[k], fy = F[side].xy[k][1];
       if (slot === 'FWD' && q.r >= 2) fwd += 4.5 * bump(v / ce);
-      if (slot === 'DEF' && Math.abs(fy - 50) > 28 && stA.width >= 1 && q.r >= 1) fwd += (stA.width === 2 ? 15 : 9) * bump((v - 0.12) / 0.7);
+      if (slot === 'DEF' && Math.abs(fy - 50) > 28 && stA.width > 0 && q.r >= 1) fwd += (9 * c01(stA.width) + 6 * c01(stA.width - 1)) * bump((v - 0.12) / 0.7);
       const bb: [number, number] = [b[0] + dir * fwd, b[1]];
       if (k === fin && spot && fin !== taker) {
         if (sp0) {
