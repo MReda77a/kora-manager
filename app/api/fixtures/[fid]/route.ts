@@ -28,7 +28,7 @@ export const GET = handle(async (_req: Request, ctx: { params: Promise<{ fid: st
   // while a match is live nobody gets more than what has happened (plus a few seconds for the pitch to
   // animate): the rest can still change when either manager makes a change, and it must not be read early
   const liveNow = f!.status === 'live' && f!.live_from && new Date(f!.live_until).getTime() > Date.now();
-  const cut = liveNow ? minuteAt((Date.now() - new Date(f!.live_from).getTime()) / 1000, HT_SECONDS, LIVE_SECONDS) + 2.5 : 99;
+  const cut = liveNow ? minuteAt((Date.now() - new Date(f!.live_from).getTime()) / 1000, HT_SECONDS, LIVE_SECONDS) + 4 : 99;
   if (full) {
     const ids = [...new Set([...full.players.map((p: any) => p.id), ...full.lineups.flatMap((x: any) => [...x.xi, ...x.bench])])];
     const rows = await q('SELECT id, name, pos, ovr FROM players WHERE id IN (SELECT jsonb_array_elements_text($1::jsonb))', [JSON.stringify(ids)]);
@@ -99,8 +99,10 @@ function soFar(rep: any, cut: number, fit0: Record<string, number>) {
   });
   return {
     partial: true, events, players, lineups: rep.lineups,
-    shots: (rep.shots || []).filter((s: any) => s.m <= cut),
-    flow: rep.flow ? rep.flow.filter((x: any) => x[0] <= cut) : undefined,
+    // the pitch lays out each half from all of its moves, so it gets every move and every shot's place and
+    // kind; how a shot ends (goal, saved, wide) and its xG stay hidden until it is close
+    shots: (rep.shots || []).map((s: any) => (s.m <= cut ? s : { m: s.m, side: s.side, kind: s.kind, x: s.x, y: s.y, xg: 0, goal: false, on: false, hidden: true })),
+    flow: rep.flow,
     styles: rep.styles ? rep.styles.filter((x: any) => x.m <= cut) : undefined,
   };
 }

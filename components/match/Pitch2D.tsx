@@ -82,6 +82,12 @@ export function buildPlan(rep: any, events: Ev[]) {
       const rank = (f: Flow) => (f[3] >= 0 ? (shots[f[3]]?.goal ? 100 : 50 + shots[f[3]].xg * 10) : f[2]);
       const main = g.reduce((a, f) => (rank(f) >= rank(a) ? f : a), g[0]);
       const B = tm(m), A = m <= 1 ? 0.2 : tm(m - 1);
+      // two goals in one minute (or in stoppage time) are two moves, each with its own goal
+      const goals = g.filter((f) => f[3] >= 0 && shots[f[3]]?.goal);
+      if (goals.length > 1) {
+        goals.forEach((f, j) => raw.push({ t0: A + ((B - A) * j) / goals.length, t1: A + ((B - A) * (j + 1)) / goals.length, s: f[1], r: f[2], sh: f[3] }));
+        continue;
+      }
       const last = raw[raw.length - 1];
       if (main[3] < 0 && last && last.sh < 0 && !last.merged && last.s === main[1] && Math.abs(last.t1 - A) < 1e-6 && m !== 46) {
         last.t1 = B; last.merged = true; if (main[2] > last.r) last.r = main[2]; continue;
@@ -270,13 +276,23 @@ export function buildPlan(rep: any, events: Ev[]) {
       penmiss: (x, e) => !x.goal && x.side === e.side && x.kind === 'penalty', save: (x, e) => !x.goal && x.side !== e.side,
       penalty: (x, e) => x.kind === 'penalty' && x.side === e.side, freekick: (x, e) => x.kind === 'free kick' && x.side === e.side,
     };
+    // each event belongs to its own shot: two goals in the same minute are two shots, not the first one twice
+    const shotOf = new Map<Ev, number>();
+    {
+      const used: Record<string, Set<number>> = {};
+      for (const e of events) {
+        const f = linked[e.type];
+        if (!f) continue;
+        const u = (used[e.type] ||= new Set());
+        let k = shots.findIndex((x, j) => x.m === e.m && f(x, e) && shotAt.has(j) && !u.has(j));
+        if (k < 0) k = shots.findIndex((x, j) => x.m === e.m && f(x, e) && shotAt.has(j));
+        if (k >= 0) { u.add(k); shotOf.set(e, k); }
+      }
+    }
     /** when an event shows on the pitch's clock */
     const timeOf = (e: Ev) => {
-      const f = linked[e.type];
-      if (f) {
-        const k = shots.findIndex((x, j) => x.m === e.m && f(x, e) && shotAt.has(j));
-        if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' ? s2.foul : s2.land; }
-      }
+      const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
+      if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' ? s2.foul : s2.land; }
       return evAt(e);
     };
     return { plans, F, occAt, shots, styleAt, timeOf, roleIn };
