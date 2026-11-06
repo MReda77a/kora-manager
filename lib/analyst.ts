@@ -44,7 +44,7 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
   const f = await one(`SELECT * FROM fixtures WHERE league_id=$1 AND status='scheduled' AND (home_id=$2 OR away_id=$2) ORDER BY day, id LIMIT 1`, [leagueId, club.id]);
   if (!f) return { staff, report: null };
   // the report is kept until your plan, shape or line-up changes
-  const key = String(hashSeed(level, JSON.stringify(club.tactic || {}), JSON.stringify(club.lineup || [])));
+  const key = String(hashSeed('v2', level, JSON.stringify(club.tactic || {}), JSON.stringify(club.lineup || [])));
   if (!refresh) {
     const c = await one('SELECT data FROM analyst_reports WHERE club_id=$1 AND fixture_id=$2 AND key=$3', [club.id, f.id, key]);
     if (c) return { staff, report: c.data };
@@ -85,7 +85,8 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
   const leaks = Object.entries(goalsIn).sort((a, b) => b[1] - a[1]);
   if (leaks[0] && leaks[0][1] >= 2) weak.push(`They have let in ${leaks[0][1]} goals from ${leaks[0][0] === 'through ball' ? 'through balls' : leaks[0][0] === 'cross' ? 'crosses' : leaks[0][0] === 'counter' ? 'counter-attacks' : leaks[0][0] + 's'} lately.`);
   const danger: string[] = [];
-  if (st.fwdPace >= 80) danger.push(`Fast forwards (pace ${st.fwdPace}): do not play a high line.`);
+  const myDefPace = lineAvg(me, 'DEF', ['Pace']);
+  if (st.fwdPace - myDefPace >= 3) danger.push(`Fast forwards (pace ${st.fwdPace} vs your defenders' ${myDefPace}): do not play a high line.`);
   const star = [...them.xi].sort((a, b) => b.ovr - a.ovr)[0];
   const topScorer = scorers[0] ? them.xi.find((p) => p.id === scorers[0].player_id) : null;
   if (topScorer) danger.push(`${topScorer.name} has ${scorers[0].goals} goals this season.`);
@@ -123,14 +124,37 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
   const r = rng(hashSeed('analyst-noise', f.id, club.id));
   const slots = (FORMATIONS[formation] || FORMATIONS['4-3-3']).slots;
   const fitXi = me.xi.map((p, i) => ({ pos: p.pos, slot: slots[i], ovr: p.ovr, a: p.a || {} }));
+  // ---- the match-up: what each plan asks of the two squads, read from the numbers both sides can see.
+  // The part-time analyst ranks plans on this alone; the others play the match through, and this
+  // explains in plain words why their pick makes sense.
+  const L = Object.fromEntries(lines.map((x) => [x.line, x])) as Record<string, { mine: number; theirs: number }>;
+  const avg = (k: 'mine' | 'theirs') => (L.DEF[k] + L.MID[k] + L.FWD[k]) / 3;
+  const edge = avg('mine') - avg('theirs');
+  const air = myFwdAir - st.defAir, run = myFwdPace - st.defPace, threat = st.fwdPace - myDefPace, mid = L.MID.mine - L.MID.theirs;
+  const matchup = (plan: string) => {
+    const t = PRESETS[plan];
+    const why: { text: string; v: number }[] = [];
+    const add = (v: number, text: string) => { if (v) why.push({ v, text }); };
+    if (threat >= 3) add(t.line === 0 ? Math.min(0.08, threat * 0.012) : t.line === 2 ? -Math.min(0.09, threat * 0.014) : 0, `Their forwards are quick (pace ${st.fwdPace} vs your defenders' ${myDefPace}): a deep line takes away the space behind you.`);
+    if (run >= 3) add(t.focus === 1 ? Math.min(0.09, run * 0.009) : 0, `Your forwards are quicker than their defenders (pace ${myFwdPace} vs ${st.defPace}): balls in behind will hurt them.`);
+    if (air >= 3) add(t.focus === 0 ? Math.min(0.08, air * 0.009) : 0, `You are stronger in the air (${myFwdAir} vs ${st.defAir}): crosses suit you.`);
+    if (air <= -4) add(t.focus === 0 ? -0.04 : 0, `They win the headers (${st.defAir} vs your forwards' ${myFwdAir}): crossing is a waste.`);
+    if (st.keeper <= 72) add(t.focus === 3 ? 0.04 : 0, `Their keeper is shaky (${st.keeper}): shots from distance are worth it.`);
+    if (mid >= 2) add(t.build === 0 ? Math.min(0.06, mid * 0.008) : 0, `Your midfield is better (${L.MID.mine} vs ${L.MID.theirs}): you can keep the ball.`);
+    if (mid <= -2) add(t.build === 0 ? -0.04 : t.build === 2 ? 0.03 : 0, `Their midfield is better (${L.MID.theirs} vs ${L.MID.mine}): skip it and go direct.`);
+    if (edge <= -2) add(t.mentality === 0 ? 0.04 : t.mentality === 2 ? -0.04 : 0, `They are stronger on paper: sitting deep keeps it tight.`);
+    if (edge >= 2) add(t.mentality >= 1 && t.press >= 2 ? 0.035 : t.mentality === 0 ? -0.03 : 0, `You are stronger on paper: take the game to them.`);
+    const fitScore = tacticFit(fitXi as any, stripDesc(PRESETS[plan])).score;
+    const score = why.reduce((a, x) => a + x.v, 0) + (fitScore - 50) * 0.0016;
+    return { score, fit: fitScore, why: why.filter((x) => x.v > 0).sort((a, b) => b.v - a.v).map((x) => x.text), against: why.filter((x) => x.v < 0).map((x) => x.text) };
+  };
+  const mu = Object.fromEntries(PLANS.map((p) => [p, matchup(p)]));
+  void r;
   const results = PLANS.map((plan) => {
     let w = 0, d = 0, lo = 0;
     if (level === 1) {
-      // no simulations: a rule of thumb (which plan beats what) plus a guess, so it can be wrong
-      const counter = likely.reduce((a, x) => a + counterShare(plan, x.plan) * x.p, 0);
-      const fit = tacticFit(fitXi as any, stripDesc(PRESETS[plan])).fit;
-      const v = counter + fit * 0.05 + (r.next() - 0.5) * 0.12;
-      return { plan, score: v, win: null as number | null, draw: null as number | null, loss: null as number | null };
+      // no simulations: it reads the two squads and does not know their plan, so it can be wrong
+      return { plan, score: mu[plan].score, win: null as number | null, draw: null as number | null, loss: null as number | null };
     }
     const sims = ANALYST_LEVELS[level].sims;
     for (const t of top) {
@@ -170,7 +194,12 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
     return p && rn ? { name: p.name, role: rn, tip: COUNTER_TIP[rn] || null } : null;
   }).filter(Boolean).slice(0, 6) : [];
   const gap = best.score - second.score;
-  const confidence = level === 1 ? 'Low' : level === 2 ? (gap > 0.15 ? 'Medium' : 'Low') : gap > 0.12 ? 'High' : 'Medium';
+  const confidence = level === 1 ? (gap > 0.05 ? 'Medium' : 'Low') : level === 2 ? (gap > 0.15 ? 'Medium' : 'Low') : gap > 0.12 ? 'High' : 'Medium';
+  // why the pick makes sense, in two lines, and how well your players suit it
+  const pickWhy = mu[best.plan].why.slice(0, 2);
+  if (!pickWhy.length) pickWhy.push(level === 1 ? 'Nothing stands out between the two squads: it suits your players best.' : 'It came out on top when your analyst played the match through.');
+  const fitNow = mu[best.plan].fit;
+  const fitLine = fitNow >= 60 ? `Your players suit it well (${fitNow}%).` : fitNow >= 45 ? `Your players suit it about as well as any plan (${fitNow}%).` : `Your players are a little below par for it (${fitNow}%), but the match-up matters more.`;
   const main = likely[0]?.plan;
   const chase = level >= 2 && main ? PLANS.filter((p) => p !== main).sort((a, b) => counterShare(b, main) - counterShare(a, main))[0] : null;
   const report = {
@@ -179,7 +208,7 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
     lines, weak: weak.slice(0, 3), danger: danger.slice(0, 2),
     likely: level === 1 ? [] : likely.slice(0, 3).map((x) => ({ plan: x.plan, p: pct(x.p) })), likelyNote,
     plans: (level === 1 ? results.slice(0, 3) : results).map((x) => ({ plan: x.plan, win: x.win, draw: x.draw, loss: x.loss })),
-    best: best.plan, avoid: worst.plan, confidence,
+    best: best.plan, avoid: worst.plan, confidence, why: pickWhy, fitLine, closeCall: gap < (level === 1 ? 0.02 : 0.08) ? second.plan : null,
     tip: chase ? `If you need a goal late on, switch to ${chase}: it is the best answer to ${main}.` : null,
     style: styleTips, roles: roleList,
     myLast: myHistory[0] || null,

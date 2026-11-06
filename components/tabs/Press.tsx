@@ -38,6 +38,13 @@ export default function PressTab({ lid, d, go, toast }: TabProps) {
     }).catch((e) => toast.bad(e.message));
   }, [lid]);
 
+  // Esc leaves the room, like the ✕
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') go('analyst'); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, []);
+
   // the room's sound: a tense theme over the murmur of journalists
   useEffect(() => {
     if (!v?.available) return;
@@ -111,7 +118,7 @@ export default function PressTab({ lid, d, go, toast }: TabProps) {
     setQi(qi + 1);
     setStage('q');
   };
-  const leave = () => go('home');
+  const leave = () => go('analyst'); // back to Prepare, in Matches
   const paperName = PAPER_NAMES[d.league?.pool] || 'The Daily Kickoff';
   const total = v.questions.length;
   const label = v.final ? 'Cup final' : 'Derby';
@@ -131,7 +138,7 @@ export default function PressTab({ lid, d, go, toast }: TabProps) {
         <div className="row press-dots" aria-label={`Question ${Math.min(qi + 1, total)} of ${total}`}>
           {v.questions.map((x: any, i: number) => <i key={i} className={x.picked !== null ? 'done' : i === qi && stage !== 'paper' ? 'on' : ''} style={x.picked !== null ? { background: TONE_COLOR[x.answers[x.picked].tone] } : undefined} />)}
         </div>
-        <button className="press-x" onClick={leave} aria-label="Leave the press room">✕</button>
+        <button className="press-x" onClick={leave} aria-label="Leave the press room" title="Back to Prepare">✕</button>
       </header>
 
       {stage === 'intro' && (

@@ -97,6 +97,14 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
             </div>
             {d.club.tactic?.preset === r.best ? <span className="tag cyan"><span>Already your plan</span></span> : <button className="cta" onClick={() => use(r.best)}><span>Use this plan</span></button>}
           </div>
+          {r.why?.length ? (
+            <div className="col" style={{ gap: 4 }}>
+              <span className="tiny muted" style={{ fontWeight: 900 }}>WHY</span>
+              {r.why.map((t: string, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}><b style={{ color: '#2EE6A0' }}>✓</b> {t}</span>)}
+              {r.fitLine && <span className="small muted" style={{ fontWeight: 700 }}>{r.fitLine}</span>}
+              {r.closeCall && <span className="small" style={{ fontWeight: 700, color: '#F2C14E' }}>Close call with {r.closeCall}: either is a good choice.</span>}
+            </div>
+          ) : null}
           <div className="col" style={{ gap: 4 }}>
             <div className="row tiny muted" style={{ fontWeight: 900, gap: 8 }}><span style={{ width: 120 }}>PLAN</span><span className="grow">{numbers ? 'WIN · DRAW · LOSS (%)' : 'ROUGH RANKING'}</span></div>
             {r.plans.map((x: any, i: number) => (
@@ -116,7 +124,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
           <span className="small" style={{ fontWeight: 800 }}><b style={{ color: '#FF8A80' }}>Avoid:</b> {r.avoid}{r.myLast && r.myLast === r.avoid ? ' (you played it last time, and they are ready for it)' : ''}</span>
           {r.tip && <span className="small" style={{ fontWeight: 700, color: 'var(--cyan)' }}>💡 {r.tip}</span>}
           {(r.style || []).map((t: string, i: number) => <span key={i} className="small" style={{ fontWeight: 700 }}>{t}</span>)}
-          {!numbers && <span className="tiny muted">A part-time analyst only gives a rough guess and can be wrong. A Match analyst plays the game through hundreds of times first.</span>}
+          {!numbers && <span className="tiny muted">Your part-time analyst reads the two squads but does not know their plan, so he can be wrong. A Match analyst plays the game through first.</span>}
           <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
             <button className="ghost small" onClick={() => go('tactics')}><span>Open tactics</span></button>
             <button className="ghost small" onClick={() => { setA(null); load(true); }}><span>Study again</span></button>

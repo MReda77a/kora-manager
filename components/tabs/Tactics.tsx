@@ -100,7 +100,7 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
             const push = i === 0 ? 0 : (t.mentality - 1) * 4 + (F.slots[i] === 'DEF' ? (t.line - 1) * 4 : 0);
             const wide = F.slots[i] === 'GK' ? 0 : (y - 50) * (t.width - 1) * 0.15;
             return (
-              <div key={i} className="pc" style={{ left: `clamp(31px, ${Math.max(5, Math.min(95, x + push))}%, calc(100% - 31px))`, top: `${Math.max(6, Math.min(94, y + wide))}%`, width: 58, height: 42, transition: 'left .3s, top .3s' }}>
+              <div key={i} className="pc" style={{ left: `clamp(31px, ${Math.max(i === 0 ? 5 : F.slots[i] === 'DEF' ? 17 : 27, Math.min(95, x + push))}%, calc(100% - 31px))`, top: `${Math.max(6, Math.min(94, y + wide))}%`, width: 58, height: 42, transition: 'left .3s, top .3s' }}>
                 <b style={{ fontSize: 17 }}>{(() => { const lab = slotLabel(F.slots[i], F.xy[i][0], F.xy[i][1]); const r = p ? roleName(roles[p.id]) : null; return r && ROLES[r].pos.includes(lab) ? ROLES[r].short : lab; })()}</b><small>{p ? lastName(p.name) : '—'}</small>
               </div>
             );
@@ -158,14 +158,14 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
           )}
           {panel === 'fit' && (
             <div className="col" style={{ gap: 6 }}>
-              <span className="tiny muted">Every part of a plan needs something from your players. A plan that suits them is carried out better; one that doesn't is carried out worse, even if it is the right idea against this opponent.</span>
+              <span className="tiny muted">Every part of a plan needs something from your players. A plan that suits them is carried out better; one that doesn't is carried out worse, even if it is the right idea against this opponent. Each line compares your players with a typical player of the same position and level, not with the opponent: the analyst does that.</span>
               {[...fitNow.parts].sort((a, b) => b.weight - a.weight).map((pt) => {
                 const v = Math.round(50 + pt.value * 33);
                 return (
                   <div key={pt.label} className="row small" style={{ gap: 8, fontWeight: 700 }}>
                     <span className="grow">{pt.label}</span>
                     <div style={{ width: 90 }}><Bar v={Math.max(4, Math.min(100, v))} color={fitColor(v)} /></div>
-                    <b className="tiny" style={{ width: 70, textAlign: 'right', color: fitColor(v) }}>{v >= 65 ? 'Strength' : v >= 45 ? 'OK' : 'Weak spot'}</b>
+                    <b className="tiny" style={{ width: 70, textAlign: 'right', color: fitColor(v) }}>{v >= 65 ? 'Above par' : v >= 45 ? 'Average' : 'Below par'}</b>
                   </div>
                 );
               })}

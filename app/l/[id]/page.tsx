@@ -59,8 +59,10 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
   const [tutClosed, setTutClosed] = useState(false);
   const go = (t: Tab) => {
     setTab(t);
-    setLastIn((m) => ({ ...m, [sectionOf(t).key]: t }));
-    try { sessionStorage.setItem(`kora-tab-${id}`, t); } catch {}
+    // the press room covers the whole screen: never come back into it from the menu or a reload
+    const keep = t === 'press' ? 'analyst' : t;
+    setLastIn((m) => ({ ...m, [sectionOf(t).key]: keep }));
+    try { sessionStorage.setItem(`kora-tab-${id}`, keep); } catch {}
     document.querySelector('.content')?.scrollTo({ top: 0 });
   };
 

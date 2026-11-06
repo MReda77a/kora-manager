@@ -1,0 +1,22 @@
+Fast forwards (pace {0} vs your defenders' {1}): do not play a high line.	مهاجمين سريعين (سرعة {0} قدام {1} لمدافعينك): متلعبش بخط عالي.
+Their forwards are quick (pace {0} vs your defenders' {1}): a deep line takes away the space behind you.	مهاجمينهم سريعين (سرعة {0} قدام {1} لمدافعينك): الخط المتأخر بيقفل المساحة اللي وراك.
+Your forwards are quicker than their defenders (pace {0} vs {1}): balls in behind will hurt them.	مهاجمينك أسرع من مدافعينهم (سرعة {0} قدام {1}): الكور اللي ورا الدفاع هتموّتهم.
+You are stronger in the air ({0} vs {1}): crosses suit you.	إنت أقوى في الهوا ({0} قدام {1}): العرضيات لايقة عليك.
+They win the headers ({0} vs your forwards' {1}): crossing is a waste.	هما بيكسبوا الراسيات ({0} قدام {1} لمهاجمينك): العرضيات على الفاضي.
+Their keeper is shaky ({0}): shots from distance are worth it.	الحارس بتاعهم مهزوز ({0}): الشوط من بعيد يستاهل.
+Your midfield is better ({0} vs {1}): you can keep the ball.	وسطك أحسن ({0} قدام {1}): تقدر تحتفظ بالكورة.
+Their midfield is better ({0} vs {1}): skip it and go direct.	وسطهم أحسن ({0} قدام {1}): اقفز عليه والعب مباشر.
+They are stronger on paper: sitting deep keeps it tight.	هما أقوى على الورق: الرجوع لورا بيقفل الماتش.
+You are stronger on paper: take the game to them.	إنت أقوى على الورق: هاجمهم في ملعبهم.
+Nothing stands out between the two squads: it suits your players best.	مفيش فرق واضح بين الفريقين: الخطة دي الأنسب للعيبتك.
+It came out on top when your analyst played the match through.	كسبت أكتر لما المحلل لعب الماتش في دماغه.
+Your players suit it well ({0}%).	لعيبتك لايقين عليها ({0}%).
+Your players suit it about as well as any plan ({0}%).	لعيبتك لايقين عليها زي أي خطة تانية ({0}%).
+Your players are a little below par for it ({0}%), but the match-up matters more.	لعيبتك أقل شوية من المطلوب ليها ({0}%)، بس المواجهة أهم.
+Close call with {0}: either is a good choice.	قريبة جدًا من {0}: الاتنين اختيار كويس.
+WHY	ليه
+Your part-time analyst reads the two squads but does not know their plan, so he can be wrong. A Match analyst plays the game through first.	المحلل البارت تايم بيقرا الفريقين بس مش عارف خطتهم، فممكن يغلط. محلل الماتشات بيلعب الماتش في دماغه الأول.
+Above par	أعلى من العادي
+Average	عادي
+Below par	أقل من العادي
+Every part of a plan needs something from your players. A plan that suits them is carried out better; one that doesn't is carried out worse, even if it is the right idea against this opponent. Each line compares your players with a typical player of the same position and level, not with the opponent: the analyst does that.	كل حتة في الخطة محتاجة حاجة من لعيبتك. الخطة اللي لايقة عليهم بتتنفذ أحسن؛ واللي مش لايقة بتتنفذ أوحش، حتى لو هي الفكرة الصح قدام الخصم ده. كل سطر بيقارن لعيبتك بلعيب عادي في نفس المركز والمستوى، مش بالخصم: المحلل هو اللي بيقارن بالخصم.
