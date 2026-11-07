@@ -112,10 +112,10 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
   };
   return (
     <div style={{ minHeight: '100dvh', padding: '10px 16px 20px' }}>
-      <header className="row between" style={{ height: 52 }}>
+      <header className="row between wrap" style={{ minHeight: 52, gap: 8 }}>
         <div className="row"><Logo size={40} /><span className="lz" style={{ fontSize: 26 }}>Vamos!</span></div>
         <div className="row">
-          <span className="muted small">Hi, <b style={{ color: '#E8F1FA' }}>{me.user!.name}</b></span>
+          <span className="muted small hide-xs">Hi, <b style={{ color: '#E8F1FA' }}>{me.user!.name}</b></span>
           <SoundButton />
           <LangButton />
           <button className="ghost" onClick={logout}><span>Log out</span></button>

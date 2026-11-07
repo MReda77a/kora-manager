@@ -397,7 +397,7 @@ export function pickXI(players: Row[], formation: string, saved: string[], day: 
 }
 
 export async function saveSetup(uid: number, leagueId: number, b: {
-  tactic?: Tactic; lineup?: string[]; pens?: string[]; assistant?: Record<string, boolean>;
+  tactic?: Tactic; formation?: string; lineup?: string[]; pens?: string[]; assistant?: Record<string, boolean>;
   plans?: Record<string, Tactic | null>; roles?: Record<string, string>; setpieces?: Record<string, string>;
   kit?: { away1?: string; away2?: string; pattern?: number };
   captain?: string | null; vice?: string | null;
@@ -406,6 +406,8 @@ export async function saveSetup(uid: number, leagueId: number, b: {
   const ids = new Set((await q('SELECT player_id FROM squad WHERE club_id=$1', [club.id])).map((r) => r.player_id));
   const sets: string[] = [];
   const params: unknown[] = [];
+  // the line-up screen only changes the shape: it keeps the rest of the tactic as saved (never an old copy)
+  if (!b.tactic && b.formation && FORMATIONS[b.formation] && club.tactic?.formation !== b.formation) b.tactic = { ...(club.tactic || {}), formation: b.formation } as Tactic;
   if (b.tactic) {
     params.push(JSON.stringify(cleanTactic(b.tactic)));
     sets.push(`tactic=$${params.length}::jsonb`);

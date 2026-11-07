@@ -109,7 +109,8 @@ export default function LineupTab(props: TabProps) {
   });
   const save = async () => {
     try {
-      const r = await api(`/api/leagues/${lid}/setup`, { tactic: t, lineup: xi, captain: cap.c, vice: cap.v });
+      // only the shape: the rest of the tactic stays as saved on the tactics screen
+      const r = await api(`/api/leagues/${lid}/setup`, { formation: t.formation, lineup: xi, captain: cap.c, vice: cap.v });
       setDirty(false);
       toast.ok(r?.note || 'Lineup saved for the next match');
       d.club.captain = cap.c; d.club.vice = cap.v;

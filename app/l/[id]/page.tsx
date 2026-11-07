@@ -105,6 +105,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
             </div>
             <div className="coin" title="Coins for packs"><Coin /><b>{club.coins}</b></div>
             <div className="coin" title="Club money"><Cash /><b>{Number(club.money).toFixed(1)}M</b></div>
+            <span className="portrait-only row" style={{ gap: 4 }}><LangButton /></span>
           </header>
         )}
         {sectionOf(tab).tabs.length > 1 && (

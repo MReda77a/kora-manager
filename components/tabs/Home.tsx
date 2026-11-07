@@ -254,17 +254,17 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
           background: `linear-gradient(65deg, color-mix(in srgb, ${f.hc} 55%, #0A1626) 0 49.4%, ${derby ? '#F4C24E' : 'rgba(255,255,255,0.25)'} 49.4% 50.6%, color-mix(in srgb, ${f.ac} 55%, #0A1626) 50.6% 100%)` }} />
         {derby && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 80% at 50% 50%, rgba(255,210,110,0.25), transparent 70%)' }} />}
         <div style={{ position: 'relative', height: '100%', minHeight: 150, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#fff' }}>
+          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#fff', minWidth: 0, padding: '0 4px' }}>
             <Crest c1={f.hc} c2="#fff" shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={50} />
-            <span className="lz ellipsis" style={{ fontSize: 16, maxWidth: 120, textAlign: 'center' }}>{f.home}</span>
+            <span className="lz vs-name">{f.home}</span>
             {homeMine && <span className="tiny" style={{ fontWeight: 900 }}>YOU</span>}
           </div>
           <span style={{ width: 54, height: 54, transform: 'rotate(45deg)', background: '#06121F', border: `2px solid ${derby ? '#F2C14E' : 'var(--cyan)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: derby ? '0 0 18px rgba(244,194,78,0.6)' : '0 0 10px color-mix(in srgb, var(--cyan) 35%, transparent)' }}>
             <span className="lz" style={{ transform: 'rotate(-45deg)', fontSize: 21 }}>VS</span>
           </span>
-          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#fff' }}>
+          <div className="col" style={{ alignItems: 'center', gap: 2, color: '#fff', minWidth: 0, padding: '0 4px' }}>
             <Crest c1={f.ac} c2="#fff" shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={50} />
-            <span className="lz ellipsis" style={{ fontSize: 16, maxWidth: 120, textAlign: 'center' }}>{f.away}</span>
+            <span className="lz vs-name">{f.away}</span>
             {!homeMine && <span className="tiny" style={{ fontWeight: 900 }}>YOU</span>}
           </div>
         </div>

@@ -53,7 +53,7 @@ export function PlayerCard({ p, style, onClick, selected, badge }: { p: P; style
         <div className="ovr">{p.ovr}</div>
         <div className="pos">{p.pos}</div>
       </div>
-      {badge && <div style={{ position: 'absolute', top: 6, right: 7 }}>{badge}</div>}
+      {badge && <div className="card-badge" style={{ position: 'absolute', top: 6, right: 7 }}>{badge}</div>}
       <div className="nm ellipsis">{last}</div>
     </div>
   );
