@@ -185,3 +185,5 @@ One goal up with {0} minutes to go. They shoot from range, so do not sit too dee
 More goals, but space behind you	جوان أكتر، بس هتسيب مساحة ورا
 Attack down the wings	اهجم من الأجناب
 We are {0} down with {1} minutes left. They are parked deep, so the middle is shut: go round them down the wings.	خسرانين بـ{0} وفاضل {1} دقيقة. هما راكنين الأتوبيس والنص مقفول: لف عليهم من الأجناب.
+Foul! Yellow card	فاول! كارت أصفر
+Foul! Red card	فاول! كارت أحمر

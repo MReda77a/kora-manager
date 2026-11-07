@@ -6,11 +6,13 @@ import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, minuteAt, type ClubType
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
 import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
-import { Pitch2D, evAt, tm, usePlan, shownUpTo } from '../../../components/match/Pitch2D.tsx';
+import { Pitch2D, evAt, tm, usePlan, shownUpTo, pitchMinute } from '../../../components/match/Pitch2D.tsx';
 import { Commentary, Formation, KeyEvents, LiveStats, Lineups, Momentum, assistantTips, liveFit, useSmoothClock, type Tip } from '../../../components/match/Panels.tsx';
 
 type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 const fmtMin = (m: number) => (m > 90 ? `90+${m - 90}'` : `${m}'`);
+
+const hasFlowRep = (rep: any) => !!rep?.flow?.length;
 
 export default function MatchPage({ params }: { params: Promise<{ fid: string }> }) {
   const { fid } = use(params);
@@ -186,6 +188,8 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
 
   const team = (s: number) => (s === 0 ? d.home : d.away);
 
+  // the match minute on screen (the pitch's clock): what the clock, stats, momentum and tips show
+  const pm = hasFlowRep(rep) ? Math.min(gm >= 90.5 ? 99 : 98, pitchMinute(plan, gm)) : gm;
   const revealed = useMemo(() => { let k = 0; for (; k < events.length; k++) if (plan.timeOf(events[k]) > gm) break; return k; }, [gm, events]);
 
   // sound follows the match: music before kick-off, the crowd while it is on
@@ -274,8 +278,10 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       const from = shotSeen.current;
       shotSeen.current = gm;
       if (from >= 0 && gm - from < 3 && !fx) {
-        const s = shots.find((x) => !x.goal && x.xg >= 0.09 && x.m > from && x.m <= gm);
-        const busy = events.some((e) => Math.abs(evAt(e) - (s?.m ?? -9)) < 1.2 && ['goal', 'save', 'miss', 'penalty', 'penmiss', 'var', 'red'].includes(e.type));
+        // when the shot lands on the pitch, not when its minute passes
+        const q = plan.plans.find((x) => x.sh >= 0 && x.t1 > from && x.t1 <= gm && shots[x.sh] && !shots[x.sh].goal && shots[x.sh].xg >= 0.09);
+        const s = q ? shots[q.sh] : undefined;
+        const busy = !!q && events.some((e) => Math.abs(plan.timeOf(e) - q.t1) < 1.2 && ['goal', 'save', 'miss', 'penalty', 'penmiss', 'var', 'red'].includes(e.type));
         if (s && !busy) {
           const mineAttack = mineSide < 0 ? s.side === 0 : s.side === mineSide;
           play('ooh', { gain: Math.min(1, (mineAttack ? 0.45 : 0.3) + s.xg) });
@@ -285,7 +291,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     // the crowd sings now and then; in a derby it hardly stops
     const marks = d.derby ? [4, 20, 36, 52, 68, 82] : [12, 33, 58, 80];
     for (const k of marks) {
-      if (gm >= k && gm < k + 6 && !chanted.current.has(k)) {
+      if (pm >= k && pm < k + 6 && !chanted.current.has(k)) {
         chanted.current.add(k);
         const goalJustNow = events.slice(0, revealed).some((e) => e.type === 'goal' && gm - plan.timeOf(e) < 6);
         if (!goalJustNow) play(d.derby ? 'chant-derby' : 'chant', { gain: d.derby ? 0.9 : 0.7 });
@@ -295,7 +301,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     {
       const recentHot = events.slice(0, revealed).filter((e) => gm - plan.timeOf(e) < 8 && ['goal', 'save', 'miss', 'penalty', 'freekick'].includes(e.type)).length;
       const [a, b] = events.slice(0, revealed).reduce((s, e) => { if (e.type === 'goal') s[e.side]++; return s; }, [0, 0]);
-      const close = Math.abs(a - b) <= 1 && gm > 75 ? 0.3 : 0;
+      const close = Math.abs(a - b) <= 1 && pm > 75 ? 0.3 : 0;
       crowdLevel(0.3 + Math.min(0.4, recentHot * 0.2) + close + (d.derby ? 0.15 : 0));
     }
     if (gm >= 90.5 && !rep.partial) { const t = setTimeout(() => setPhase('ft'), 1800); return () => clearTimeout(t); }
@@ -332,15 +338,15 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
 
   const score = [0, 0];
   events.slice(0, phase === 'ft' ? events.length : revealed).forEach((e) => { if (e.type === 'goal') score[e.side]++; });
-  const minute = Math.min(90, Math.floor(gm));
-  const canChange = live && mineSide >= 0 && phase === 'play' && gm < 88;
+  const minute = Math.floor(pm);
+  const canChange = live && mineSide >= 0 && phase === 'play' && pm < 88 && gm < 89;
 
   // half-time break of a live match: seconds until the second half
   const htLeft = live && HT > 0 ? (() => { const e = (nowMs + clockSkew - liveFrom) / 1000; return e > LIVE / 2 && e < LIVE / 2 + HT ? Math.ceil(LIVE / 2 + HT - e) : 0; })() : 0;
   const reactOn = canChange && !htLeft && react && react.until > nowMs ? react : null;
   // the assistant's advice: one at a time, each for about 12 seconds, never the same one twice
   const tipNow = tip && tip.until > nowMs ? tip : null;
-  const tipCandidate = canChange && !tipNow && !reactOn ? assistantTips(d, gm, events.slice(0, revealed), mineSide as 0 | 1, onPitch(mineSide as 0 | 1).on).find((x) => !tipDone.current.has(x.key)) : undefined;
+  const tipCandidate = canChange && !tipNow && !reactOn ? assistantTips(d, pm, events.slice(0, revealed), mineSide as 0 | 1, onPitch(mineSide as 0 | 1).on).find((x) => !tipDone.current.has(x.key)) : undefined;
   useEffect(() => {
     if (!tipCandidate) return;
     tipDone.current.add(tipCandidate.key);
@@ -400,10 +406,10 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const infoTab = () => (
     <>
       {info === 'live' && <Commentary shown={seen} />}
-      {info === 'stats' && hasFlow && <div className="col" style={{ gap: 2, marginBottom: 6 }}><span className="tiny muted" style={{ fontWeight: 900 }}>MOMENTUM</span><Momentum d={d} gm={gm} flow={rep.flow || []} shots={rep.shots || []} /></div>}
-      {info === 'stats' && <LiveStats d={d} gm={gm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} />}
+      {info === 'stats' && hasFlow && <div className="col" style={{ gap: 2, marginBottom: 6 }}><span className="tiny muted" style={{ fontWeight: 900 }}>MOMENTUM</span><Momentum d={d} gm={pm} flow={rep.flow || []} shots={rep.shots || []} /></div>}
+      {info === 'stats' && <LiveStats d={d} gm={pm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} />}
       {info === 'events' && <KeyEvents d={d} shown={seen} />}
-      {info === 'lineups' && <Lineups d={d} gm={gm} shown={seen} />}
+      {info === 'lineups' && <Lineups d={d} gm={pm} shown={seen} />}
       {info === 'shape' && <Formation d={d} side={formSide} shown={seen} />}
     </>
   );
@@ -432,12 +438,12 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </div>
       </header>
       <div className="mc-cond tiny muted row">
-        {hasFlow && <span className="row" style={{ gap: 6 }}><b style={{ letterSpacing: 0.5 }}>MOMENTUM</b><Momentum d={d} gm={gm} flow={rep.flow || []} shots={rep.shots || []} /></span>}
+        {hasFlow && <span className="row" style={{ gap: 6 }}><b style={{ letterSpacing: 0.5 }}>MOMENTUM</b><Momentum d={d} gm={pm} flow={rep.flow || []} shots={rep.shots || []} /></span>}
         <span>🏟 {d.home.stadium}</span><span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon} {d.conditions.weatherInfo.label}</span><span>🧑‍⚖️ {d.conditions.referee.name} ({d.conditions.referee.label})</span>
       </div>
       <div className="mc-body">
         <aside className="panel mc-left mc-wide">
-          <Lineups d={d} gm={gm} shown={seen} />
+          <Lineups d={d} gm={pm} shown={seen} />
         </aside>
         <aside className="panel mc-tabs mc-narrow">
           <div className="row mc-tabrow">{tabsList.map(([k, l]) => <button key={k} className={`seg ${info === k ? 'on' : ''}`} onClick={() => setInfo(k)}><span>{l}</span></button>)}</div>
@@ -501,14 +507,14 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           ) : (
             <>
               <span className="kicker">Match stats</span>
-              <LiveStats d={d} gm={gm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} />
+              <LiveStats d={d} gm={pm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} />
             </>
           )}
         </aside>
       </div>
       <div className="mc-bottom mc-wide">
         <section className="panel"><span className="kicker">Live commentary</span><div className="mc-scroll"><Commentary shown={seen} /></div></section>
-        <section className="panel"><span className="kicker">{canChange ? 'Match stats' : 'Key events'}</span><div className="mc-scroll">{canChange ? <LiveStats d={d} gm={gm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} /> : <KeyEvents d={d} shown={seen} />}</div></section>
+        <section className="panel"><span className="kicker">{canChange ? 'Match stats' : 'Key events'}</span><div className="mc-scroll">{canChange ? <LiveStats d={d} gm={pm} shown={seen} shots={rep.shots || []} flow={rep.flow || []} /> : <KeyEvents d={d} shown={seen} />}</div></section>
         {canChange && <section className="panel"><span className="kicker">Key events</span><div className="mc-scroll"><KeyEvents d={d} shown={seen} /></div></section>}
         <section className="panel"><span className="kicker">Current formation</span><Formation d={d} side={formSide} shown={seen} /></section>
       </div>

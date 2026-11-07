@@ -2,6 +2,7 @@ import { one, q } from '../../../../lib/db.ts';
 import { fail, handle, requireUser } from '../../../../lib/http.ts';
 import { runDue, cupState } from '../../../../lib/season.ts';
 import { LIVE_SECONDS, HT_SECONDS, WEATHER, conditionsFor, matchKits, minuteAt } from '../../../../lib/game.ts';
+import { moveTimes, shownBy, tm } from '../../../../lib/pitchtime.ts';
 import { PRESS } from '../../../../lib/people.ts';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,10 @@ export const GET = handle(async (_req: Request, ctx: { params: Promise<{ fid: st
   // while a match is live nobody gets more than what has happened (plus a few seconds for the pitch to
   // animate): the rest can still change when either manager makes a change, and it must not be read early
   const liveNow = f!.status === 'live' && f!.live_from && new Date(f!.live_until).getTime() > Date.now();
-  const cut = liveNow ? minuteAt((Date.now() - new Date(f!.live_from).getTime()) / 1000, HT_SECONDS, LIVE_SECONDS) + 4 : 99;
+  // how far: what the pitch will have shown a few seconds from now (its own clock can run a little ahead
+  // of the minute), so every result is here before its move is played and none earlier than that
+  const nowMin = liveNow ? minuteAt((Date.now() - new Date(f!.live_from).getTime()) / 1000, HT_SECONDS, LIVE_SECONDS) : 99;
+  const cut = !liveNow ? 99 : Math.max(Math.floor(nowMin) + 2, full?.flow ? shownBy(moveTimes(full.flow, full.shots || []), tm(nowMin), 2.6) : 0);
   if (full) {
     const ids = [...new Set([...full.players.map((p: any) => p.id), ...full.lineups.flatMap((x: any) => [...x.xi, ...x.bench])])];
     const rows = await q('SELECT id, name, pos, ovr FROM players WHERE id IN (SELECT jsonb_array_elements_text($1::jsonb))', [JSON.stringify(ids)]);

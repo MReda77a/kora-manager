@@ -16,6 +16,7 @@ import {
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
+import { moveTimes, shownBy, tm } from './pitchtime.ts';
 import { AI_SQUAD, botListings, checkSquads, cleanTactic, getLeague, myClub, news, pickXI, squadOf, standings } from './league.ts';
 import { staffLevels } from './club.ts';
 import { moraleAfterMatch, randomEvents } from './people.ts';
@@ -529,8 +530,13 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   // from the next minute, or after what this manager's pitch has already shown (it runs a little ahead of
   // the match clock), so a change never rewrites a chance already watched; never more than 5 minutes on
   const base = Math.floor(liveMinute(f, now)) + 1;
+  // the pitch runs on its own clock (a busy spell puts it a little behind or ahead of the minute): what it
+  // already shows is worked out here from the same layout, and the manager's page says what it shows too
+  let onPitch = base - 1;
+  try { const rep = typeof f.report === 'string' ? JSON.parse(f.report) : f.report; if (rep?.flow) onPitch = shownBy(moveTimes(rep.flow, rep.shots || []), tm(liveMinute(f, now)), 0.05); } catch { /* the minute alone */ }
   const seen = Math.floor(Number(b.after));
-  const minute = base >= 90 ? 90 : Math.min(89, Number.isFinite(seen) ? Math.max(base, Math.min(base + 4, seen + 1)) : base);
+  const want = Math.max(base, onPitch + 1, Number.isFinite(seen) ? Math.min(seen + 1, onPitch + 4) : 0);
+  const minute = base >= 90 ? 90 : Math.min(89, want);
   if (minute >= 90 || now > new Date(f.live_from).getTime() + LIVE_MS) fail(400, 'The match is over.');
   const changes: Change[] = f.changes || [];
   if (changes.filter((c) => c.side === side).length >= 10) fail(400, 'Too many changes.');
