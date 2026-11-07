@@ -88,8 +88,10 @@ export function stitch(old: ReturnType<typeof buildPlan>, fresh: ReturnType<type
   const shown = new Set(keep.map((q) => q.sh).filter((k) => k >= 0));
   for (const q of fresh.plans) {
     if (q.sh >= 0 ? shown.has(q.sh) : q.t1 <= cut + 1e-6) continue; // already on screen
-    const need = q.sh >= 0 ? (q.kind === 'penalty' || q.kind === 'free kick' ? 1.1 : 0.9) : 0.4;
-    const t0 = Math.max(q.t0, at), t1 = Math.max(q.t1, t0 + need);
+    // a move keeps most of its own length (its passes were laid out for it), so the ball never races
+    const need = Math.max(q.sh >= 0 ? (q.kind === 'penalty' || q.kind === 'free kick' ? 1.1 : 0.9) : 0.4, (q.t1 - q.t0) * 0.7);
+    // no gap after the cut either (the move on screen may end later in the new report): it starts right away
+    const t0 = at, t1 = Math.max(q.t1, t0 + need);
     next.push(t0 === q.t0 && t1 === q.t1 ? q : { ...q, t0, t1, pre: q.pre && t0 !== q.t0 ? Math.min(0.6, (q.pre * (q.t1 - q.t0)) / (t1 - t0)) : q.pre });
     at = t1;
   }

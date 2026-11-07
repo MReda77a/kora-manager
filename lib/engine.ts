@@ -401,7 +401,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const tr = trap(a);
     if (tr === 'off') return;
     if (tr === 'beaten') return shot(a, 0.3 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.004, 'counter');
-    const exposed = (T(b).line === 2 ? 0.025 : T(b).line === 1 ? 0.01 : -0.03) + (T(b).mentality === 2 ? 0.02 : 0)
+    const exposed = (T(b).line === 2 ? 0.025 : T(b).line === 1 ? 0.01 : -0.03) + (T(b).mentality === 2 ? 0.035 : 0)
       - (T(b).line === 2 ? S[b].flags.sweeper * 0.02 : 0) - S[b].flags.anchor * 0.012 + S[b].flags.exposed + S[a].flags.counterQ;
     const gap = (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005;
     shot(a, Math.max(0.03, 0.1 + exposed + gap), 'counter');
@@ -417,7 +417,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       return shot(a, Math.max(0.03, 0.095 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + S[a].flags.longshot + S[b].flags.lobbed), 'long shot');
     }
     if (f === 0) {
-      q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) + (tb.line === 0 ? 0.025 : 0)
+      q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) + (tb.line === 0 ? 0.015 : 0)
         + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0) - S[b].flags.wingCover;
       two = 0.25;
     } else if (f === 1) {
@@ -430,7 +430,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       q = 0.07 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0) + S[a].flags.longshot + S[b].flags.lobbed;
       two = 0.55;
     }
-    if (tb.mentality === 0 && (f === 1 || f === 2)) q -= f === 1 ? 0.012 : 0.006; // bodies in the box: hard to pass or run through (crosses and shots from range go over it)
+    if (tb.mentality === 0 && (f === 1 || f === 2)) q -= f === 1 ? 0.012 : 0.004;
+    if (f === 0 && tb.mentality === 0 && tb.line === 0) q -= 0.007; // a parked bus has more heads in the box for the crosses // bodies in the box: hard to pass or run through
     q = Math.max(0.02, q + bonus);
     if (f === 1) {
       const tr = trap(a);
@@ -640,7 +641,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul * calm(b) * [0.7, 1, 1.15][tk(b)]) { card(b, f, tk(b) === 2 ? 0.05 : 0); return; }
       }
       if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.21 : 0.2)) shot(b, tb.press === 3 ? 0.135 : 0.13, 'high turnover');
-      else if (r.next() < [0.17, 0.13, 0.06][tb.mentality] * (ta.press === 3 ? 0.6 : 1)) counter(b); // a gegenpressing side hunts it straight back // even an attacking side breaks when it wins it
+      else if (r.next() < [0.17, 0.13, 0.06][tb.mentality] * (ta.press === 3 ? 0.5 : 1) * (ta.mentality === 2 ? 1.4 : 1)) counter(b); // even an attacking side breaks when it wins it; a gegenpressing side hunts it straight back; men forward leave space behind
       return;
     }
     reach(a, 1);
@@ -658,16 +659,18 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       return;
     }
     // a defensive side has men behind the ball and is harder to play through; an attacking one leaves gaps
-    let prog = (A(a, 'passing') - A(b, 'tackling')) * 0.03 + [0, 0.15, 0.32][ta.mentality] - 0.12 + (tb.mentality - 1) * (ta.focus === 0 && ta.width >= 1 ? 0.04 : 0.12);
-    prog += tb.line === 0 ? (ta.focus === 0 && ta.width >= 1 ? -0.04 : -0.24) : tb.line === 2 ? 0.12 : 0; // wide crossing teams go around a deep block
+    // throwing men forward does little against a parked bus (no space), unless you go round it with crosses or shoot from range
+    const intoBlock = tb.line === 0 && tb.mentality === 0 && !(ta.focus === 0 && ta.width >= 1) && ta.focus !== 3 ? 0.35 : 1;
+    let prog = (A(a, 'passing') - A(b, 'tackling')) * 0.03 + [0, 0.15, 0.15 + 0.17 * intoBlock][ta.mentality] - 0.12 + (tb.mentality - 1) * (ta.focus === 0 && ta.width >= 1 ? 0.07 : 0.12);
+    prog += tb.line === 0 ? (ta.focus === 0 && ta.width >= 1 ? -0.04 : -0.18) : tb.line === 2 ? 0.12 : 0; // wide crossing teams go around a deep block
     // game state: a team chasing the game late on throws bodies forward, more so when told to attack
     const behind = goals[b] - goals[a];
-    if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 : ta.mentality === 0 ? -0.1 : 0);
+    if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 * intoBlock : ta.mentality === 0 ? -0.1 : 0);
     prog += ta.tempo === 2 ? 0.1 : ta.tempo === 0 ? -0.08 : 0;
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
     prog += S[a].flags.prog;
     if (r.next() < sig(prog - 1.55)) { reach(a, 2); create(a); }
-    else if (r.next() < (ta.mentality === 2 ? 0.07 : 0.035) * (tb.mentality === 2 ? 0.5 : 1) * (ta.press === 3 ? 0.6 : 1)) counter(b);
+    else if (r.next() < (ta.mentality === 2 ? 0.07 : 0.035) * (tb.mentality === 2 && ta.mentality < 2 ? 0.5 : 1) * (ta.press === 3 ? 0.5 : 1)) counter(b);
   };
 
   const possShare = () => {
@@ -798,12 +801,12 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 // Win share of the row tactic against the column tactic on a neutral pitch with equal squads
 // (measured with this engine: scripts/tactics-study.ts). Every tactic has at least one clear counter.
 const M = {
-  'Tiki-taka': { 'Tiki-taka': 50, Gegenpress: 48, 'Low block': 34, 'Wing play': 54, 'Long ball': 46, 'Shoot on sight': 58 },
-  Gegenpress: { 'Tiki-taka': 52, Gegenpress: 50, 'Low block': 32, 'Wing play': 57, 'Long ball': 46, 'Shoot on sight': 57 },
-  'Low block': { 'Tiki-taka': 66, Gegenpress: 68, 'Low block': 50, 'Wing play': 42, 'Long ball': 46, 'Shoot on sight': 43 },
-  'Wing play': { 'Tiki-taka': 46, Gegenpress: 43, 'Low block': 58, 'Wing play': 50, 'Long ball': 60, 'Shoot on sight': 50 },
-  'Long ball': { 'Tiki-taka': 54, Gegenpress: 54, 'Low block': 54, 'Wing play': 40, 'Long ball': 50, 'Shoot on sight': 35 },
-  'Shoot on sight': { 'Tiki-taka': 42, Gegenpress: 43, 'Low block': 57, 'Wing play': 50, 'Long ball': 65, 'Shoot on sight': 50 },
+  'Tiki-taka': { 'Tiki-taka': 50, Gegenpress: 48, 'Low block': 36, 'Wing play': 54, 'Long ball': 46, 'Shoot on sight': 60 },
+  Gegenpress: { 'Tiki-taka': 52, Gegenpress: 50, 'Low block': 30, 'Wing play': 56, 'Long ball': 47, 'Shoot on sight': 58 },
+  'Low block': { 'Tiki-taka': 64, Gegenpress: 70, 'Low block': 50, 'Wing play': 46, 'Long ball': 50, 'Shoot on sight': 44 },
+  'Wing play': { 'Tiki-taka': 46, Gegenpress: 44, 'Low block': 54, 'Wing play': 50, 'Long ball': 58, 'Shoot on sight': 52 },
+  'Long ball': { 'Tiki-taka': 54, Gegenpress: 53, 'Low block': 50, 'Wing play': 42, 'Long ball': 50, 'Shoot on sight': 37 },
+  'Shoot on sight': { 'Tiki-taka': 40, Gegenpress: 42, 'Low block': 56, 'Wing play': 48, 'Long ball': 63, 'Shoot on sight': 50 },
 } as Record<string, Record<string, number>>;
 export const counterShare = (mine: string, theirs: string) => (M[mine]?.[theirs] ?? 50) / 100;
 

@@ -250,7 +250,14 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
     const leftOfMe = theirAll.filter((x: Shot) => (mine === 0 ? x.y > 55 : x.y < 45)).length, rightOfMe = theirAll.filter((x: Shot) => (mine === 0 ? x.y < 45 : x.y > 55)).length;
     if (Math.max(leftOfMe, rightOfMe) >= theirAll.length * 0.7) tips.push({ key: `wing-${Math.floor(M / 20)}`, ico: '🧭', text: `Most of their chances come down our ${leftOfMe > rightOfMe ? 'left' : 'right'} side. A fresh full-back there would help.` });
   }
-  if (M >= 65 && diff < 0 && diff >= -2) tips.push({ key: `behind-${score.join('-')}`, ico: '⏱', text: `We are ${-diff} down with ${90 - M} minutes left. Time to go for it.`, act: { label: 'All-out attack', body: { mentality: 2, press: 2 } } });
+  if (M >= 65 && diff < 0 && diff >= -2) {
+    // against a side parked deep, men through the middle just run into a wall: go round it down the wings
+    const st = theirs.length ? theirs[theirs.length - 1] : null;
+    const deep = st ? st.mentality === 0 && st.line === 0 : rep.lineups?.[them]?.preset === 'Low block';
+    tips.push(deep
+      ? { key: `behind-${score.join('-')}`, ico: '⏱', text: `We are ${-diff} down with ${90 - M} minutes left. They are parked deep, so the middle is shut: go round them down the wings.`, act: { label: 'Attack down the wings', body: { preset: 'Wing play', mentality: 2 } } }
+      : { key: `behind-${score.join('-')}`, ico: '⏱', text: `We are ${-diff} down with ${90 - M} minutes left. Time to go for it.`, act: { label: 'All-out attack', body: { mentality: 2, press: 2 } } });
+  }
   if (M >= 78 && diff === 1) {
     // a deep block invites shots from range and long balls: against those, stay compact on a mid line
     const theirNow = theirs.length ? theirs[theirs.length - 1].preset : rep.lineups?.[them]?.preset;

@@ -182,3 +182,6 @@ Stay compact	خليك متقفل
 Defend on a mid line, no gaps	دافع من نص الملعب ومن غير فراغات
 One goal up with {0} minutes to go. They shoot from range, so do not sit too deep: stay compact.	كسبانين بجون وفاضل {0} دقيقة. هما بيسددوا من بعيد، فمترجعش ورا أوي: خليك متقفل.
 {0} (from {1}')	{0} (من الدقيقة {1})
+More goals, but space behind you	جوان أكتر، بس هتسيب مساحة ورا
+Attack down the wings	اهجم من الأجناب
+We are {0} down with {1} minutes left. They are parked deep, so the middle is shut: go round them down the wings.	خسرانين بـ{0} وفاضل {1} دقيقة. هما راكنين الأتوبيس والنص مقفول: لف عليهم من الأجناب.

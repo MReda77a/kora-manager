@@ -388,7 +388,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   const hasFlow = !!rep.flow;
   const formSide = (mineSide >= 0 ? mineSide : 0) as 0 | 1;
   const tactics = canChange ? [
-    { k: 'att', ico: '⚔️', t: 'All-out attack', s: 'Everyone forward, press high', go: () => change({ mentality: 2, press: 2 }, 'All out attack!') },
+    { k: 'att', ico: '⚔️', t: 'All-out attack', s: 'More goals, but space behind you', go: () => change({ mentality: 2, press: 2 }, 'All out attack!') },
     { k: 'bus', ico: '🚌', t: 'Park the bus', s: 'Sit deep. Risky against long shots', go: () => change({ mentality: 0, line: 0, press: 0 }, 'Park the bus') },
     { k: 'compact', ico: '🧱', t: 'Stay compact', s: 'Defend on a mid line, no gaps', go: () => change({ mentality: 0, line: 1, press: 1 }, 'Stay compact') },
     { k: 'press', ico: '🔥', t: 'High press', s: 'Win the ball back high', go: () => change({ press: 3 }, 'High press on') },
