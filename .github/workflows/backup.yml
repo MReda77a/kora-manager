@@ -1,0 +1,51 @@
+# Daily backup of the database (Neon's free plan only keeps 6 hours of history).
+# Each run saves an encrypted copy as a workflow artifact, kept for 30 days.
+# The repo is public, so the copy is encrypted with the BACKUP_KEY secret: without it nobody can open it.
+#
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   DATABASE_URL  the Neon connection string (the same one the Worker uses)
+#   BACKUP_KEY    any long random password; keep a copy somewhere safe, it is the only way to open the backups
+#
+# To restore: download the artifact from the run (Actions > Daily database backup), unzip it, then
+#   gpg --batch --pinentry-mode loopback --passphrase "$BACKUP_KEY" -d vamos-YYYY-MM-DD.dump.gpg > vamos.dump
+#   pg_restore --clean --if-exists --no-owner -d "$DATABASE_URL" vamos.dump
+name: Daily database backup
+on:
+  schedule:
+    - cron: '17 1 * * *' # every day 01:17 UTC (03:17 Cairo), when nobody is playing
+  workflow_dispatch: {}
+concurrency: backup
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
+        run: |
+          [ -n "$DATABASE_URL" ] || { echo "::error::Add the DATABASE_URL secret"; exit 1; }
+          [ -n "$BACKUP_KEY" ] || { echo "::error::Add the BACKUP_KEY secret"; exit 1; }
+      - name: Dump and encrypt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
+        run: |
+          set -euo pipefail
+          # pg_dump talks to the database directly, not through the connection pooler
+          DIRECT="${DATABASE_URL/-pooler./.}"
+          F="vamos-$(date -u +%F).dump"
+          docker run --rm -e DIRECT="$DIRECT" -v "$PWD:/out" postgres:18 \
+            sh -c 'pg_dump --format=custom --no-owner --no-privileges -d "$DIRECT" -f "/out/'"$F"'"'
+          ls -la "$F"
+          [ -s "$F" ] || { echo "::error::Empty dump"; exit 1; }
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_KEY" --symmetric --cipher-algo AES256 -o "$F.gpg" "$F"
+          rm -f "$F"
+          echo "FILE=$F.gpg" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}
+          path: ${{ env.FILE }}
+          retention-days: 30
+          compression-level: 0
