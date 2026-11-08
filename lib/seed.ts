@@ -1,5 +1,5 @@
 // Node only: creates the tables and loads the players. Run with `npm run seed`.
-import { marketValue } from './game.ts';
+import { marketValue, wideMidOf } from './game.ts';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { db } from './db.ts';
@@ -19,7 +19,7 @@ export async function ensureSeeded() {
     England: 'ENG', Spain: 'ESP', Italy: 'ITA', Germany: 'GER', France: 'FRA', 'Saudi Arabia': 'KSA', USA: 'USA', Egypt: 'EGY',
   };
   const real: RawPlayer[] = data.map((p) => ({
-    id: p.id, name: p.name, pool: POOL[p.country] || 'ENG', nat: p.nationality || '', pos: p.position, foot: p.foot === 'Left' ? 'L' : 'R',
+    id: p.id, name: p.name, pool: POOL[p.country] || 'ENG', nat: p.nationality || '', pos: wideMidOf(p.position, p.attributes || {}) || p.position, foot: p.foot === 'Left' ? 'L' : 'R',
     age: p.age, height: p.heightCm, ovr: p.overall, pot: p.potential,
     attrs: { v: marketValue(p.overall, p.age, p.potential), ...p.attributes, ...p.goalkeeping, ...p.hidden },
   }));

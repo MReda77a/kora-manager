@@ -98,7 +98,7 @@ class Side {
   val(o: OnPitch, attr: string) {
     let v = (o.p.a[attr] ?? o.p.ovr) + (o.p.mod || 0);
     const natural = LINE[o.p.pos] || 'MID';
-    if (natural !== o.slot) v -= o.slot === 'GK' || natural === 'GK' ? 30 : 8;
+    if (natural !== o.slot) v -= o.slot === 'GK' || natural === 'GK' ? 30 : (o.p.pos === 'LM' || o.p.pos === 'RM') && o.slot === 'FWD' ? 2 : 8;
     return v;
   }
   refresh(homeAdv: number) {
@@ -250,7 +250,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const logStyle = (side: 0 | 1, t: Tactic) => styles.push({ m: minute, side, preset: t.preset, mentality: t.mentality, press: t.press, line: t.line, build: t.build, width: t.width, tempo: t.tempo });
   const reach = (side: 0 | 1, r: number) => {
     const f = flow[flow.length - 1];
-    if (!f || f[1] !== side || f[0] !== minute || f[3] >= 0) flow.push([minute, side, r, -1]);
+    if (!f || f[1] !== side || f[0] !== minute || f[3] !== -1) flow.push([minute, side, r, -1]);
     else if (r > f[2]) f[2] = r;
   };
   const spot = (a: 0 | 1, kind: string) => {
@@ -382,14 +382,22 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const offsides: [number, number] = [0, 0];
   // the defending side steps up to catch a run offside: it works if the defence is in tune
   // (positioning, decisions, chemistry, fresh legs), otherwise the runner is clean through
+  // a run in behind flagged offside: the move ends where the runner was, the defenders take the free kick
+  let nextTo: 0 | 1 | null = null;
+  const flagged = (a: 0 | 1, text?: string) => {
+    offsides[a]++;
+    reach(a, 2); flow[flow.length - 1][3] = -2;
+    const runner = r.weighted(S[a].pitch.filter((o) => o.slot === 'FWD' || o.slot === 'MID'), (o) => (o.slot === 'FWD' ? 3 : 1) * (o.p.a.Pace || 60));
+    log('offside', a, text || say([`Offside! ${runner ? runner.p.name : S[a].s.name} went too early.`, `The flag is up: ${runner ? runner.p.name : S[a].s.name} is offside.`, `Offside against ${runner ? runner.p.name : S[a].s.name}.`]), runner?.p.id);
+    nextTo = (1 - a) as 0 | 1;
+  };
   const trap = (a: 0 | 1): 'off' | 'beaten' | null => {
     const b = (1 - a) as 0 | 1;
     if (!T(b).trap || T(b).line < 1 || r.next() > 0.6) return null;
     const chem = ((S[b].s.chem?.DEF ?? 50) - 50) / 50 * 4;
     const edge = A(b, 'trap') - A(a, 'runs') + chem + S[a].flags.offside; // runners in behind are caught more often
     if (r.next() < sig(0.15 + edge * 0.13)) {
-      offsides[a]++;
-      log('offside', a, `Offside! ${S[b].s.name}'s trap catches the run.`);
+      flagged(a, `Offside! ${S[b].s.name}'s trap catches the run.`);
       return 'off';
     }
     log('trap', a, `The trap is beaten! ${S[a].s.name} are clean through...`);
@@ -670,7 +678,14 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
     prog += S[a].flags.prog;
     if (r.next() < sig(prog - 1.55)) { reach(a, 2); create(a); }
+    else if (r.next() < offRate(a)) flagged(a);
     else if (r.next() < (ta.mentality === 2 ? 0.07 : 0.035) * (tb.mentality === 2 && ta.mentality < 2 ? 0.5 : 1) * (ta.press === 3 ? 0.5 : 1)) counter(b);
+  };
+  // how often a move that breaks down ends with a runner offside: balls in behind and long balls more,
+  // against a high line more, against a deep block hardly ever; runners who live on the shoulder more
+  const offRate = (a: 0 | 1) => {
+    const ta = T(a), tb = T((1 - a) as 0 | 1);
+    return 0.042 * (ta.focus === 1 ? 1.6 : ta.focus === 3 ? 0.6 : 1) * (ta.build === 2 ? 1.35 : 1) * [0.45, 1, 1.55][tb.line] * (ta.mentality === 2 ? 1.2 : 1) * (1 + S[a].flags.offside * 0.6);
   };
 
   const possShare = () => {
@@ -726,7 +741,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       sd.refresh(i === 0 ? homeAdv : 0);
     }
     const phases = 1 + (r.next() < 0.18 + 0.06 * (S[0].tactic.tempo + S[1].tactic.tempo) ? 1 : 0);
-    for (let p = 0; p < phases; p++) phase(r.next() < possShare() ? 0 : 1);
+    for (let p = 0; p < phases; p++) { const who: 0 | 1 = r.next() < possShare() ? 0 : 1; phase(nextTo ?? who); nextTo = null; }
   }
   minute = 90;
   log('ft', 0, `Full time: ${home.name} ${goals[0]}–${goals[1]} ${away.name}`);

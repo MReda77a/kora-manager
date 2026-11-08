@@ -151,7 +151,7 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
     const recent = hist.map((h) => (h.t ? h.t[h.home_id === oppId ? 0 : 1] : null)).filter(Boolean);
     const sq = await L.squadOf(oppId, next.day);
     const avg = (arr: any[], k: string) => Math.round(arr.reduce((a, p) => a + (p.attrs[k] ?? 60), 0) / Math.max(1, arr.length));
-    const top = (line: string, n: number) => sq.filter((p) => (p.pos === 'GK' ? 'GK' : ['CB', 'LB', 'RB'].includes(p.pos) ? 'DEF' : ['DM', 'CM', 'CAM'].includes(p.pos) ? 'MID' : 'FWD') === line).sort((a, b) => b.ovr - a.ovr).slice(0, n);
+    const top = (line: string, n: number) => sq.filter((p) => (p.pos === 'GK' ? 'GK' : ['CB', 'LB', 'RB'].includes(p.pos) ? 'DEF' : ['DM', 'CM', 'CAM', 'LM', 'RM'].includes(p.pos) ? 'MID' : 'FWD') === line).sort((a, b) => b.ovr - a.ovr).slice(0, n);
     const fw = top('FWD', 3), df = top('DEF', 4), gk = top('GK', 1);
     const mineHist = await q(`SELECT report->'tactics' AS t, home_id FROM fixtures WHERE league_id=$1 AND status='done' AND (home_id=$2 OR away_id=$2) ORDER BY day DESC LIMIT 3`, [lid, c.id]);
     const myRecent = mineHist.map((h) => (h.t ? h.t[h.home_id === c.id ? 0 : 1] : null)).filter(Boolean);

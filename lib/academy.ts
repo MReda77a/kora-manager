@@ -24,9 +24,9 @@ const NAMES: Record<string, [string[], string[]]> = {
     ['Martin', 'Bernard', 'Dubois', 'Laurent', 'Lefèvre', 'Moreau', 'Girard', 'Fontaine', 'Mercier', 'Blanc', 'Garnier', 'Faure', 'Diallo', 'Traoré']],
 };
 
-const LINE_OF: Record<string, string> = { GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', DM: 'MID', CM: 'MID', CAM: 'MID', LW: 'FWD', RW: 'FWD', ST: 'FWD' };
+const LINE_OF: Record<string, string> = { GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', DM: 'MID', CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID', LW: 'FWD', RW: 'FWD', ST: 'FWD' };
 const TARGET: Record<string, number> = { GK: 66, DEF: 190, MID: 190, FWD: 130 };
-const POSITIONS: Record<string, string[]> = { GK: ['GK'], DEF: ['CB', 'CB', 'LB', 'RB'], MID: ['DM', 'CM', 'CM', 'CAM'], FWD: ['ST', 'ST', 'LW', 'RW'] };
+const POSITIONS: Record<string, string[]> = { GK: ['GK'], DEF: ['CB', 'CB', 'LB', 'RB'], MID: ['DM', 'CM', 'CM', 'CAM', 'LM', 'RM'], FWD: ['ST', 'ST', 'LW', 'RW'] };
 
 export type RawPlayer = { id: string; name: string; pool: string; nat: string; pos: string; foot: string; age: number; height: number; ovr: number; pot: number; attrs: Record<string, number> };
 

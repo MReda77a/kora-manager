@@ -21,7 +21,8 @@ export function autoXI(players: any[], formation: string, nextDay: number, keep:
     const line = p.pos === 'GK' ? 'GK' : LINE[p.pos] || 'MID';
     if (p.pos === labels[i]) return 6;
     if (line === slots[i]) return 0;
-    return -60 - offPositionCost(line, slots[i]); // only when nobody from that line is left
+    if ((p.pos === 'LM' && labels[i] === 'LW') || (p.pos === 'RM' && labels[i] === 'RW')) return -2; // a wide midfielder on the wing up front
+    return -60 - offPositionCost(line, slots[i], p.pos); // only when nobody from that line is left
   };
   const pairs: [number, number, any][] = [];
   slots.forEach((_, i) => { if (!xi[i]) for (const p of avail) if (!used.has(p.id)) pairs.push([(p.ovr + (p.form || 0)) * fit(p) + fitFor(p, i), i, p]); });
@@ -79,7 +80,7 @@ export default function LineupTab(props: TabProps) {
   const forms = Object.keys(FORMATIONS);
   const out = (p: any) => p && p.outUntil >= d.nextDay;
   const bench = d.players.filter((p: any) => !xi.includes(p.id)).sort((a: any, b: any) => Number(out(a)) - Number(out(b)) || b.ovr - a.ovr);
-  const strength = Math.round(xi.map((id) => byId.get(id) as any).filter(Boolean).reduce((a: number, p: any) => a + p.ovr + (p.form || 0) - offPositionCost(LINE[p.pos] || 'MID', F.slots[xi.indexOf(p.id)]), 0) / 11);
+  const strength = Math.round(xi.map((id) => byId.get(id) as any).filter(Boolean).reduce((a: number, p: any) => a + p.ovr + (p.form || 0) - offPositionCost(LINE[p.pos] || 'MID', F.slots[xi.indexOf(p.id)], p.pos), 0) / 11);
   const set = (fn: () => void) => { fn(); setDirty(true); };
   const chem: Record<string, number> = d.club.chem || {};
   const lc = lineChem(xi, t.formation, chem);
@@ -141,11 +142,11 @@ export default function LineupTab(props: TabProps) {
             {F.xy.map(([x, y], i) => {
               const p: any = byId.get(xi[i]);
               const label = slotLabel(F.slots[i], x, y);
-              const cost = p ? offPositionCost(LINE[p.pos] || 'MID', F.slots[i]) : 0;
-              const wrong = cost > 0;
+              const cost = p ? offPositionCost(LINE[p.pos] || 'MID', F.slots[i], p.pos) : 0;
+              const wrong = cost >= 8, near = cost > 0 && cost < 8;
               const on = sel?.kind === 'slot' && sel.v === i;
               return (
-                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(24px, ${spreadX(x)}%, calc(100% - 24px))`, top: `clamp(20px, ${y}%, calc(100% - 20px))` }} onClick={() => tapSlot(i)}
+                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${near ? 'near' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(24px, ${spreadX(x)}%, calc(100% - 24px))`, top: `clamp(20px, ${y}%, calc(100% - 20px))` }} onClick={() => tapSlot(i)}
                   aria-label={p ? `${p.name}, ${label}${wrong ? `, out of position (${p.pos}), minus ${cost}` : ''}` : `Empty ${label}`}>
                   <i>{p ? p.num ?? shirt(p.id, p.natPos || p.pos) : ''}</i>
                   <em>{label}</em>
@@ -175,7 +176,7 @@ export default function LineupTab(props: TabProps) {
               );
             })}
           </div>
-          <div className="tiny muted mp-hint">{hint}. Red = out of position (−8, or −30 in or out of goal).</div>
+          <div className="tiny muted mp-hint">{hint}. Red = out of position (−8, or −30 in or out of goal). Yellow = a wide midfielder up on the wing (−2).</div>
         </section>
         <section className="panel cut rise mp-right" style={{ gap: 8 }}>
           <div className="row mp-modes" role="tablist">

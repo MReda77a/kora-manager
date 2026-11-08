@@ -44,8 +44,8 @@ Captain	الكابتن
 Bench	الدكة
 Susp.	موقوف
 Injured	مصاب
-. Red = out of position (−8, or −30 in or out of goal).	. الأحمر = في غير مركزه (−8، أو −30 لو جوه أو برا الجون).
-Red = out of position (−8, or −30 in or out of goal).	الأحمر = في غير مركزه (−8، أو −30 لو جوه أو برا الجون).
+. Red = out of position (−8, or −30 in or out of goal). Yellow = a wide midfielder up on the wing (−2).	. الأحمر = في غير مركزه (−8، أو −30 لو جوه أو برا الجون). الأصفر = جناح وسط لاعب جناح هجوم (−2).
+Red = out of position (−8, or −30 in or out of goal). Yellow = a wide midfielder up on the wing (−2).	الأحمر = في غير مركزه (−8، أو −30 لو جوه أو برا الجون). الأصفر = جناح وسط لاعب جناح هجوم (−2).
 Lineup	التشكيلة
 Style	الأسلوب
 Roles	الأدوار

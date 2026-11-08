@@ -292,7 +292,7 @@ export async function botShopping(l: Row, day: number) {
   );
   const bots = new Map<number, { id: number; name: string; money: number; sq: Row[] }>();
   for (const r of rows) { const b = bots.get(r.id) || { id: r.id, name: r.name, money: Number(r.money), sq: [] as Row[] }; b.sq.push(r); bots.set(r.id, b); }
-  const lineOf = (pos: string) => (pos === 'GK' ? 'GK' : ['CB', 'LB', 'RB'].includes(pos) ? 'DEF' : ['DM', 'CM', 'CAM'].includes(pos) ? 'MID' : 'FWD');
+  const lineOf = (pos: string) => (pos === 'GK' ? 'GK' : ['CB', 'LB', 'RB'].includes(pos) ? 'DEF' : ['DM', 'CM', 'CAM', 'LM', 'RM'].includes(pos) ? 'MID' : 'FWD');
   const sold = new Set<number>();
   let bought = 0;
   for (const b of [...bots.values()].sort((x, y) => y.money - x.money)) {

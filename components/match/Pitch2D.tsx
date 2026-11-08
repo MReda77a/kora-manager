@@ -35,6 +35,7 @@ const SET = (kind: string) => (kind === 'penalty' ? 0.4 : kind === 'free kick' ?
 type Outcome = 'lost' | 'kept' | 'goal' | 'saved' | 'wide';
 type Plan = {
   t0: number; t1: number; s: 0 | 1; r: number; sh: number; i: number;
+  off?: boolean; offEv?: Ev; // the move ends with the runner flagged offside (the defenders take the free kick)
   startX: number; targetX: number; // absolute % along the pitch (0 = home goal, 100 = away goal)
   chain: number[]; // slots of the attacking side, in passing order
   out: Outcome; win: number | null; // the defender who wins a lost ball
@@ -55,6 +56,23 @@ type Plan = {
 };
 
 type Occ = { at: number; side: 0 | 1; out: string | null; inn: string | null }[];
+const markMemo = new WeakMap<object, Map<number, number>>();
+
+// who marks whom: each outfield man of the side without the ball picks up the nearest attacker (from
+// where both stand in their formations: a fixed choice for the move, so nobody swaps men in the middle of
+// it). Pairs go nearest first; a man with nobody near (over 34 m) holds his zone.
+export function markOf(F: { slots: string[]; xy: number[][] }[], occ: (string | null)[][], att: 0 | 1) {
+  const def = (1 - att) as 0 | 1;
+  const at = (side: 0 | 1, k: number): [number, number] => { const [fx, fy] = F[side].xy[k]; const dd = 12 + fx * 0.62; return side === 0 ? [dd, fy] : [100 - dd, 100 - fy]; };
+  const A = F[att].slots.map((_, k) => k).filter((k) => F[att].slots[k] !== 'GK' && occ[att][k]);
+  const D = F[def].slots.map((_, k) => k).filter((k) => F[def].slots[k] !== 'GK' && occ[def][k]);
+  const pairs: [number, number, number][] = [];
+  for (const a of A) for (const d of D) { const pa = at(att, a), pd = at(def, d); pairs.push([Math.hypot(pa[0] - pd[0], (pa[1] - pd[1]) * 0.68), a, d]); }
+  pairs.sort((x, y) => x[0] - y[0]);
+  const out = new Map<number, number>(), usedD = new Set<number>();
+  for (const [dd, a, d] of pairs) { if (dd > 34 || out.has(a) || usedD.has(d)) continue; out.set(a, d); usedD.add(d); }
+  return out; // attacker slot -> his marker's slot
+}
 
 export function usePlan(rep: any, events: Ev[], now?: number) {
   // during a live match the report is worked out again after every change (and polled every few seconds);
@@ -160,7 +178,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       const s = p.s, o = (1 - s) as 0 | 1;
       const shot = p.sh >= 0 ? shots[p.sh] : null;
       // a quiet spell only ends with the ball lost when the other team has the next move; otherwise we keep it
-      const out: Outcome = !shot ? (raw[i + 1] && raw[i + 1].s === s && !(p.t1 <= 45.01 && raw[i + 1].t0 >= 45) ? 'kept' : 'lost') : shot.goal ? 'goal' : shot.on ? 'saved' : 'wide';
+      const out: Outcome = !shot && p.off ? 'lost' : !shot ? (raw[i + 1] && raw[i + 1].s === s && !(p.t1 <= 45.01 && raw[i + 1].t0 >= 45) ? 'kept' : 'lost') : shot.goal ? 'goal' : shot.on ? 'saved' : 'wide';
       const prev = plans[i - 1];
       const ht = !!prev && p.t0 >= 45 - 1e-6 && prev.t0 < 45 - 1e-6;
       let restart: Plan['restart'] = null;
@@ -259,13 +277,21 @@ export function buildPlan(rep: any, events: Ev[]) {
           if (chain[chain.length - 1] !== finisher) chain.push(finisher);
         }
       }
-      // who wins a lost ball: the opponent nearest the last man
+      // an offside: the last ball is played in behind to the most advanced forward
+      if (p.off && !shot) {
+        const fw = outfield.filter((k) => slots[k] === 'FWD' && ids[k]).sort((a, b) => baseDepth(b) - baseDepth(a) + (hash(i * 13 + a) % 3) - (hash(i * 13 + b) % 3));
+        const runner = fw[0] ?? outfield.filter((k) => ids[k]).sort((a, b) => baseDepth(b) - baseDepth(a))[0];
+        if (runner !== undefined && chain[chain.length - 1] !== runner) { if (chain.length >= 3 && chain[chain.length - 1] !== chain[0]) chain[chain.length - 1] = runner; else chain.push(runner); }
+        if (chain.length >= 2 && chain[chain.length - 2] === chain[chain.length - 1]) chain.splice(chain.length - 2, 1);
+      }
+      // who wins a lost ball: the man marking the last one (see markOf), else the opponent nearest him
       let win: number | null = null;
       if (out === 'lost') {
         const last = chain[chain.length - 1];
+        const mk = markOf(F, [occAt(0, p.t1), occAt(1, p.t1)], s).get(last);
         const lx = F[s].xy[last], oids = occAt(o, p.t1);
         const ex = depth(targetX), ey = lx[1];
-        win = F[o].slots.map((_, k) => k).filter((k) => oids[k] && F[o].slots[k] !== 'GK')
+        win = mk ?? F[o].slots.map((_, k) => k).filter((k) => oids[k] && F[o].slots[k] !== 'GK')
           .sort((a, b) => {
             const da = (100 - (12 + F[o].xy[a][0] * 0.62)) - ex, db = (100 - (12 + F[o].xy[b][0] * 0.62)) - ex;
             return Math.hypot(da, (100 - F[o].xy[a][1]) - ey) - Math.hypot(db, (100 - F[o].xy[b][1]) - ey);
@@ -334,6 +360,12 @@ export function buildPlan(rep: any, events: Ev[]) {
         if (fv >= 0) { q.foul = { v: fv, w, side: e.side, evs: [e] }; return; }
       }
     });
+    // each offside belongs to the move it ends (the flag goes up when the ball reaches the runner)
+    for (const e of events) {
+      if (e.type !== 'offside') continue;
+      const q = plans.find((x) => x.off && !x.offEv && x.s === e.side && x.m0 <= e.m && e.m <= x.m1);
+      if (q) q.offEv = e;
+    }
     const timeOf = timing(plans, shots);
     return { plans, F, occAt, shots, styleAt, timeOf, roleIn, timing };
   }
@@ -371,6 +403,13 @@ export function buildPlan(rep: any, events: Ev[]) {
       const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => !x.ghost && x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
       if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' ? s2.foul : s2.land; }
       if (e.type === 'yellow' || e.type === 'red') return cardAt(e);
+      if (e.type === 'offside') {
+        const oq = plans.find((p) => p.offEv === e);
+        if (oq) { const pre = oq.pre || 0; return oq.t0 + (oq.t1 - oq.t0) * (pre + (1 - pre) * (0.72 + 0.28 * 0.12)); }
+        // a flag in a minute shown by a chance: just after what came before it in that minute
+        const i = events.indexOf(e), before = events.slice(0, i).filter((x) => x.m === e.m && x.type !== 'offside' && x.type !== 'yellow' && x.type !== 'red');
+        return Math.max(atMin(e), ...before.map((x) => rawTime(x) + 0.02));
+      }
       return atMin(e);
     };
     /** a card is shown when the referee blows for the foul: with the free kick or penalty it gave, or else
@@ -531,6 +570,11 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
   // where the players are during move q: the formation shape, plus the shooter's run into the spot he
   // shoots from and the corner taker at the flag
   const toPitch = (xy: [number, number]): [number, number] => [xy[0] / 100 * L, (6 + xy[1] * 0.88) / 100 * W];
+  const marksOf = (q: NonNullable<typeof p>) => {
+    let m = markMemo.get(q);
+    if (!m) { const a = markOf(F, [occAt(0, q.t0), occAt(1, q.t0)], q.s); m = new Map([...a].map(([x, y]) => [y, x])); markMemo.set(q, m); }
+    return m; // defender slot -> the attacker he marks
+  };
   const posQ = (q: NonNullable<typeof p>, vRaw: number, blend = true): ((side: 0 | 1, k: number) => [number, number]) => {
     const v = inner(q, vRaw);
     const base = posP(phaseOf(q, vRaw), q.s);
@@ -608,6 +652,16 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
           const step = (gk ? 0 : (stD.line - 1) * 2.5 + stD.press * 0.8) * (side === 0 ? 1 : -1) * shapeOn;
           const squeeze = gk ? 1 : 1 - 0.06 * stD.press * shapeOn; // a pressing side narrows round the ball
           b = [b[0] + step, W / 2 + (b[1] - W / 2) * squeeze + across];
+          // ...and each man also picks up his own attacker: goal-side of him, tighter the nearer he gets to
+          // goal and the more the side presses (a man marker, not a wall moving as one)
+          const mm = gk ? undefined : marksOf(q).get(k);
+          if (mm !== undefined) {
+            const man = ownRaw(q.s, mm), ownGoal = side === 0 ? 0 : L;
+            const tgt: [number, number] = [man[0] + (side === 0 ? -2.2 : 2.2), man[1] + (W / 2 - man[1]) * 0.1];
+            const near = c01(1 - Math.abs(man[0] - ownGoal) / (L * 0.75));
+            const wM = Math.min(0.75, (0.26 + 0.1 * stD.press + (F[side].slots[k] === 'DEF' ? 0.08 : 0)) * (0.55 + 0.65 * near)) * shapeOn;
+            b = [lerp(b[0], tgt[0], wM), lerp(b[1], tgt[1], wM)];
+          }
         }
         if (setW && q.kind === 'penalty' && F[side].slots[k] !== 'GK') { const edge = q.s === 0 ? L - 17.5 : 17.5; return [lerp(b[0], q.s === 0 ? Math.min(b[0], edge) : Math.max(b[0], edge), setW), b[1]]; }
         return b;
@@ -676,6 +730,17 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     const contactV = ce + (1 - ce) * 0.45;
     return (side, k) => {
       const r = blended(side, k);
+      if (q.off && side === q.s && k === q.chain[n - 1]) {
+        // the runner goes too early: by the time the ball reaches him he is past the last defender
+        const w = ease(c01((v - ce * 0.78) / (ce * 0.22)));
+        if (w <= 0) return r;
+        const od = occAt(dSide, q.t0);
+        const xs = F[dSide].slots.map((sl, kk) => (sl !== 'GK' && od[kk] ? blended(dSide, kk)[0] : null)).filter((x): x is number => x !== null);
+        if (!xs.length) return r;
+        const line = q.s === 0 ? Math.max(...xs) : Math.min(...xs), tx = line + dir * 2.2;
+        const x = q.s === 0 ? Math.max(r[0], tx) : Math.min(r[0], tx);
+        return [lerp(r[0], x, w), r[1]];
+      }
       if (q.out !== 'lost' || side === q.s || k !== q.win) return r;
       const ap = blended(q.s, q.chain[n - 1]), tgt: [number, number] = [ap[0] + (q.s === 0 ? 1.6 : -1.6), ap[1] + 0.6];
       const w = ease(c01((v - (contactV - 0.2)) / 0.2));
@@ -797,6 +862,15 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       // closed down: he keeps it until the defender gets to him, then loses it in the tackle
       const contact = ce + (1 - ce) * 0.45;
       const win = q.win !== null ? pos(o, q.win) : last;
+      if (q.off && v < contact) { st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = v < ce + (1 - ce) * 0.1 ? 'Through ball' : 'Offside!'; st.bannerSide = v < ce + (1 - ce) * 0.1 ? s : o; return st; }
+      if (q.off) {
+        const w = ease(c01((v - contact) / ((1 - contact) * 0.4)));
+        const from: [number, number] = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5];
+        st.ball = [lerp(from[0], win[0] + (o === 0 ? 0.9 : -0.9), w), lerp(from[1], win[1] + 0.5, w)];
+        if (w >= 1 && q.win !== null) st.holder = { side: o, k: q.win };
+        st.banner = 'Free kick'; st.bannerSide = o;
+        return st;
+      }
       if (v < contact) { st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = v < ce + (1 - ce) * 0.25 ? 'Under pressure' : 'Tackle!'; st.bannerSide = v < ce + (1 - ce) * 0.25 ? s : o; return st; }
       const w = ease(c01((v - contact) / ((1 - contact) * 0.4)));
       const from: [number, number] = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5];

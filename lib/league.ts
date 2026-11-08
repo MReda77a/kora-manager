@@ -219,7 +219,7 @@ export async function openPack(uid: number, leagueId: number, key: PackKey) {
   // and 3 forwards, packs fill those gaps first (from the pack's own band when possible).
   // Gold packs stay fully random (apart from the 2-keeper limit).
   const have = await q<{ line: string; n: number }>(
-    `SELECT CASE WHEN p.pos='GK' THEN 'GK' WHEN p.pos IN ('CB','LB','RB') THEN 'DEF' WHEN p.pos IN ('DM','CM','CAM') THEN 'MID' ELSE 'FWD' END AS line, COUNT(*)::int AS n
+    `SELECT CASE WHEN p.pos='GK' THEN 'GK' WHEN p.pos IN ('CB','LB','RB') THEN 'DEF' WHEN p.pos IN ('DM','CM','CAM','LM','RM') THEN 'MID' ELSE 'FWD' END AS line, COUNT(*)::int AS n
      FROM squad s JOIN players p ON p.id=s.player_id WHERE s.club_id=$1 GROUP BY 1`, [club.id]);
   const count: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
   for (const h of have) count[h.line] = h.n;
@@ -228,7 +228,7 @@ export async function openPack(uid: number, leagueId: number, key: PackKey) {
   const avgOvr = Math.round(candidates.reduce((a, p) => a + p.ovr, 0) / Math.max(1, candidates.length));
   const ensureLine = async (line: string) => {
     if (pool.some((p) => lineOf(p) === line)) return;
-    const pos = line === 'GK' ? ['GK'] : line === 'DEF' ? ['CB', 'LB', 'RB'] : line === 'MID' ? ['DM', 'CM', 'CAM'] : ['LW', 'RW', 'ST'];
+    const pos = line === 'GK' ? ['GK'] : line === 'DEF' ? ['CB', 'LB', 'RB'] : line === 'MID' ? ['DM', 'CM', 'CAM', 'LM', 'RM'] : ['LW', 'RW', 'ST'];
     const near = await one(
       `SELECT p.* FROM players p WHERE pool=$1 AND pos IN (SELECT jsonb_array_elements_text($3::jsonb)) AND NOT EXISTS (SELECT 1 FROM squad s WHERE s.league_id=$2 AND s.player_id=p.id)
          AND NOT EXISTS (SELECT 1 FROM retired r WHERE r.league_id=$2 AND r.player_id=p.id)
@@ -356,7 +356,7 @@ export function applyMods(p: Row, day: number): Row {
   };
 }
 
-const ORDER: Record<string, number> = { GK: 0, CB: 1, LB: 2, RB: 3, DM: 4, CM: 5, CAM: 6, LW: 7, RW: 8, ST: 9 };
+const ORDER: Record<string, number> = { GK: 0, CB: 1, LB: 2, RB: 3, DM: 4, CM: 5, CAM: 6, LM: 7, RM: 8, LW: 9, RW: 10, ST: 11 };
 const byPosition = (a: Row, b: Row) => (ORDER[a.pos] ?? 9) - (ORDER[b.pos] ?? 9) || b.ovr - a.ovr;
 
 // Best XI for a formation from available players. Respects a saved line-up where possible.
@@ -377,7 +377,7 @@ export function pickXI(players: Row[], formation: string, saved: string[], day: 
   const score = (p: Row, slot: string) => {
     const line = LINE[p.pos] || 'MID';
     const fit = Math.min(1, (p.fitness ?? 100) / 100);
-    return (p.ovr + (p.mod || 0)) * (0.55 + 0.45 * fit) - (line === slot ? 0 : slot === 'GK' || line === 'GK' ? 60 : 9);
+    return (p.ovr + (p.mod || 0)) * (0.55 + 0.45 * fit) - (line === slot ? 0 : slot === 'GK' || line === 'GK' ? 60 : (p.pos === 'LM' || p.pos === 'RM') && slot === 'FWD' ? 2 : 9);
   };
   for (const strict of [true, false]) {
     slots.forEach((slot, i) => {

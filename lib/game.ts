@@ -31,8 +31,16 @@ export const MIN_SQUAD = 16;
 export const MAX_SQUAD = 30;
 
 export const LINE: Record<string, 'GK' | 'DEF' | 'MID' | 'FWD'> = {
-  GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', DM: 'MID', CM: 'MID', CAM: 'MID', LW: 'FWD', RW: 'FWD', ST: 'FWD',
+  GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', DM: 'MID', CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID', LW: 'FWD', RW: 'FWD', ST: 'FWD',
 };
+/** a winger with a midfielder's engine (work rate, stamina, crossing, passing, tracking back rather than
+ * finishing) is a wide midfielder: LM or RM. Used once on the player database. */
+export function wideMidOf(pos: string, a: Record<string, number>): string | null {
+  if (pos !== 'LW' && pos !== 'RW') return null;
+  const v = (k: string) => a[k] ?? 60;
+  const score = v('WorkRate') + v('Stamina') + v('Crossing') + v('Passing') + 0.5 * v('Tackling') + 0.5 * v('Marking') - 1.4 * v('Finishing') - 0.6 * v('Positioning') - 0.3 * v('Dribbling');
+  return score >= 178.4 ? (pos === 'LW' ? 'LM' : 'RM') : null;
+}
 
 // Slot lines for each formation, index 0 is always the goalkeeper.
 export const FORMATIONS: Record<string, { slots: ('GK' | 'DEF' | 'MID' | 'FWD')[]; xy: [number, number][] }> = {
@@ -63,7 +71,8 @@ export function slotLabel(slot: string, x: number, y: number) {
   return y <= 25 ? 'LW' : y >= 75 ? 'RW' : 'ST';
 }
 /** what playing out of position costs (the match engine takes this off every skill) */
-export const offPositionCost = (natural: string, slot: string) => (natural === slot ? 0 : slot === 'GK' || natural === 'GK' ? 30 : 8);
+export const offPositionCost = (natural: string, slot: string, pos?: string) =>
+  natural === slot ? 0 : slot === 'GK' || natural === 'GK' ? 30 : (pos === 'LM' || pos === 'RM') && slot === 'FWD' ? 2 : 8; // a wide midfielder plays on the wing up front almost as well
 
 export type Tactic = {
   preset: string; formation: string;
@@ -155,7 +164,7 @@ export const SPONSORS = {
 export type SponsorKey = keyof typeof SPONSORS;
 
 export const TRAINABLE = ['Finishing', 'Passing', 'Crossing', 'Dribbling', 'Pace', 'Heading', 'Tackling', 'Marking', 'Vision', 'Composure', 'Stamina', 'LongShots', 'Reflexes', 'Handling', 'OneOnOne'];
-export const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
+export const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST'];
 
 export const LIVE_SECONDS = 300; // the 90 minutes of a live match last this long in real time
 export const HT_SECONDS = 30; // and the clock stops this long at half-time, so managers can make their changes
@@ -276,11 +285,11 @@ export const ROLES: Record<string, RoleDef> = {
   'Ball carrier': { pos: ['CM'], short: 'BC', desc: 'Drives forward with the ball and sets the tempo.', minus: 'Loses the ball more.', keys: ['Dribbling', 'Pace', 'FirstTouch'] },
   Playmaker: { pos: ['CM', 'CAM'], short: 'PM', desc: 'Splits defences: more through balls and assists.', minus: 'Does little defending.', keys: ['Passing', 'Vision'] },
   'Long shooter': { pos: ['CM', 'CAM'], short: 'LS', desc: 'Shoots from outside the box.', minus: 'Wastes some attacks.', keys: ['LongShots', 'Composure'] },
-  'Supporting wing': { pos: ['CM'], short: 'SWG', desc: 'Helps out on the flank: crosses and cover.', minus: 'Midfield thinner in the middle.', keys: ['Crossing', 'Stamina'] },
+  'Supporting wing': { pos: ['CM', 'LM', 'RM'], short: 'SWG', desc: 'Helps out on the flank: crosses and cover.', minus: 'Midfield thinner in the middle.', keys: ['Crossing', 'Stamina'] },
   'Drift wide': { pos: ['CAM', 'ST'], short: 'DW', desc: 'Drifts to the wing to cross and overload it.', minus: 'Fewer bodies in the box.', keys: ['Dribbling', 'Crossing', 'Pace'] },
   'Early crosser': { pos: ['LM', 'RM'], short: 'EC', desc: 'Crosses early from deep: great with a target man.', minus: 'Weak if nobody wins headers.', keys: ['Crossing', 'Vision'] },
-  'Inside winger': { pos: ['LW', 'RW'], short: 'IW', desc: 'Cuts inside to shoot.', minus: 'Fewer crosses.', keys: ['Dribbling', 'Finishing', 'LongShots'] },
-  'Wide winger': { pos: ['LW', 'RW'], short: 'WW', desc: 'Stays wide, beats his man, crosses.', minus: 'Scores less himself.', keys: ['Pace', 'Crossing', 'Dribbling'] },
+  'Inside winger': { pos: ['LW', 'RW', 'LM', 'RM'], short: 'IW', desc: 'Cuts inside to shoot.', minus: 'Fewer crosses.', keys: ['Dribbling', 'Finishing', 'LongShots'] },
+  'Wide winger': { pos: ['LW', 'RW', 'LM', 'RM'], short: 'WW', desc: 'Stays wide, beats his man, crosses.', minus: 'Scores less himself.', keys: ['Pace', 'Crossing', 'Dribbling'] },
   'Shadow striker': { pos: ['LW', 'RW'], short: 'SHD', desc: 'Runs into the box beside the striker.', minus: 'Does not track back.', keys: ['Finishing', 'Positioning', 'Pace'] },
   'Line breaker': { pos: ['LW', 'RW', 'ST'], short: 'LB', desc: 'Runs in behind the defence: deadly on the break.', minus: 'Caught offside more.', keys: ['Pace', 'Positioning', 'Decisions'] },
   Poacher: { pos: ['ST'], short: 'POA', desc: 'Lives in the box and finishes chances.', minus: 'Does not link play.', keys: ['Finishing', 'Positioning'] },
@@ -345,9 +354,9 @@ export function conditionsFor(fixtureId: number, pool: string, day: number) {
 // so a side with a great striker and an average midfield fits a different plan than the reverse.
 export type FitPlayer = { pos: string; slot?: string; ovr: number; a: Record<string, number> };
 export type FitPart = { label: string; value: number; weight: number };
-const WIDE = new Set(['LB', 'RB', 'LW', 'RW']);
+const WIDE = new Set(['LB', 'RB', 'LM', 'RM', 'LW', 'RW']);
 // typical attribute minus overall for each position, measured on the whole player database
-const TYPICAL: Record<string, Record<string, number>> = {"GK":{"Stamina":-24,"WorkRate":-25,"Aggression":-25,"Pace":-31,"Positioning":-30,"Marking":-50,"Tackling":-50,"Passing":-24,"FirstTouch":-25,"Composure":0,"Heading":-40,"Strength":-8,"Jumping":-6,"Crossing":-45,"Vision":-24,"Dribbling":-45,"LongShots":-50,"Finishing":-55,"Decisions":0},"CB":{"Stamina":-4,"WorkRate":-2,"Aggression":4,"Pace":-7,"Positioning":4,"Marking":6,"Tackling":5,"Passing":-8,"FirstTouch":-10,"Composure":-1,"Heading":5,"Strength":6,"Jumping":5,"Crossing":-24,"Vision":-14,"Dribbling":-18,"LongShots":-24,"Finishing":-34,"Decisions":1},"LB":{"Stamina":6,"WorkRate":5,"Aggression":-2,"Pace":6,"Positioning":-2,"Marking":0,"Tackling":1,"Passing":-4,"FirstTouch":-4,"Composure":-3,"Heading":-8,"Strength":-6,"Jumping":-6,"Crossing":3,"Vision":-8,"Dribbling":-6,"LongShots":-18,"Finishing":-28,"Decisions":-2},"RB":{"Stamina":6,"WorkRate":5,"Aggression":-2,"Pace":5,"Positioning":-2,"Marking":0,"Tackling":1,"Passing":-4,"FirstTouch":-4,"Composure":-4,"Heading":-8,"Strength":-6,"Jumping":-6,"Crossing":3,"Vision":-8,"Dribbling":-6,"LongShots":-18,"Finishing":-28,"Decisions":-2},"DM":{"Stamina":4,"WorkRate":5,"Aggression":3,"Pace":-8,"Positioning":3,"Marking":3,"Tackling":4,"Passing":1,"FirstTouch":-2,"Composure":1,"Heading":-2,"Strength":2,"Jumping":-3,"Crossing":-12,"Vision":-2,"Dribbling":-8,"LongShots":-8,"Finishing":-20,"Decisions":2},"CM":{"Stamina":5,"WorkRate":5,"Aggression":-4,"Pace":-5,"Positioning":-2,"Marking":-8,"Tackling":-6,"Passing":4,"FirstTouch":2,"Composure":1,"Heading":-8,"Strength":-4,"Jumping":-8,"Crossing":-6,"Vision":3,"Dribbling":0,"LongShots":-2,"Finishing":-10,"Decisions":2},"CAM":{"Stamina":-3,"WorkRate":-3,"Aggression":-14,"Pace":-2,"Positioning":0,"Marking":-26,"Tackling":-24,"Passing":5,"FirstTouch":5,"Composure":2,"Heading":-16,"Strength":-12,"Jumping":-14,"Crossing":-4,"Vision":7,"Dribbling":4,"LongShots":2,"Finishing":-2,"Decisions":2},"LW":{"Stamina":-2,"WorkRate":-3,"Aggression":-14,"Pace":7,"Positioning":0,"Marking":-32,"Tackling":-30,"Passing":-3,"FirstTouch":2,"Composure":-2,"Heading":-14,"Strength":-12,"Jumping":-12,"Crossing":2,"Vision":-3,"Dribbling":6,"LongShots":-2,"Finishing":0,"Decisions":-3},"RW":{"Stamina":-2,"WorkRate":-3,"Aggression":-14,"Pace":7,"Positioning":0,"Marking":-32,"Tackling":-30,"Passing":-3,"FirstTouch":2,"Composure":-2,"Heading":-14,"Strength":-12,"Jumping":-12,"Crossing":2,"Vision":-3,"Dribbling":6,"LongShots":-2,"Finishing":0,"Decisions":-3},"ST":{"Stamina":-6,"WorkRate":-8,"Aggression":-8,"Pace":2,"Positioning":5,"Marking":-38,"Tackling":-35,"Passing":-8,"FirstTouch":2,"Composure":4,"Heading":0,"Strength":0,"Jumping":-2,"Crossing":-12,"Vision":-8,"Dribbling":0,"LongShots":0,"Finishing":7,"Decisions":-2}};
+const TYPICAL: Record<string, Record<string, number>> = {"GK":{"Stamina":-24,"WorkRate":-25,"Aggression":-25,"Pace":-31,"Positioning":-30,"Marking":-50,"Tackling":-50,"Passing":-24,"FirstTouch":-25,"Composure":0,"Heading":-40,"Strength":-8,"Jumping":-6,"Crossing":-45,"Vision":-24,"Dribbling":-45,"LongShots":-50,"Finishing":-55,"Decisions":0},"CB":{"Stamina":-4,"WorkRate":-2,"Aggression":4,"Pace":-7,"Positioning":4,"Marking":6,"Tackling":5,"Passing":-8,"FirstTouch":-10,"Composure":-1,"Heading":5,"Strength":6,"Jumping":5,"Crossing":-24,"Vision":-14,"Dribbling":-18,"LongShots":-24,"Finishing":-34,"Decisions":1},"LB":{"Stamina":6,"WorkRate":5,"Aggression":-2,"Pace":6,"Positioning":-2,"Marking":0,"Tackling":1,"Passing":-4,"FirstTouch":-4,"Composure":-3,"Heading":-8,"Strength":-6,"Jumping":-6,"Crossing":3,"Vision":-8,"Dribbling":-6,"LongShots":-18,"Finishing":-28,"Decisions":-2},"RB":{"Stamina":6,"WorkRate":5,"Aggression":-2,"Pace":5,"Positioning":-2,"Marking":0,"Tackling":1,"Passing":-4,"FirstTouch":-4,"Composure":-4,"Heading":-8,"Strength":-6,"Jumping":-6,"Crossing":3,"Vision":-8,"Dribbling":-6,"LongShots":-18,"Finishing":-28,"Decisions":-2},"DM":{"Stamina":4,"WorkRate":5,"Aggression":3,"Pace":-8,"Positioning":3,"Marking":3,"Tackling":4,"Passing":1,"FirstTouch":-2,"Composure":1,"Heading":-2,"Strength":2,"Jumping":-3,"Crossing":-12,"Vision":-2,"Dribbling":-8,"LongShots":-8,"Finishing":-20,"Decisions":2},"CM":{"Stamina":5,"WorkRate":5,"Aggression":-4,"Pace":-5,"Positioning":-2,"Marking":-8,"Tackling":-6,"Passing":4,"FirstTouch":2,"Composure":1,"Heading":-8,"Strength":-4,"Jumping":-8,"Crossing":-6,"Vision":3,"Dribbling":0,"LongShots":-2,"Finishing":-10,"Decisions":2},"CAM":{"Stamina":-3,"WorkRate":-3,"Aggression":-14,"Pace":-2,"Positioning":0,"Marking":-26,"Tackling":-24,"Passing":5,"FirstTouch":5,"Composure":2,"Heading":-16,"Strength":-12,"Jumping":-14,"Crossing":-4,"Vision":7,"Dribbling":4,"LongShots":2,"Finishing":-2,"Decisions":2},"LW":{"Stamina":-2,"WorkRate":-3,"Aggression":-14,"Pace":7,"Positioning":0,"Marking":-32,"Tackling":-30,"Passing":-3,"FirstTouch":2,"Composure":-2,"Heading":-14,"Strength":-12,"Jumping":-12,"Crossing":2,"Vision":-3,"Dribbling":6,"LongShots":-2,"Finishing":0,"Decisions":-3},"LM":{"Stamina":2,"WorkRate":3,"Aggression":-10,"Pace":5,"Positioning":-2,"Marking":-24,"Tackling":-22,"Passing":-1,"FirstTouch":2,"Composure":-1,"Heading":-14,"Strength":-11,"Jumping":-12,"Crossing":4,"Vision":-2,"Dribbling":5,"LongShots":-3,"Finishing":-5,"Decisions":-2},"RM":{"Stamina":2,"WorkRate":3,"Aggression":-10,"Pace":5,"Positioning":-2,"Marking":-24,"Tackling":-22,"Passing":-1,"FirstTouch":2,"Composure":-1,"Heading":-14,"Strength":-11,"Jumping":-12,"Crossing":4,"Vision":-2,"Dribbling":5,"LongShots":-3,"Finishing":-5,"Decisions":-2},"RW":{"Stamina":-2,"WorkRate":-3,"Aggression":-14,"Pace":7,"Positioning":0,"Marking":-32,"Tackling":-30,"Passing":-3,"FirstTouch":2,"Composure":-2,"Heading":-14,"Strength":-12,"Jumping":-12,"Crossing":2,"Vision":-3,"Dribbling":6,"LongShots":-2,"Finishing":0,"Decisions":-3},"ST":{"Stamina":-6,"WorkRate":-8,"Aggression":-8,"Pace":2,"Positioning":5,"Marking":-38,"Tackling":-35,"Passing":-8,"FirstTouch":2,"Composure":4,"Heading":0,"Strength":0,"Jumping":-2,"Crossing":-12,"Vision":-8,"Dribbling":0,"LongShots":0,"Finishing":7,"Decisions":-2}};
 export function tacticFit(xi: FitPlayer[], t: Pick<Tactic, 'mentality' | 'press' | 'line' | 'build' | 'focus' | 'width' | 'tempo'>) {
   const out = xi.filter((p) => (p.slot || LINE[p.pos]) !== 'GK');
   const by = (s: string) => out.filter((p) => (p.slot || LINE[p.pos] || 'MID') === s);
@@ -389,7 +398,7 @@ export function tacticFit(xi: FitPlayer[], t: Pick<Tactic, 'mentality' | 'press'
 // ---------------------------------------------------------------- shirt numbers
 const PREFERRED: Record<string, number[]> = {
   GK: [1, 13, 12, 25, 31, 40], CB: [4, 5, 6, 15, 3, 23, 24, 26, 33], LB: [3, 12, 21, 26, 28], RB: [2, 22, 24, 20, 27],
-  DM: [6, 16, 18, 5, 14, 25], CM: [8, 14, 20, 16, 18, 15, 22], CAM: [10, 17, 19, 7, 11, 21], LW: [11, 7, 17, 19, 27],
+  DM: [6, 16, 18, 5, 14, 25], CM: [8, 14, 20, 16, 18, 15, 22], CAM: [10, 17, 19, 7, 11, 21], LM: [11, 17, 7, 21, 27], RM: [7, 16, 17, 20, 22], LW: [11, 7, 17, 19, 27],
   RW: [7, 11, 17, 19, 21, 30], ST: [9, 19, 29, 18, 14, 10, 39],
 };
 /** shirt numbers for a squad: players keep theirs; newcomers and clashes get a free one that suits their position */

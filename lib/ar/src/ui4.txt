@@ -189,3 +189,5 @@ Foul! Yellow card	فاول! كارت أصفر
 Foul! Red card	فاول! كارت أحمر
 Under pressure	تحت الضغط
 Tackle!	تاكلينج!
+Through ball	كورة بينية
+Offside!	تسلل!

@@ -131,3 +131,6 @@ Type your club name exactly to confirm.	اكتب اسم ناديك بالظبط 
 Your match is being played right now. Resign after it ends.	ماتشك شغال دلوقتي. استقيل بعد ما يخلص.
 👋 {0} has resigned from {1}. The club carries on under an AI manager.	👋 {0} استقال من {1}. النادي هيكمّل مع مدرب بوت.
 The manager	المدرب
+Offside! {0} went too early.	تسلل! {0} طلع بدري.
+The flag is up: {0} is offside.	الراية اترفعت: {0} متسلل.
+Offside against {0}.	تسلل على {0}.

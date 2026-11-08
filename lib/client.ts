@@ -30,7 +30,7 @@ export function shirt(id: string, pos: string) {
   if (pos === 'GK') return 1;
   let h = 0;
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const base: Record<string, number[]> = { CB: [4, 5, 6, 15, 23], LB: [3, 12, 21], RB: [2, 22, 24], DM: [6, 16, 18], CM: [8, 14, 20], CAM: [10, 17, 19], LW: [7, 11, 27], RW: [7, 11, 17], ST: [9, 19, 29] };
+  const base: Record<string, number[]> = { CB: [4, 5, 6, 15, 23], LB: [3, 12, 21], RB: [2, 22, 24], DM: [6, 16, 18], CM: [8, 14, 20], CAM: [10, 17, 19], LM: [11, 17, 21], RM: [7, 16, 22], LW: [7, 11, 27], RW: [7, 11, 17], ST: [9, 19, 29] };
   const arr = base[pos] || [13];
   return arr[h % arr.length];
 }

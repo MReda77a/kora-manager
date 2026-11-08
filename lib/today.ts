@@ -15,7 +15,7 @@ export function strengthOf(s: ESide, home: boolean) {
   const xi = s.xi;
   const n = Math.max(1, xi.length);
   const players = xi.reduce((a, p) => a + p.ovr, 0) / n;
-  const position = -xi.reduce((a, p, i) => a + offPositionCost(LINE[p.pos] || 'MID', slots[i]), 0) / n;
+  const position = -xi.reduce((a, p, i) => a + offPositionCost(LINE[p.pos] || 'MID', slots[i], p.pos), 0) / n;
   const form = xi.reduce((a, p) => a + (p.mod || 0), 0) / n;
   const fit = tacticFit(xi.map((p, i) => ({ pos: p.pos, slot: slots[i], ovr: p.ovr, a: p.a })), s.tactic).fit * FIT_WEIGHT;
   const familiarity = ((s.familiarity ?? 60) - 60) / 40;
