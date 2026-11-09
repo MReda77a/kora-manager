@@ -415,7 +415,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   );
   return (
     <div className="mc-root">
-      <header className="mc-top">
+      <header className="mc-top" style={{ ['--hc' as any]: d.home.color1, ['--ac' as any]: d.away.color1 }}>
         <Back d={d} />
         <div className="mc-score">
           <div className="row mc-side" style={{ justifyContent: 'flex-end' }}>
@@ -423,8 +423,8 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
             <Crest c1={d.home.color1} c2={d.home.color2} size={30} shape={d.home.shape} emblem={d.home.human ? d.home.emblem : -1} short={d.home.short} />
           </div>
           <div className="col" style={{ alignItems: 'center', gap: 0 }}>
-            <span className="lz" style={{ fontSize: 32, lineHeight: 1, whiteSpace: 'nowrap' }}>{score[0]} – {score[1]}</span>
-            <span className="tiny" style={{ color: live ? 'var(--red)' : 'var(--cyan)', fontWeight: 900, whiteSpace: 'nowrap' }}>{live ? '● LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))}</span>
+            <span className="lz mc-big" style={{ lineHeight: 1, whiteSpace: 'nowrap' }}>{score[0]} – {score[1]}</span>
+            <span className="tiny mc-live" style={{ color: live ? '#FF6B7D' : 'var(--cyan)', fontWeight: 900, whiteSpace: 'nowrap' }}>{live ? <i className="mc-dot" /> : null}{live ? 'LIVE' : 'REPLAY'} · {fmtMin(Math.max(1, minute))}</span>
           </div>
           <div className="row mc-side">
             <Crest c1={d.away.color1} c2={d.away.color2} size={30} shape={d.away.shape} emblem={d.away.human ? d.away.emblem : -1} short={d.away.short} />

@@ -291,3 +291,11 @@ Top	نجم
 Rising	طالع
 Budget {0}M · {1} players for sale	الميزانية {0}M · {1} لاعب للبيع
 {0} · pot {1}	{0} · إمكانيات {1}
+TV coverage	التغطية التلفزيونية
+Match days · Analysis · Interviews	الماتشات · التحليل · اللقاءات
+Social media	السوشيال ميديا
+Fans · Reactions · Demands	الجمهور · الردود · الطلبات
+Newspapers	الجرايد
+Articles · Interviews · Features	مقالات · لقاءات · تقارير
+LIVE	لايف
+REPLAY	إعادة

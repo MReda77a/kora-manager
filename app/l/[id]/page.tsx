@@ -146,7 +146,10 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'press' && <PressTab {...props} />}
           {tab === 'deals' && <DealsTab {...props} />}
           {tab === 'managers' && <ManagersTab {...props} />}
-          {(tab === 'tv' || tab === 'social') && <div className="media2"><TvTab {...props} /><SocialTab {...props} /></div>}
+          {(tab === 'tv' || tab === 'social') && <div className="media2">
+            <MediaHead icon="tv" title="TV coverage" sub="Match days · Analysis · Interviews" /><TvTab {...props} />
+            <MediaHead icon="fans" title="Social media" sub="Fans · Reactions · Demands" /><SocialTab {...props} />
+          </div>}
           {tab === 'friendly' && <FriendlyTab {...props} />}
           {tab === 'players' && <PlayersTab {...props} />}
           {tab === 'training' && <TrainingTab {...props} />}
@@ -157,7 +160,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'table' && <TableTab {...props} />}
           {tab === 'fixtures' && <FixturesTab {...props} />}
           {tab === 'cup' && <CupTab {...props} />}
-          {tab === 'paper' && <PaperTab {...props} />}
+          {tab === 'paper' && <div className="media2"><MediaHead icon="paper" title="Newspapers" sub="Articles · Interviews · Features" /><PaperTab {...props} /></div>}
           {tab === 'awards' && <AwardsTab {...props} />}
           {tab === 'leaders' && <LeadersTab {...props} />}
           {tab === 'streaks' && <StreaksTab {...props} />}
@@ -168,6 +171,18 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
       {(club.tutorialDone || tutClosed) && !d.live?.length && league.status === 'running' && d.window && <WindowSplash lid={lid} season={league.season} win={d.window} go={go} />}
       {!club.tutorialDone && !tutClosed && !d.live?.length && <Tutorial lid={lid} league={league} club={club} go={(t) => { go(t); }} onDone={() => { setTutClosed(true); load(); }} />}
       {toast.node}
+    </div>
+  );
+}
+
+// the heading of each media desk: an icon, the desk and what it covers
+function MediaHead({ icon, title, sub }: { icon: 'tv' | 'fans' | 'paper'; title: string; sub: string }) {
+  const path = icon === 'tv' ? <><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M8 3l4 3 4-3" /><path d="M10 10l5 2.5-5 2.5z" fill="#2EF2B0" /></>
+    : icon === 'fans' ? <path d="M4 5h16v10H9l-5 4z" /> : <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 8h10M7 12h6M7 16h10" /></>;
+  return (
+    <div className="media-head">
+      <span className="media-ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2EF2B0" strokeWidth="2" aria-hidden="true">{path}</svg></span>
+      <span className="col" style={{ gap: 0, lineHeight: 1.15 }}><span className="lz" style={{ fontSize: 22, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>{title}</span><span className="small muted">{sub}</span></span>
     </div>
   );
 }
