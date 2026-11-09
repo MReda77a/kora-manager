@@ -81,7 +81,8 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
   return (
     <div className={`shell ${derbyNext ? 'theme-derby derby-ui' : ''}`}>
       <nav className="rail" aria-label="Sections">
-        <a href="/" aria-label="All leagues"><Icon name="back" /><span>Leagues</span></a>
+        <div className="rail-club"><Crest c1={club.color1} c2={club.color2} shape={club.shape} emblem={club.emblem} size={40} /><div className="col" style={{ gap: 0, lineHeight: 1.15, minWidth: 0 }}><span className="lz ellipsis" style={{ fontSize: 17, fontWeight: 600 }}>{club.name}</span><span className="tiny muted ellipsis">{league.name}</span></div></div>
+        <a href="/" aria-label="All leagues" className="rail-back"><Icon name="back" /><span>Leagues</span></a>
         {SECTIONS.map((sec) => {
           const on = sectionOf(tab).key === sec.key;
           const badge = sec.key === 'transfers' ? club.offers : sec.key === 'team' ? club.requests : 0;
@@ -93,11 +94,28 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
             </button>
           );
         })}
-        <div style={{ marginTop: 'auto', display: 'grid', placeItems: 'center', padding: '8px 0', gap: 6 }}><LangButton /><SoundButton side /></div>
+        <div className="rail-card" style={{ marginTop: 'auto' }}><span className="script" style={{ fontSize: 22, color: 'var(--mint)', transform: 'rotate(-4deg)', transformOrigin: 'left' }}>Vamos!</span><span className="tiny muted" style={{ lineHeight: 1.4 }}>{league.name}<br />{league.poolName}</span></div>
+        <div className="rail-settings" style={{ display: 'grid', placeItems: 'center', padding: '8px 0', gap: 6, gridAutoFlow: 'row' }}><LangButton /><SoundButton side /></div>
       </nav>
       <div className="main">
+        <header className="head2">
+          <span className="sec">{sectionOf(tab).label}</span>
+          {sectionOf(tab).tabs.length > 1 && (
+            <nav className="subtabs" aria-label={sectionOf(tab).label}>
+              {sectionOf(tab).tabs.map((k) => (
+                <button key={k} className={topTab(tab) === k ? 'on' : ''} onClick={() => go(k)} aria-current={topTab(tab) === k ? 'page' : undefined}>
+                  <span>{TABS.find((x) => x[0] === k)![1]}</span>
+                </button>
+              ))}
+            </nav>
+          )}
+          <span className="grow" />
+          <div className="when"><b>{new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</b><span>{league.status === 'setup' ? 'Pre-season' : league.status === 'finished' ? `Season ${league.season} over` : `Season ${league.season} · Matchday ${d.matchdays.played}/${d.matchdays.total}`}</span></div>
+          <div className="coin" title="Coins for packs"><Coin /><b>{club.coins}</b></div>
+          <div className="coin" title="Club money"><Cash /><b>{Number(club.money).toFixed(1)}M</b></div>
+        </header>
         {tab === 'home' && (
-          <header className="top">
+          <header className="top home-top">
             <Crest c1={club.color1} c2={club.color2} shape={club.shape} emblem={club.emblem} size={38} />
             <div className="col grow" style={{ gap: 0, lineHeight: 1.1, minWidth: 0 }}>
               <span className="lz ellipsis" style={{ fontSize: 22 }}>{club.name}</span>
@@ -109,7 +127,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           </header>
         )}
         {sectionOf(tab).tabs.length > 1 && (
-          <nav className="subtabs" aria-label={sectionOf(tab).label}>
+          <nav className="subtabs bare" aria-label={sectionOf(tab).label}>
             {sectionOf(tab).tabs.map((k) => (
               <button key={k} className={topTab(tab) === k ? 'on' : ''} onClick={() => go(k)} aria-current={topTab(tab) === k ? 'page' : undefined}>
                 <span>{TABS.find((x) => x[0] === k)![1]}</span>
@@ -128,7 +146,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'press' && <PressTab {...props} />}
           {tab === 'deals' && <DealsTab {...props} />}
           {tab === 'managers' && <ManagersTab {...props} />}
-          {(tab === 'tv' || tab === 'social') && <div className="col" style={{ gap: 12 }}><TvTab {...props} /><SocialTab {...props} /></div>}
+          {(tab === 'tv' || tab === 'social') && <div className="media2"><TvTab {...props} /><SocialTab {...props} /></div>}
           {tab === 'friendly' && <FriendlyTab {...props} />}
           {tab === 'players' && <PlayersTab {...props} />}
           {tab === 'training' && <TrainingTab {...props} />}

@@ -22,6 +22,7 @@ export function TableTab({ d: ov, lid }: TabProps) {
     <div className="col" style={{ gap: 8 }}>
       <BackHead title={D > 1 ? league.divisionNames[div - 1] : 'League Table'} sub={`${league.poolName} · Season ${league.season}${div === club.division ? ` · target top ${club.targetPos}` : ''}`}
         right={D > 1 ? <>{league.divisionNames.map((nm: string, i: number) => <button key={i} className={`seg ${div === i + 1 ? 'on' : ''}`} onClick={() => setDiv(i + 1)}><span>{nm.replace(' Division', '')}</span></button>)}</> : null} />
+      <div className="tbl2">
       <div className="panel cut" style={{ padding: 8 }}>
         <table className="t">
           <thead><tr><th>#</th><th>Club</th><th className="num">P</th><th className="num">W</th><th className="num">D</th><th className="num">L</th><th className="num">GD</th><th className="num">Pts</th><th>Form</th></tr></thead>
@@ -46,7 +47,56 @@ export function TableTab({ d: ov, lid }: TabProps) {
           {div < D && <span><i style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--red)', marginRight: 5 }} />Bottom {P} relegated</span>}
         </div>}
       </div>
+      <TableSide lid={lid} table={table} />
+      </div>
       {open !== null && <ClubSheet lid={lid} clubId={open} myId={club.id} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+// beside the table on wide screens: the scorers, the providers, who is hot and who is not, the best performer
+function TableSide({ lid, table }: { lid: number; table: any[] }) {
+  const [st, setSt] = useState<any>(null);
+  useEffect(() => { api(`/api/leagues/${lid}/stats`).then(setSt).catch(() => {}); }, [lid]);
+  const runOf = (form: string[], ok: (x: string) => boolean) => { let n = 0; for (let i = form.length - 1; i >= 0 && ok(form[i]); i--) n++; return n; };
+  const withRuns = table.map((t) => ({ t, hot: runOf(t.form || [], (x) => x !== 'L'), cold: runOf(t.form || [], (x) => x !== 'W') }));
+  const hot = withRuns.slice().sort((a, b) => b.hot - a.hot)[0], cold = withRuns.slice().sort((a, b) => b.cold - a.cold)[0];
+  const lead = (title: string, rows: any[] | undefined, val: (r: any) => number, col: string) => (
+    <div className="col" style={{ gap: 0 }}>
+      <span className="lz" style={{ fontSize: 15, fontWeight: 600, letterSpacing: 1, color: col }}>{title}</span>
+      {!rows?.length && <span className="tiny muted">No data yet.</span>}
+      {(rows || []).slice(0, 3).map((r, k) => (
+        <div key={r.player_id} className="row" style={{ gap: 10, padding: '5px 0' }}>
+          <b className="tiny muted" style={{ width: 14 }}>{k + 1}</b>
+          <span className="col grow" style={{ gap: 0, lineHeight: 1.2, minWidth: 0 }}><b className="small ellipsis">{r.name}</b><span className="tiny muted ellipsis">{r.club}</span></span>
+          <b className="lz" style={{ fontSize: 20, color: k === 0 ? col : undefined }}>{val(r)}</b>
+        </div>
+      ))}
+    </div>
+  );
+  const best = st?.rating?.[0];
+  return (
+    <div className="tbl2-side">
+      <section className="panel cut" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+        {lead('GOALS', st?.goals, (r) => r.goals, 'var(--mint)')}
+        {lead('ASSISTS', st?.assists, (r) => r.assists, '#7CCBFF')}
+      </section>
+      {(hot?.hot >= 2 || cold?.cold >= 2) && (
+        <section className="panel cut" style={{ gap: 10 }}>
+          <span className="lz" style={{ fontSize: 16, fontWeight: 600, letterSpacing: 1 }}>HOT &amp; COLD</span>
+          {hot?.hot >= 2 && <div className="row hc hot"><Crest c1={hot.t.color1} c2={hot.t.color2} shape={hot.t.shape} emblem={hot.t.user_id ? hot.t.emblem : -1} short={hot.t.short} size={28} /><span className="col grow" style={{ gap: 0, lineHeight: 1.25 }}><b className="small">{hot.t.name}</b><span className="tiny muted">Unbeaten in {hot.hot}</span></span><b className="lz" style={{ fontSize: 28, color: 'var(--mint)' }}>{hot.hot}</b></div>}
+          {cold?.cold >= 2 && <div className="row hc cold"><Crest c1={cold.t.color1} c2={cold.t.color2} shape={cold.t.shape} emblem={cold.t.user_id ? cold.t.emblem : -1} short={cold.t.short} size={28} /><span className="col grow" style={{ gap: 0, lineHeight: 1.25 }}><b className="small">{cold.t.name}</b><span className="tiny muted">No win in {cold.cold}</span></span><b className="lz" style={{ fontSize: 28, color: '#FF8796' }}>{cold.cold}</b></div>}
+        </section>
+      )}
+      {best && (
+        <section className="tbl2-best">
+          <span className="lz" style={{ fontSize: 16, fontWeight: 600, letterSpacing: 1, color: '#FFD36B' }}>BEST PERFORMER</span>
+          <div className="row" style={{ gap: 14 }}>
+            <div className="tbl2-badge"><span className="lz" style={{ fontSize: 30, lineHeight: 1 }}>{(Number(best.rating_sum) / best.apps).toFixed(1)}</span><span className="tiny" style={{ fontWeight: 800 }}>RATING</span></div>
+            <div className="col" style={{ gap: 2, minWidth: 0 }}><b style={{ fontSize: 18 }} className="ellipsis">{best.name}</b><span className="small muted">{best.club}</span><span className="small muted">{best.apps} matches</span></div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -72,7 +122,25 @@ export function FixturesTab({ lid, d: ov }: TabProps) {
       </>} />
       {!fx.length && <div className="panel cut muted">Fixtures appear when the season starts.</div>}
       <div className="col" style={{ gap: 4 }}>
-        {rows.map((f) => {
+        {mine && (() => { const nextId = rows.find((x) => x.status !== 'done')?.id; return rows.map((f) => {
+          const derby = f.ht === 'fan' && f.at === 'fan' && f.hu && f.au;
+          const home = f.home_id === myId, done = f.status === 'done', isNext = f.id === nextId;
+          const my = home ? [f.home_goals, f.away_goals] : [f.away_goals, f.home_goals];
+          const r = !done ? '' : f.winner_id ? (f.winner_id === myId ? 'W' : 'L') : my[0] > my[1] ? 'W' : my[0] < my[1] ? 'L' : 'D';
+          return (
+            <a key={f.id} href={`/m/${f.id}`} className={`fx2 ${isNext ? 'next' : ''}`}>
+              <span className="lz fx2-md">{f.comp === 'cup' ? 'CUP' : `MD ${f.matchday}`}</span>
+              <span className="fx2-date">{new Date(f.kickoff_at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+              {home ? <Crest c1={f.ac} c2={f.ac2} shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={30} /> : <Crest c1={f.hc} c2={f.hc2} shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={30} />}
+              <span className="grow ellipsis" style={{ fontWeight: 800, fontSize: 15 }}>{home ? f.away : f.home} <span className="small muted" style={{ fontWeight: 700 }}>· {home ? 'Home' : 'Away'}</span></span>
+              {derby ? <span className="pill" style={{ background: 'rgba(255,196,77,0.16)', color: '#FFD27A' }}>Derby</span> : <span className="pill" style={f.comp === 'cup' ? { background: 'rgba(255,196,77,0.16)', color: '#FFD27A' } : { background: 'rgba(56,180,255,0.16)', color: '#7CCBFF' }}>{f.comp === 'cup' ? 'Cup' : 'League'}</span>}
+              {done ? <><b className="lz fx2-score">{f.home_goals} – {f.away_goals}</b><span className={`h2-res ${r}`}>{r}</span></>
+                : f.status === 'live' ? <span className="cta small"><span>WATCH LIVE ›</span></span>
+                : isNext ? <span className="cta small"><span>PREPARE ›</span></span> : <span className="pill">Upcoming</span>}
+            </a>
+          );
+        }); })()}
+        {!mine && rows.map((f) => {
           const derby = f.ht === 'fan' && f.at === 'fan' && f.hu && f.au;
           const me = f.home_id === myId || f.away_id === myId;
           return (

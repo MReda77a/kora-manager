@@ -238,3 +238,56 @@ Lean left {0}%	ميّل شمال {0}%
 Lean right {0}%	ميّل يمين {0}%
 Most of their chances come down our {0} side. Lean the team that way, or put a fresh full-back there.	أغلب فرصهم جاية من الجنب {0} بتاعنا. ميّل الفريق ناحيته، أو نزّل ظهير فريش هناك.
 Their {0} {1} is on a yellow and can't go in hard. Run at him down our {2}.	الـ{0} بتاعهم {1} واخد كارت أصفر ومش هيقدر يدخل جامد. اهجموا عليه من {2} بتاعنا.
+Season {0} · Matchday {1}/{2}	الموسم {0} · الجولة {1}/{2}
+PREPARE THE MATCH ›	جهّز الماتش ›
+WATCH LIVE ›	اتفرج لايف ›
+Kick-off in	الماتش بعد
+BEFORE KICK-OFF	قبل الماتش
+All set	كله تمام
+TRANSFER WINDOW OPEN	سوق الانتقالات مفتوح
+LEAGUE TABLE	جدول الدوري
+FORM	المستوى
+More than a club	أكتر من نادي
+Your star:	نجمك:
+NEWS	أخبار
+Scorers	الهدافين
+No offers waiting	مفيش عروض مستنية
+Answer the questions ›	جاوب على الأسئلة ›
+Face the press before the match.	قابل الصحافة قبل الماتش.
+Match plan · Squad · Training ›	خطة الماتش · الفريق · التمرين ›
+TV · Fans · Paper ›	تلفزيون · جمهور · جرايد ›
+Market · Deals · Packs ›	السوق · الصفقات · الباكات ›
+The matchday show, the fans and the paper.	برنامج الماتش، الجمهور، والجرايد.
+Nothing scheduled.	مفيش حاجة متحددة.
+No matches yet.	لسه مفيش ماتشات.
+{0} to fix	{0} محتاجين تتصلح
+{0} new	{0} جديد
+Window shuts in {0} ›	السوق بيقفل بعد {0} ›
+{0} offer for your players	عرض واحد على لعيبتك
+{0} offers for your players	{0} عروض على لعيبتك
+Unbeaten in {0}	من غير هزيمة في {0}
+First round. Buy, sell, loan and swap in the Market.	الجولة الأولى. اشتري، بيع، استعير وبدّل في السوق.
+Second round. Buy, sell, loan and swap in the Market.	الجولة التانية. اشتري، بيع، استعير وبدّل في السوق.
+GOALS	أجوال
+ASSISTS	أسيستات
+HOT &amp; COLD	مولّعين وباردين
+HOT & COLD	مولّعين وباردين
+BEST PERFORMER	أحسن لاعب
+RATING	تقييم
+{0} matches	{0} ماتشات
+No data yet.	لسه مفيش أرقام.
+Upcoming	جاي
+PREPARE ›	جهّز ›
+Derby	ديربي
+No win in {0}	من غير فوز في {0}
+BENCH	الاحتياطي
+{0} players · tap one, then a shirt on the pitch	{0} لعيبة · دوس على واحد، وبعدين على قميص في الملعب
+Ring = fitness	الدايرة = اللياقة
+Tired	تعبان
+Out of position	في غير مركزه
+Suspended	موقوف
+Injured	مصاب
+Top	نجم
+Rising	طالع
+Budget {0}M · {1} players for sale	الميزانية {0}M · {1} لاعب للبيع
+{0} · pot {1}	{0} · إمكانيات {1}

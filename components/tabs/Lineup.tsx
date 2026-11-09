@@ -128,6 +128,7 @@ export default function LineupTab(props: TabProps) {
     <div className="matchplan">
         <section className="col mp-left" style={{ gap: 6, minWidth: 0 }}>
           <Pitch sized style={{ minHeight: 0 }}>
+            <div className="pc-legend" aria-hidden="true"><span><i style={{ background: '#2EF2B0' }} />Ring = fitness</span><span><i style={{ background: '#FFD27A' }} />Tired</span><span><i style={{ background: '#FF4D63' }} />Out of position</span></div>
             {/* chemistry links between team-mates in the same line: green = they know each other, red = strangers */}
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} aria-hidden="true">
               {(['DEF', 'MID', 'FWD'] as const).flatMap((g) => {
@@ -135,7 +136,7 @@ export default function LineupTab(props: TabProps) {
                 return mem.slice(1).map((m, k) => {
                   const a = mem[k], v = chem[pairKey(xi[a.i], xi[m.i])] ?? CHEM_START;
                   const col = v >= 70 ? '#2EE6A0' : v >= 45 ? '#F2C14E' : '#FF6B7A';
-                  return <line key={`${g}${k}`} x1={spreadX(F.xy[a.i][0])} y1={F.xy[a.i][1]} x2={spreadX(F.xy[m.i][0])} y2={F.xy[m.i][1]} stroke={col} strokeWidth={3} strokeOpacity={0.85} strokeDasharray={v < 45 ? '4 4' : undefined} vectorEffect="non-scaling-stroke" />;
+                  return <line key={`${g}${k}`} x1={spreadX(F.xy[a.i][0])} y1={F.xy[a.i][1]} x2={spreadX(F.xy[m.i][0])} y2={F.xy[m.i][1]} stroke={col} strokeWidth={2} strokeOpacity={0.45} strokeDasharray={v < 45 ? '4 4' : undefined} vectorEffect="non-scaling-stroke" />;
                 });
               })}
             </svg>
@@ -146,20 +147,18 @@ export default function LineupTab(props: TabProps) {
               const wrong = cost >= 8, near = cost > 0 && cost < 8;
               const on = sel?.kind === 'slot' && sel.v === i;
               return (
-                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${near ? 'near' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(24px, ${spreadX(x)}%, calc(100% - 24px))`, top: `clamp(20px, ${y}%, calc(100% - 20px))` }} onClick={() => tapSlot(i)}
+                <button key={i} className={`pc ${on ? 'sel' : ''} ${sel && !on ? 'swap' : ''} ${wrong ? 'wrong' : ''} ${near ? 'near' : ''} ${out(p) ? 'out' : ''}`} style={{ left: `clamp(40px, ${spreadX(x)}%, calc(100% - 40px))`, top: `clamp(30px, ${y}%, calc(100% - 34px))`, ['--fit' as any]: `${p ? Math.round(p.fitness ?? 100) : 0}%`, ['--ring' as any]: !p ? 'transparent' : (p.fitness ?? 100) < 70 ? '#FFD27A' : '#2EF2B0' }} onClick={() => tapSlot(i)}
                   aria-label={p ? `${p.name}, ${label}${wrong ? `, out of position (${p.pos}), minus ${cost}` : ''}` : `Empty ${label}`}>
-                  <i>{p ? p.num ?? shirt(p.id, p.natPos || p.pos) : ''}</i>
+                  <i className="pc-dot">{p ? p.num ?? shirt(p.id, p.natPos || p.pos) : '+'}{p && p.id === wearer && <span className={`arm ${p.id !== cap.c && cap.c ? 'v' : ''}`} aria-label="Captain">C</span>}</i>
+                  <small className="pc-tag">{p ? (wrong ? `${p.pos} · −${cost}` : lastName(p.name)) : label} <b>{p ? p.ovr + (p.form || 0) - cost : ''}</b></small>
                   <em>{label}</em>
-                  <b>{p ? p.ovr + (p.form || 0) - cost : '–'}</b>
-                  <small>{p ? (wrong ? `${p.pos} · −${cost}` : lastName(p.name)) : label}</small>
-                  {p && p.id === wearer && <span className={`arm ${p.id !== cap.c && cap.c ? 'v' : ''}`} aria-label="Captain">C</span>}
                   {p && (() => { const r = roleName(d.club.roles?.[p.id]); return r && ROLES[r].pos.includes(label) ? <span className="pc-role">{ROLES[r].short}</span> : null; })()}
                 </button>
               );
             })}
           </Pitch>
-          <div className="row" style={{ gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-            <span className="tiny" style={{ width: 40, flex: 'none', color: 'var(--muted)', fontWeight: 800 }}>Bench</span>
+          <div className="bench-zone">
+            <span className="lz bench-title">BENCH <span className="tiny muted" style={{ fontFamily: 'Cairo, sans-serif', fontWeight: 700, letterSpacing: 0 }}>{bench.length} players · tap one, then a shirt on the pitch</span></span>
             {/* the bench in groups: keepers, defenders, midfielders, forwards */}
             {(['GK', 'DEF', 'MID', 'FWD'] as const).map((ln) => {
               const group = bench.filter((p: any) => (p.pos === 'GK' ? 'GK' : LINE[p.pos] || 'MID') === ln);
@@ -168,8 +167,9 @@ export default function LineupTab(props: TabProps) {
                 <div key={ln} className="row bench-group" style={{ gap: 4, flex: 'none' }}>
                   <span className="bench-label">{ln}</span>
                   {group.map((p: any) => (
-                    <button key={p.id} className={`bench ${sel?.kind === 'bench' && sel.v === p.id ? 'sel' : ''}`} style={{ opacity: out(p) ? 0.5 : 1, width: out(p) ? 72 : 58 }} onClick={() => tapBench(p.id)}>
-                      <b>{p.ovr + (p.form || 0)}</b><small>{lastName(p.name)}{out(p) ? ` · ${p.outReason === 'Suspended' ? 'Susp.' : 'Injured'}` : ` · ${p.pos}`}</small>
+                    <button key={p.id} className={`bench2 ${sel?.kind === 'bench' && sel.v === p.id ? 'sel' : ''} ${out(p) ? 'out' : ''}`} style={{ ['--fit' as any]: `${Math.round(p.fitness ?? 100)}%`, ['--ring' as any]: (p.fitness ?? 100) < 70 ? '#FFD27A' : '#2EF2B0' }} onClick={() => tapBench(p.id)}>
+                      <i className="pc-dot">{p.num ?? shirt(p.id, p.natPos || p.pos)}</i>
+                      <span className="col" style={{ gap: 0, lineHeight: 1.15, minWidth: 0, alignItems: 'flex-start' }}><b className="ellipsis">{lastName(p.name)}</b><small>{out(p) ? (p.outReason === 'Suspended' ? 'Suspended' : 'Injured') : `${p.pos} · ${p.ovr + (p.form || 0)}`}</small></span>
                     </button>
                   ))}
                 </div>

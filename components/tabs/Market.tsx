@@ -30,6 +30,13 @@ function Listings({ lid, toast, reload }: TabProps) {
         <span className="tag" style={{ background: d.window.open ? '#2EE6A0' : 'var(--red)', color: d.window.open ? '#0E3020' : '#fff' }}><span>{d.window.open ? `OPEN${d.window.closesAt ? ` · ${timeLeft(d.window.closesAt)}` : ''}` : d.window.label.toUpperCase()}</span></span>
         <span className="lz" style={{ fontSize: 22, color: '#F2C14E' }} title="Your budget">{d.money.toFixed(1)}M</span>
       </>} />
+      {d.window.open && d.window.closesAt && (
+        <div className="h2-window">
+          <span className="h2-ico" style={{ background: 'rgba(255,196,77,0.18)' }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD27A" strokeWidth="2.2" aria-hidden="true"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l3 2M9 2h6" /></svg></span>
+          <span className="col grow" style={{ gap: 0 }}><span className="lz" style={{ fontSize: 18, color: '#FFD27A' }}>TRANSFER WINDOW OPEN</span><span className="small muted">Budget {d.money.toFixed(1)}M · {rows.length} players for sale</span></span>
+          <span className="lz" style={{ fontSize: 26 }}>{timeLeft(d.window.closesAt)}</span>
+        </div>
+      )}
       {/* one row of filters: search, position, where from, sort */}
       <div className="row mk-filters" style={{ gap: 6 }}>
         <input placeholder="🔍 Search player…" value={qs} onChange={(e) => setQs(e.target.value)} style={{ flex: '1 1 140px', minWidth: 110, maxWidth: 240, height: 32 }} aria-label="Search player" />
@@ -37,25 +44,21 @@ function Listings({ lid, toast, reload }: TabProps) {
         <select className="capsel" value={from} onChange={(e) => setFrom(e.target.value as any)} style={{ width: 'auto', flex: 'none' }} aria-label="Where from"><option value="all">Everyone</option><option value="league">This league</option><option value="abroad">🌍 Abroad</option></select>
         <select className="capsel" value={sort} onChange={(e) => setSort(e.target.value as any)} style={{ width: 'auto', flex: 'none' }} aria-label="Sort by"><option value="ovr">Sort: rating</option><option value="pot">Sort: potential</option><option value="price">Sort: price</option><option value="age">Sort: age</option></select>
       </div>
-      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 250px)', gap: 12 }}>
-        <section className="panel cut" style={{ padding: 8, gap: 2 }}>
-          <div className="row tiny" style={{ color: 'var(--muted)', fontWeight: 900, padding: '0 8px 4px', gap: 8 }}>
-            <span style={{ width: 30 }}>OVR</span><span style={{ flex: '2 1 0', minWidth: 70 }}>PLAYER</span><span style={{ width: 36 }}>POS</span><span className="hide-sm" style={{ width: 30 }}>AGE</span><span className="hide-sm" style={{ width: 110 }}>SELLER</span><span className="hide-sm" style={{ width: 30 }}>POT</span><span style={{ width: 56, textAlign: 'right' }}>PRICE</span>
-          </div>
-          {rows.length === 0 && <div className="small muted" style={{ padding: 12 }}>No players here. Players from other managers, AI clubs and clubs abroad appear while the window is open. Sell your own from the Squad screen.</div>}
-          <div className="col" style={{ gap: 2, maxHeight: 'max(260px, calc(100dvh - 190px))', overflowY: 'auto' }}>
-            {rows.map((l: any) => (
-              <button key={l.listingId} className={`row-item ${sel?.listingId === l.listingId ? 'sel' : ''}`} style={{ textAlign: 'left', fontWeight: 700, fontSize: 13 }} onClick={() => setSel(l)}>
-                <span className="lz" style={{ width: 30, fontSize: 18, color: l.ovr >= 85 ? '#F2C14E' : undefined }}>{l.ovr}</span>
-                <b className="ellipsis" style={{ flex: '2 1 0', minWidth: 70 }}>{l.name}</b>
-                <span style={{ width: 36 }} className="muted">{l.pos}</span>
-                <span className="hide-sm" style={{ width: 30 }}>{l.age}</span>
-                <span style={{ width: 110 }} className="ellipsis muted hide-sm">{l.seller}{l.bot ? ' (AI)' : ''}</span>
-                <span className="hide-sm" style={{ width: 30 }}>{l.pot}</span>
-                <b style={{ width: 56, textAlign: 'right', color: 'var(--cyan)' }}>{l.price.toFixed(1)}M</b>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 300px)', gap: 14, alignItems: 'start' }}>
+        <section className="mk-grid" aria-label="Players for sale">
+          {rows.length === 0 && <div className="panel cut small muted" style={{ gridColumn: '1 / -1' }}>No players here. Players from other managers, AI clubs and clubs abroad appear while the window is open. Sell your own from the Squad screen.</div>}
+          {rows.map((l: any) => {
+            const top = l.ovr >= 85, rising = l.age <= 21 && l.pot - l.ovr >= 6;
+            return (
+              <button key={l.listingId} className={`mk-card ${sel?.listingId === l.listingId ? 'sel' : ''}`} onClick={() => setSel(l)}>
+                <span className="row" style={{ gap: 12, alignItems: 'center', minWidth: 0 }}>
+                  <span className={`mk-badge ${top ? 'gold' : ''}`}><span className="lz" style={{ fontSize: 26, lineHeight: 1 }}>{l.ovr}</span><span className="tiny" style={{ fontWeight: 800 }}>{l.pos}</span></span>
+                  <span className="col" style={{ gap: 1, minWidth: 0, alignItems: 'flex-start' }}><b className="ellipsis" style={{ fontSize: 14, maxWidth: '100%' }}>{l.name}</b><span className="tiny muted">{l.age} · pot {l.pot}</span><span className="tiny muted ellipsis" style={{ maxWidth: '100%' }}>{l.abroad ? '🌍 ' : ''}{l.seller}{l.bot ? ' (AI)' : ''}</span></span>
+                </span>
+                <span className="row between" style={{ width: '100%' }}><b className="lz" style={{ fontSize: 19, fontWeight: 600 }}>{l.price.toFixed(1)}M</b>{top ? <span className="pill" style={{ background: 'rgba(255,196,77,0.16)', color: '#FFD27A' }}>Top</span> : rising ? <span className="pill" style={{ background: 'rgba(46,242,176,0.16)', color: '#5CFFC8' }}>Rising</span> : null}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </section>
         <aside className="panel cut" style={{ gap: 8 }}>
           {sel ? (
