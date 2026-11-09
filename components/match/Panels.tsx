@@ -127,7 +127,7 @@ export function KeyEvents({ d, shown }: { d: any; shown: Ev[] }) {
           <span className="grow ellipsis" style={{ fontWeight: 800 }}>
             {e.type === 'goal' ? <>{score.get(e)} {who(e.pid)}{e.pid2 ? <span className="muted"> ({who(e.pid2)})</span> : null}</>
               : e.type === 'sub' ? <>{who(e.pid)} <span className="muted">for {who(e.pid2)}</span></>
-              : e.type === 'var' ? 'Goal ruled out (VAR)' : e.type === 'penmiss' ? `${who(e.pid)} misses a penalty` : who(e.pid)}
+              : e.type === 'var' ? (e.text.includes('overturns') ? 'Penalty overturned (VAR)' : e.text.includes('to the screen') ? 'Penalty given (VAR)' : 'Goal ruled out (VAR)') : e.type === 'penmiss' ? `${who(e.pid)} misses a penalty` : who(e.pid)}
           </span>
         </div>
       ))}
@@ -219,10 +219,15 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
   // they changed their set-up: name a counter
   const theirs = (rep.styles || []).filter((x: any) => x.side === them && x.m > 0 && tm(x.m) <= gm);
   const lastChange = theirs[theirs.length - 1];
+  // how we play right now (the kick-off plan and every change since, as far as the pitch has got)
+  const ours = (rep.styles || []).filter((x: any) => x.side === mine && tm(x.m) <= gm);
+  const now: any = ours[ours.length - 1] || { preset: rep.lineups?.[mine]?.preset, ...(PRESETS[rep.lineups?.[mine]?.preset] || {}) };
   const bestVs = (p: string) => Object.keys(PRESETS).sort((a, b) => counterShare(b, p) - counterShare(a, p))[0];
   if (lastChange?.preset && gm - tm(lastChange.m) < 6) {
     const best = bestVs(lastChange.preset);
-    tips.push({ key: `opp-${lastChange.m}`, ico: '🧠', text: `They have switched to ${lastChange.preset}. ${best} works well against it.`, act: { label: `Play ${best}`, body: { preset: best } } });
+    tips.push(best === now.preset
+      ? { key: `opp-${lastChange.m}`, ico: '🧠', text: `They have switched to ${lastChange.preset}. Our ${best} is the right answer: keep it.` }
+      : { key: `opp-${lastChange.m}`, ico: '🧠', text: `They have switched to ${lastChange.preset}. ${best} works well against it.`, act: { label: `Play ${best}`, body: { preset: best } } });
   }
   if (shown.some((e) => e.type === 'red' && e.side === mine && gm - tm(e.m) < 4)) tips.push({ key: 'red', ico: '🟥', text: 'Down to ten men. Sitting deeper keeps it tight.', act: { label: 'Park the bus', body: { mentality: 0, line: 0, press: 0 } } });
   // tired legs
@@ -240,8 +245,10 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
   const theirShare = recent.length ? recent.filter((f: any) => f[1] === them).length / recent.length : 0;
   const theirShots = (rep.shots || []).filter((x: Shot) => x.side === them && x.m <= M && x.m > M - 10).length;
   if (M >= 15 && theirShare >= 0.62 && theirShots >= 2) {
-    const theirPreset = theirs.length ? theirs[theirs.length - 1].preset : rep.lineups?.[them]?.preset;
-    const best = theirPreset ? bestVs(theirPreset) : 'Low block';
+    const theirStart = (rep.styles || []).find((x: any) => x.side === them);
+    const theirPreset = theirs.length ? theirs[theirs.length - 1].preset : theirStart?.preset;
+    const order = Object.keys(PRESETS).sort((a, b) => (theirPreset ? counterShare(b, theirPreset) - counterShare(a, theirPreset) : 0)).filter((p) => p !== now.preset);
+    const best = order[0] || 'Counter attack';
     tips.push({ key: `dom-${Math.floor(M / 12)}`, ico: '⚠️', text: `They are all over us: ${Math.round(theirShare * 100)}% of the ball and ${theirShots} shots in ten minutes.`, act: { label: `Try ${best}`, body: { preset: best } } });
   }
   // where their chances come from
@@ -253,20 +260,23 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
   if (M >= 65 && diff < 0 && diff >= -2) {
     // against a side parked deep, men through the middle just run into a wall: go round it down the wings
     const st = theirs.length ? theirs[theirs.length - 1] : null;
-    const deep = st ? st.mentality === 0 && st.line === 0 : rep.lineups?.[them]?.preset === 'Low block';
+    const st0 = st || (rep.styles || []).find((x: any) => x.side === them);
+    const deep = st0 ? st0.mentality === 0 && st0.line === 0 : false;
     tips.push(deep
       ? { key: `behind-${score.join('-')}`, ico: '⏱', text: `We are ${-diff} down with ${90 - M} minutes left. They are parked deep, so the middle is shut: go round them down the wings.`, act: { label: 'Attack down the wings', body: { preset: 'Wing play', mentality: 2 } } }
       : { key: `behind-${score.join('-')}`, ico: '⏱', text: `We are ${-diff} down with ${90 - M} minutes left. Time to go for it.`, act: { label: 'All-out attack', body: { mentality: 2, press: 2 } } });
   }
   if (M >= 78 && diff === 1) {
     // a deep block invites shots from range and long balls: against those, stay compact on a mid line
-    const theirNow = theirs.length ? theirs[theirs.length - 1].preset : rep.lineups?.[them]?.preset;
+    const theirNow = theirs.length ? theirs[theirs.length - 1].preset : (rep.styles || []).find((x: any) => x.side === them)?.preset;
     const compact = theirNow === 'Shoot on sight' || theirNow === 'Long ball';
     tips.push(compact
       ? { key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. They shoot from range, so do not sit too deep: stay compact.`, act: { label: 'Stay compact', body: { mentality: 0, line: 1, press: 1 } } }
       : { key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. Protect it.`, act: { label: 'Park the bus', body: { mentality: 0, line: 0, press: 0 } } });
   }
-  return tips;
+  // never suggest what we are already doing
+  const already = (b?: Record<string, unknown>) => !!b && Object.entries(b).every(([k, v]) => (k === 'preset' ? now.preset === v : now[k] === v));
+  return tips.filter((t) => !t.act?.body || !already(t.act.body));
 }
 
 export { evAt };

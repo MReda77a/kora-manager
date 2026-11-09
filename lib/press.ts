@@ -434,7 +434,7 @@ const BANK: Q[] = [
   // ---- conditions
   {
     id: 'weather', cat: 'weather', w: 0.7, when: (c) => c.weather !== 'clear',
-    ask: (c) => [`The forecast says ${c.weather === 'rain' ? 'heavy rain' : c.weather === 'snow' ? 'snow' : c.weather === 'wind' ? 'strong wind' : 'scorching heat'}. Does that help one team more?`],
+    ask: (c) => [`The forecast says ${c.weather === 'rain' ? 'heavy rain' : c.weather === 'snow' ? 'snow' : c.weather === 'wind' ? 'strong wind' : c.weather === 'fog' ? 'thick fog' : 'scorching heat'}. Does that help one team more?`],
     answers: (c) => [
       { tone: 'calm', say: [`Same for both teams. We'll adapt.`] },
       { tone: 'bold', say: [`We train in worse than this. ${c.opp} won't enjoy it.`], fx: { morale: 0.5, fire: 0.1 } },

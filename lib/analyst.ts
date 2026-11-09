@@ -185,7 +185,7 @@ export async function analystReport(uid: number, leagueId: number, refresh = fal
   // tackling and the offside trap
   const styleTips: string[] = [];
   const myTrap = lineAvg(me, 'DEF', ['Positioning', 'Decisions', 'Marking']), theirRuns = lineAvg(them, 'FWD', ['Positioning', 'Decisions', 'Pace']);
-  const runners = level >= 2 && likely[0] && ['Gegenpress', 'Low block'].includes(likely[0].plan);
+  const runners = level >= 2 && likely[0] && ['Gegenpress', 'Counter attack'].includes(likely[0].plan);
   if (cond.referee.strict === 2) styleTips.push(`🙂 Strict referee (${cond.referee.name}): tackle with care, cards will fly.`);
   else if (level >= 2 && likely[0]?.plan === 'Tiki-taka') styleTips.push('😠 They pass short: getting stuck in can break up their play (watch the cards).');
   if (myTrap - theirRuns >= 3) styleTips.push(`🚩 Your defenders read the game better than their forwards (${myTrap} vs ${theirRuns})${runners ? ', and they like to run in behind' : ''}: an offside trap could catch them.`);

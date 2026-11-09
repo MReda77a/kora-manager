@@ -12,7 +12,7 @@ import { moveTimes, minuteTime, tm, type Move } from '../../lib/pitchtime.ts';
 export { tm };
 
 export type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
-export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean; ghost?: boolean };
+export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean; ghost?: boolean; var?: boolean };
 
 // when an event shows: on the pitch's own clock. A penalty or a dangerous free kick is given at the foul,
 // a little before the kick that ends the move on the event's minute
@@ -35,6 +35,7 @@ const SET = (kind: string) => (kind === 'penalty' ? 0.4 : kind === 'free kick' ?
 type Outcome = 'lost' | 'kept' | 'goal' | 'saved' | 'wide';
 type Plan = {
   t0: number; t1: number; s: 0 | 1; r: number; sh: number; i: number;
+  ruled?: boolean; // the shot goes in, VAR rules it out (drawn as a goal, then 'No goal')
   off?: boolean; offEv?: Ev; // the move ends with the runner flagged offside (the defenders take the free kick)
   startX: number; targetX: number; // absolute % along the pitch (0 = home goal, 100 = away goal)
   chain: number[]; // slots of the attacking side, in passing order
@@ -231,7 +232,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       const sty = styleAt(s, p.t0);
       const every = 0.33 * ([0.75, 1, 1.4][sty.build] ?? 1) * ([1.15, 1, 0.85][sty.tempo] ?? 1);
       // the time left for passing once the last move is finished off (keeper's ball, celebration, corner)
-      const preMin = !prev ? 0 : restart === 'kickoff' && prev.out === 'goal' ? 0.95 : restart === 'clear' ? 0.9 : restart === 'corner' ? 0.6 : restart === 'keeper' ? (prev.out === 'wide' ? 0.5 : 0.4) : 0;
+      const preMin = !prev ? 0 : restart === 'kickoff' && prev.out === 'goal' ? 0.95 : restart === 'clear' ? 0.9 : restart === 'corner' ? 0.6 : restart === 'keeper' ? (prev.ruled ? 0.95 : prev.out === 'wide' ? 0.5 : 0.4) : 0;
       const effDur = (p.t1 - p.t0) - Math.min(0.6 * (p.t1 - p.t0), preMin);
       const runFrac = shot ? (SET(shot.kind) || 0.84) : out === 'lost' ? 0.72 : 1;
       const N = Math.max(2, Math.min(16, Math.floor((effDur * runFrac) / every) + 1) - (shot ? 1 : 0)); // a shot always has a pass before it
@@ -311,7 +312,7 @@ export function buildPlan(rep: any, events: Ev[]) {
         const tot = wts.reduce((x, y) => x + y, 0);
         let acc = 0; for (const w2 of wts) { acc += w2 / tot; cum.push(acc); }
       }
-      plans.push({ ...p, i, startX, targetX, chain, cum, holds, out, win, restart, label, spot: shot ? [shot.x, shot.y] : undefined, kind: shot?.kind || '', setTaker, fouler, koSide, koMan: koSide !== undefined && koSide !== s ? (F[koSide].slots.map((_, k) => k).filter((k) => F[koSide!].slots[k] === 'MID' && occAt(koSide!, p.t0)[k]).sort((a, b) => Math.abs(F[koSide!].xy[a][1] - 50) - Math.abs(F[koSide!].xy[b][1] - 50))[0] ?? undefined) : undefined });
+      plans.push({ ...p, i, startX, targetX, chain, cum, holds, out, win, restart, label, ruled: !!shot?.var, spot: shot ? [shot.x, shot.y] : undefined, kind: shot?.kind || '', setTaker, fouler, koSide, koMan: koSide !== undefined && koSide !== s ? (F[koSide].slots.map((_, k) => k).filter((k) => F[koSide!].slots[k] === 'MID' && occAt(koSide!, p.t0)[k]).sort((a, b) => Math.abs(F[koSide!].xy[a][1] - 50) - Math.abs(F[koSide!].xy[b][1] - 50))[0] ?? undefined) : undefined });
       endX = out === 'lost' || out === 'kept' ? targetX : out === 'goal' ? 50 : s === 0 ? 96 : 4;
       endHolder = out === 'lost' && win !== null ? { side: o, k: win } : out === 'kept' ? { side: s, k: chain[chain.length - 1] } : null;
     });
@@ -320,7 +321,7 @@ export function buildPlan(rep: any, events: Ev[]) {
     plans.forEach((q, i) => {
       const prev = plans[i - 1];
       if (!prev) return;
-      const P = q.restart === 'kickoff' && prev.out === 'goal' ? 0.95 : q.restart === 'clear' ? 0.9 : q.restart === 'corner' ? 0.6 : q.restart === 'keeper' ? (prev.out === 'wide' ? 0.5 : 0.4) : 0;
+      const P = q.restart === 'kickoff' && prev.out === 'goal' ? 0.95 : q.restart === 'clear' ? 0.9 : q.restart === 'corner' ? 0.6 : q.restart === 'keeper' ? (prev.ruled ? 0.95 : prev.out === 'wide' ? 0.5 : 0.4) : 0;
       if (P) q.pre = Math.min(0.6, P / Math.max(0.01, q.t1 - q.t0));
     });
     // a booking in open play is a foul you can see: the referee stops the move for a moment, shows the card,
@@ -380,10 +381,12 @@ export function buildPlan(rep: any, events: Ev[]) {
       const dur = q.t1 - q.t0, pre = q.pre || 0, sp = SET(q.kind);
       shotAt.set(q.sh, { land: q.t1, foul: q.t0 + (pre + (1 - pre) * sp) * dur });
     }
+    const anyVar = shots.some((x) => x.var);
     const linked: Record<string, (x: Shot, e: Ev) => boolean> = {
-      goal: (x, e) => x.goal && x.side === e.side, var: (x, e) => x.side === e.side, miss: (x, e) => !x.goal && x.side === e.side,
+      goal: (x, e) => x.goal && x.side === e.side, miss: (x, e) => !x.goal && x.side === e.side,
       penmiss: (x, e) => !x.goal && x.side === e.side && x.kind === 'penalty', save: (x, e) => !x.goal && x.side !== e.side,
-      penalty: (x, e) => x.kind === 'penalty' && x.side === e.side, freekick: (x, e) => x.kind === 'free kick' && x.side === e.side,
+      penalty: (x, e) => x.kind === 'penalty' && x.side === e.side,
+      var: (x, e) => x.side === e.side && (/to the screen/.test(e.text) ? x.kind === 'penalty' : /overturns/.test(e.text) ? false : !x.goal && (!!x.var || !anyVar)), freekick: (x, e) => x.kind === 'free kick' && x.side === e.side,
     };
     // each event belongs to its own shot: two goals in the same minute are two shots, not the first one twice
     const shotOf = new Map<Ev, number>();
@@ -401,7 +404,7 @@ export function buildPlan(rep: any, events: Ev[]) {
     /** when an event shows on the pitch's clock */
     const rawTime = (e: Ev): number => {
       const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => !x.ghost && x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
-      if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' ? s2.foul : s2.land; }
+      if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' || (e.type === 'var' && /to the screen/.test(e.text)) ? s2.foul : e.type === 'var' ? (Math.floor((s2.land + 0.45) / 45) > Math.floor(s2.land / 45) ? s2.land : s2.land + 0.45) : s2.land; }
       if (e.type === 'yellow' || e.type === 'red') return cardAt(e);
       if (e.type === 'offside') {
         const oq = plans.find((p) => p.offEv === e);
@@ -792,7 +795,8 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         const gk = F[s].slots.indexOf('GK'), kp = gk >= 0 ? pos(s, gk) : f;
         st.ball = [lerp(f[0], kp[0], ease(w)), lerp(f[1], kp[1], ease(w))];
         if (w > 0.8 && gk >= 0) st.holder = { side: s, k: gk };
-        st.banner = prev.out === 'saved' ? 'Saved!' : w < 0.4 ? 'Off target' : 'Goal kick';
+        st.banner = prev.ruled ? (w < 0.6 ? 'VAR check…' : 'No goal: offside') : prev.out === 'saved' ? 'Saved!' : w < 0.4 ? 'Off target' : 'Goal kick';
+        if (prev.ruled) { st.ball = w < 0.6 ? f : [lerp(f[0], kp[0], ease((w - 0.6) / 0.4)), lerp(f[1], kp[1], ease((w - 0.6) / 0.4))]; if (w < 0.6) st.holder = null; }
         return st;
       }
       if (q.restart === 'corner') {
@@ -884,13 +888,13 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     const keeper = gk >= 0 ? pos(o, gk) : [goalX, W / 2] as [number, number];
     const from0: [number, number] = sp0 && q.spot ? (q.kind === 'penalty' ? [s === 0 ? L - 11 : 11, W / 2] : toPitch(q.spot)) : last;
     const endY = q.out === 'wide' ? (hash(q.i) % 2 ? W / 2 - 6.5 : W / 2 + 6.5) : W / 2 + ((hash(q.i) % 7) - 3) * 0.5;
-    const end: [number, number] = q.out === 'saved' ? keeper : q.out === 'wide' ? [goalX + (s === 0 ? 2 : -2), endY] : [goalX + (s === 0 ? 0.8 : -0.8), endY];
+    const end: [number, number] = q.out === 'saved' ? keeper : q.ruled ? [goalX + (s === 0 ? 0.8 : -0.8), W / 2 + ((hash(q.i) % 7) - 3) * 0.5] : q.out === 'wide' ? [goalX + (s === 0 ? 2 : -2), endY] : [goalX + (s === 0 ? 0.8 : -0.8), endY];
     const w = c01((v - 0.84) / 0.16);
     st.ball = [lerp(from0[0], end[0], ease(w)), lerp(from0[1], end[1], ease(w))];
     st.shotLine = { from: from0, to: end, side: s };
     st.holder = w < 0.1 ? { side: s, k: sp0 && q.setTaker != null ? q.setTaker : slotAt(n - 1) } : null;
     st.banner = q.kind === 'penalty' ? 'PENALTY…' : 'SHOT!';
-    if (w >= 1) { st.banner = q.out === 'goal' ? 'GOAL!' : q.out === 'saved' ? 'Saved!' : 'Off target'; if (q.out === 'saved' && gk >= 0) { st.holder = { side: o, k: gk }; st.shotLine = null; } }
+    if (w >= 1) { st.banner = q.out === 'goal' ? 'GOAL!' : q.ruled ? 'In the net…' : q.out === 'saved' ? 'Saved!' : 'Off target'; if (q.out === 'saved' && gk >= 0) { st.holder = { side: o, k: gk }; st.shotLine = null; } }
     return st;
   };
 
@@ -957,6 +961,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
   );
   return (
     <div className="p2d">
+      {d.conditions?.weather && d.conditions.weather !== 'clear' && d.conditions.weather !== 'wind' && <div className={`p2d-wx wx-${d.conditions.weather}`} aria-hidden />}
       <svg viewBox={`-2 -2 ${L + 4} ${W + 4}`} preserveAspectRatio="xMidYMid meet" className="p2d-svg" role="img" aria-label="Live pitch">
         <defs>
           <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9FF3FF" /></marker>

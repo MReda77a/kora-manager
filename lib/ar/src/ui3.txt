@@ -320,3 +320,4 @@ Stamina:	النَفَس:
 Player of the match: {0}	رجل الماتش: {0}
 ✚ Injured:	✚ مصاب:
 Best ratings:	أحسن تقييمات:
+Counter attack	هجمة مرتدة

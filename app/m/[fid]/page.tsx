@@ -712,7 +712,7 @@ function FxOverlay({ e, d, mineSide, names }: { e: Ev; d: any; mineSide: number;
           <span style={{ position: 'absolute', left: 0, right: 0, height: 3, background: '#5FD3F3', boxShadow: '0 0 12px #5FD3F3', animation: 'varScan 1.1s ease-in-out 2 alternate' }} />
           <span className="lz" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 40, color: '#5FD3F3', letterSpacing: 4 }}>VAR</span>
         </div>
-        <span className="lz" style={{ fontSize: 20, color: '#E8F1FA', animation: 'fadeUp .4s 1.4s both' }}>{e.text.includes('overturns') ? 'PENALTY OVERTURNED' : 'GOAL RULED OUT'}</span>
+        <span className="lz" style={{ fontSize: 20, color: '#E8F1FA', animation: 'fadeUp .4s 1.4s both' }}>{e.text.includes('overturns') ? 'PENALTY OVERTURNED' : e.text.includes('to the screen') ? 'PENALTY GIVEN' : 'GOAL RULED OUT'}</span>
         <span className="tiny" style={{ fontWeight: 800, color: 'var(--soft)', animation: 'fadeUp .4s 1.7s both', maxWidth: '80%', textAlign: 'center' }}>{e.text}</span>
       </div>
     );

@@ -73,7 +73,7 @@ const best = (ln, n) => sq.players.filter((p) => line(p.pos) === ln).sort((a, b)
 const xi = [...best('GK', 1), ...best('DEF', 4), ...best('MID', 3), ...best('FWD', 3)];
 check('save lineup', (await A(`/api/leagues/${lid}/setup`, { lineup: xi })).ok === true);
 const tactic = { preset: 'Wing play', formation: '4-3-3', mentality: 1, press: 1, line: 1, build: 1, focus: 0, width: 2, tempo: 1 };
-const planB = { ...tactic, preset: 'Low block', formation: '5-3-2', mentality: 0, press: 0, line: 0 };
+const planB = { ...tactic, preset: 'Counter attack', formation: '5-3-2', mentality: 0, press: 0, line: 0 };
 const roleFor = sq.players.find((p) => p.natPos === 'GK');
 const r1 = await A(`/api/leagues/${lid}/setup`, { tactic, plans: { B: planB, C: null }, roles: { [roleFor.id]: 'Shot stopper', bad: 'X' }, setpieces: { corner: sq.players[5].id, fk: sq.players[6].id, routine: 'near' }, pens: xi.slice(1, 6), assistant: { tired: true, cards: true, winning: false, losing: true, injured: true }, kit: { away1: '#3651C9', pattern: 2 } });
 sq = await A(`/api/leagues/${lid}/squad`);
@@ -206,7 +206,7 @@ check('hire refused at the level you have', (await A(`/api/leagues/${lid}/hire`,
 const sqN = await A(`/api/leagues/${lid}/squad`);
 const nums = sqN.players.map((p) => p.num);
 check('every player has his own shirt number', nums.every((n) => n > 0) && new Set(nums).size === nums.length, `${nums.length} players`);
-check('new shape 6-3-1 accepted', !(await A(`/api/leagues/${lid}/setup`, { tactic: { preset: 'Low block', formation: '6-3-1', mentality: 0, press: 0, line: 0, build: 2, focus: 1, width: 0, tempo: 1 } })).error);
+check('new shape 6-3-1 accepted', !(await A(`/api/leagues/${lid}/setup`, { tactic: { preset: 'Counter attack', formation: '6-3-1', mentality: 0, press: 0, line: 0, build: 2, focus: 1, width: 0, tempo: 1 } })).error);
 await A(`/api/leagues/${lid}/setup`, { tactic: { preset: 'Wing play', formation: '4-3-3', mentality: 1, press: 1, line: 1, build: 1, focus: 0, width: 2, tempo: 1 } });
 // a manager lists a cheap young player; during the window someone may buy him
 const sqF = await F(`/api/leagues/${lid}/squad`);

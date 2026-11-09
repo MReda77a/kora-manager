@@ -89,11 +89,14 @@ export const TACKLE_STYLES = [
 export const PRESETS: Record<string, Omit<Tactic, 'preset' | 'formation'> & { desc: string }> = {
   'Tiki-taka': { mentality: 1, press: 2, line: 2, build: 0, focus: 2, width: 1, tempo: 0, desc: 'Keep the ball, short passes, high line.' },
   Gegenpress: { mentality: 2, press: 3, line: 2, build: 1, focus: 1, width: 1, tempo: 2, desc: 'Win it back high and fast. Tiring.' },
-  'Low block': { mentality: 0, press: 0, line: 0, build: 2, focus: 1, width: 0, tempo: 1, desc: 'Sit deep, stay compact, hit on the break.' },
+  'Counter attack': { mentality: 0, press: 0, line: 0, build: 2, focus: 1, width: 0, tempo: 1, desc: 'Wait deep, win it, and break fast.' },
   'Wing play': { mentality: 1, press: 1, line: 1, build: 1, focus: 0, width: 2, tempo: 1, desc: 'Stretch them wide and cross. Balanced.' },
   'Long ball': { mentality: 1, press: 1, line: 0, build: 2, focus: 0, width: 1, tempo: 1, desc: 'Skip midfield, go direct to the strikers.' },
   'Shoot on sight': { mentality: 2, press: 1, line: 1, build: 1, focus: 3, width: 1, tempo: 2, desc: 'Shoot from anywhere. Good vs deep blocks.' },
 };
+
+// old matches and saves call the counter plan by its former name: look it up, but never list it
+Object.defineProperty(PRESETS, 'Low block', { value: PRESETS['Counter attack'], enumerable: false });
 
 export const DEFAULT_TACTIC: Tactic = { preset: 'Wing play', formation: '4-3-3', ...stripDesc(PRESETS['Wing play']) };
 
@@ -106,7 +109,7 @@ export function stripDesc(p: (typeof PRESETS)[string]) {
 export const TACTIC_FIELDS: { key: keyof Tactic; label: string; opts: string[] }[] = [
   { key: 'mentality', label: 'Mentality', opts: ['Defensive', 'Balanced', 'Attacking'] },
   { key: 'press', label: 'Pressing', opts: ['Low', 'Mid', 'High', 'Gegenpress'] },
-  { key: 'line', label: 'Defensive line', opts: ['Deep', 'Mid', 'High'] },
+  { key: 'line', label: 'Defensive line', opts: ['Low block', 'Mid', 'High'] },
   { key: 'build', label: 'Build-up', opts: ['Short', 'Mixed', 'Direct'] },
   { key: 'focus', label: 'Final third', opts: ['Crosses', 'Through balls', 'Work it in', 'Shoot early'] },
   { key: 'width', label: 'Width', opts: ['Narrow', 'Balanced', 'Wide'] },
@@ -331,10 +334,11 @@ export function traitOf(id: string) {
 // ---------------------------------------------------------------- match conditions
 export const WEATHER: Record<string, { label: string; icon: string; note: string }> = {
   clear: { label: 'Clear', icon: '☀️', note: 'Perfect conditions.' },
-  rain: { label: 'Heavy rain', icon: '🌧️', note: 'Short passing is riskier. Long balls skid.' },
-  heat: { label: 'Heat', icon: '🥵', note: 'Legs tire 25% faster. Pressing hurts.' },
+  rain: { label: 'Heavy rain', icon: '🌧️', note: 'Heavy pitch: quick play and fast players lose their edge.' },
+  heat: { label: 'Heat', icon: '🥵', note: 'Legs tire fast, most of all with a high tempo and on the dribblers. A slow tempo suits it.' },
   wind: { label: 'Strong wind', icon: '💨', note: 'Crosses and long balls lose accuracy.' },
-  snow: { label: 'Snow', icon: '❄️', note: 'Slow pitch. Pace matters less.' },
+  snow: { label: 'Snow', icon: '❄️', note: 'Slow pitch: pace and quick play count for little, but legs stay fresh.' },
+  fog: { label: 'Fog', icon: '🌫️', note: 'Hard to see: long balls rarely find their man.' },
 };
 export const REFEREES = ['K. Aldridge', 'S. Marwan', 'L. Ferrand', 'T. Okafor', 'R. Haddad', 'J. Lindqvist', 'M. Serrano', 'D. Kowal', 'A. Nassar', 'P. Bellamy', 'H. Rahimi', 'G. Ottaviani'];
 export function conditionsFor(fixtureId: number, pool: string, day: number) {
@@ -342,7 +346,7 @@ export function conditionsFor(fixtureId: number, pool: string, day: number) {
   for (const c of `${fixtureId}|${pool}|${day}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   const hot = ['KSA', 'EGY', 'USA'].includes(pool), cold = ['GER', 'ENG'].includes(pool);
   const w = h % 100;
-  const weather = w < 55 ? 'clear' : w < 70 ? (hot ? 'heat' : 'rain') : w < 82 ? 'wind' : w < 92 ? (hot ? 'heat' : 'rain') : cold ? 'snow' : 'clear';
+  const weather = w < 50 ? 'clear' : w < 55 ? (hot ? 'clear' : 'fog') : w < 70 ? (hot ? 'heat' : 'rain') : w < 82 ? 'wind' : w < 92 ? (hot ? 'heat' : 'rain') : cold ? 'snow' : hot ? 'clear' : 'fog';
   const strict = (h >>> 8) % 3; // 0 lenient, 1 normal, 2 strict
   return { weather, referee: { name: REFEREES[(h >>> 12) % REFEREES.length], strict, label: ['Lenient', 'Normal', 'Strict'][strict] } };
 }

@@ -115,7 +115,7 @@ console.log('\n5) The same match played 2000 times (equal squads, home advantage
   const scores: Record<string, number> = {};
   let hw = 0, dr = 0;
   for (let k = 0; k < 2000; k++) {
-    const rep = simulate(side(A, preset('Wing play'), 0, true), side(Bq, preset('Low block'), 1), k * 13 + 1);
+    const rep = simulate(side(A, preset('Wing play'), 0, true), side(Bq, preset('Counter attack'), 1), k * 13 + 1);
     const key = rep.score.join('-'); scores[key] = (scores[key] || 0) + 1;
     if (rep.score[0] > rep.score[1]) hw++; else if (rep.score[0] === rep.score[1]) dr++;
   }

@@ -137,3 +137,76 @@ export function LeadersTab({ lid, d: ov }: TabProps) {
     </div>
   );
 }
+
+// Team streaks: each club's runs in the league this season (in the manager's division)
+type Run = { id: number; name: string; short: string; c1: string; c2: string; res: { r: 'W' | 'D' | 'L'; gf: number; ga: number }[] };
+const runOf = (res: Run['res'], ok: (x: Run['res'][number]) => boolean) => {
+  let best = 0, cur = 0;
+  for (const x of res) { cur = ok(x) ? cur + 1 : 0; best = Math.max(best, cur); }
+  return { best, now: cur };
+};
+export function StreaksTab({ lid, d: ov }: TabProps) {
+  const [fx, setFx] = useState<any[] | null>(null);
+  useEffect(() => { api(`/api/leagues/${lid}/fixtures`).then(setFx); }, [lid]);
+  if (!fx) return <Spinner />;
+  const myDiv = ov.club.division;
+  const clubs = new Map<number, Run>();
+  const add = (id: number, name: string, short: string, c1: string, c2: string) => { if (!clubs.has(id)) clubs.set(id, { id, name, short, c1, c2, res: [] }); return clubs.get(id)!; };
+  for (const f of fx) {
+    if (f.comp !== 'league' || (f.division ?? 1) !== myDiv) continue;
+    const h = add(f.home_id, f.home, f.hs, f.hc, f.hc2), a = add(f.away_id, f.away, f.as_, f.ac, f.ac2);
+    if (f.status !== 'done') continue;
+    const hg = Number(f.home_goals), ag = Number(f.away_goals);
+    h.res.push({ r: hg > ag ? 'W' : hg < ag ? 'L' : 'D', gf: hg, ga: ag });
+    a.res.push({ r: ag > hg ? 'W' : ag < hg ? 'L' : 'D', gf: ag, ga: hg });
+  }
+  const rows = [...clubs.values()].map((c) => {
+    const win = runOf(c.res, (x) => x.r === 'W'), unb = runOf(c.res, (x) => x.r !== 'L'), winless = runOf(c.res, (x) => x.r !== 'W');
+    const cs = runOf(c.res, (x) => x.ga === 0), scored = runOf(c.res, (x) => x.gf > 0);
+    const now = win.now >= 2 ? { t: `Won ${win.now} in a row`, good: true, n: win.now + 10 } : unb.now >= 3 ? { t: `Unbeaten in ${unb.now}`, good: true, n: unb.now }
+      : winless.now >= 3 ? { t: `No win in ${winless.now}`, good: false, n: -winless.now } : c.res.length ? { t: c.res[c.res.length - 1].r === 'W' ? 'Won the last one' : c.res[c.res.length - 1].r === 'D' ? 'Drew the last one' : 'Lost the last one', good: null, n: 0 } : { t: '-', good: null, n: 0 };
+    return { ...c, win, unb, winless, cs, scored, now };
+  });
+  const top = (k: 'win' | 'unb' | 'winless' | 'cs' | 'scored', cur = false) => rows.slice().sort((a, b) => (cur ? b[k].now - a[k].now : b[k].best - a[k].best))[0];
+  const cards: { label: string; r: any; n: number; col: string }[] = [
+    { label: 'Longest winning run', r: top('win'), n: top('win')?.win.best ?? 0, col: '#2EE6A0' },
+    { label: 'Longest unbeaten run', r: top('unb'), n: top('unb')?.unb.best ?? 0, col: '#5FD3F3' },
+    { label: 'Clean sheets in a row', r: top('cs'), n: top('cs')?.cs.best ?? 0, col: '#F2C14E' },
+    { label: 'Longest without a win', r: top('winless'), n: top('winless')?.winless.best ?? 0, col: '#FF6B7A' },
+  ];
+  const played = rows.some((r) => r.res.length);
+  return (
+    <div className="col" style={{ gap: 8 }}>
+      <BackHead title="Team streaks" sub={`League · after ${ov.matchdays.played} rounds`} />
+      {!played ? <div className="panel cut muted">No matches yet. Streaks start after the first round.</div> : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+            {cards.map((c) => (
+              <div key={c.label} className="panel cut" style={{ gap: 4, padding: 10, boxShadow: `inset 0 3px 0 ${c.col}` }}>
+                <span className="tiny muted" style={{ fontWeight: 800 }}>{c.label}</span>
+                {c.r && c.n > 0 ? (
+                  <span className="row" style={{ gap: 8 }}><Crest c1={c.r.c1} c2={c.r.c2} short={c.r.short} size={24} /><span className="grow ellipsis small" style={{ fontWeight: 800 }}>{c.r.name}</span><span className="lz" style={{ fontSize: 26, color: c.col }}>{c.n}</span></span>
+                ) : <span className="small muted">Nobody yet</span>}
+              </div>
+            ))}
+          </div>
+          <div className="panel cut" style={{ padding: 6, overflowX: 'auto' }}>
+            <table className="t">
+              <thead><tr><th>Club</th><th>Now</th><th className="num" title="Best winning run">Wins</th><th className="num" title="Best unbeaten run">Unbeaten</th><th className="num hide-xs" title="Best run of clean sheets">Clean</th><th className="num hide-xs" title="Scored in this many in a row (now)">Scoring</th></tr></thead>
+              <tbody>
+                {rows.slice().sort((a, b) => b.now.n - a.now.n || b.unb.now - a.unb.now).map((r) => (
+                  <tr key={r.id} className={r.id === ov.club.id ? 'me' : ''}>
+                    <td><span className="row" style={{ gap: 6 }}><Crest c1={r.c1} c2={r.c2} short={r.short} size={20} /><span className="ellipsis" style={{ maxWidth: 150 }}>{r.name}</span></span></td>
+                    <td><span className="small" style={{ fontWeight: 800, color: r.now.good === true ? '#2EE6A0' : r.now.good === false ? 'var(--red)' : 'var(--soft)' }}>{r.now.t}</span></td>
+                    <td className="num">{r.win.best}</td><td className="num">{r.unb.best}</td><td className="num hide-xs">{r.cs.best}</td><td className="num hide-xs">{r.scored.now}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="tiny muted" style={{ padding: '0 6px' }}>Wins, Unbeaten and Clean: the best run this season. Scoring: matches in a row with a goal, right now.</div>
+        </>
+      )}
+    </div>
+  );
+}

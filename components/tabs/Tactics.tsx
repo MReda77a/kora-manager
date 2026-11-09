@@ -139,7 +139,7 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
             <div className="col" style={{ gap: 8 }}>
               <Line label="Mentality"><Seg small opts={[[0, 'Defensive'], [1, 'Balanced'], [2, 'Attacking']]} value={t.mentality} onPick={(v) => setField('mentality', v)} /></Line>
               <Line label="Pressing"><Seg small opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => setField('press', v)} /></Line>
-              <Line label="Def. line"><Seg small opts={[[0, 'Deep'], [1, 'Mid'], [2, 'High']]} value={t.line} onPick={(v) => setField('line', v)} /></Line>
+              <Line label="Def. line"><Seg small opts={[[0, 'Low block'], [1, 'Mid'], [2, 'High']]} value={t.line} onPick={(v) => setField('line', v)} /></Line>
               <Line label="Tackling">
                 {/* big faces, so the choice reads without any English */}
                 <div className="segrow">

@@ -18,6 +18,16 @@ async function wideMids() {
   await q(`INSERT INTO meta (k, v) VALUES ('lmrm', $1) ON CONFLICT (k) DO NOTHING`, [String(lm.length + rm.length)]);
 }
 
+/** once: the 'Low block' plan became 'Counter attack' (a low block is now the deep defensive line) */
+async function counterName() {
+  const done = await q<{ v: string }>(`SELECT v FROM meta WHERE k='counter'`);
+  if (done.length) return;
+  const fix = (c: string) => `${c} = replace(${c}::text, '"Low block"', '"Counter attack"')::jsonb`;
+  await q(`UPDATE clubs SET ${fix('tactic')}, ${fix('plans')} WHERE tactic::text LIKE '%"Low block"%' OR plans::text LIKE '%"Low block"%'`);
+  await q(`UPDATE fixtures SET ${fix('changes')} WHERE status <> 'done' AND changes::text LIKE '%"Low block"%'`);
+  await q(`INSERT INTO meta (k, v) VALUES ('counter', '1') ON CONFLICT (k) DO NOTHING`);
+}
+
 const VERSION = (() => { let h = 0; for (const c of SCHEMA) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h.toString(36); })();
 let done: Promise<void> | null = null;
 
@@ -26,6 +36,7 @@ export function migrate() {
     await q('CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL)');
     const r = await q<{ v: string }>(`SELECT v FROM meta WHERE k='schema'`);
     await wideMids();
+    await counterName();
     if (r[0]?.v === VERSION) return;
     // all statements in one round trip: a visit may only make 50 outgoing requests on the free plan
     await batch(SCHEMA.split(';').map((s) => s.trim()).filter(Boolean));

@@ -15,7 +15,7 @@ import MarketTab from '../../../components/tabs/Market.tsx';
 import CupTab from '../../../components/tabs/Cup.tsx';
 import PaperTab from '../../../components/tabs/Paper.tsx';
 import AwardsTab from '../../../components/tabs/Awards.tsx';
-import { FixturesTab, LeadersTab, TableTab } from '../../../components/tabs/LeagueTabs.tsx';
+import { FixturesTab, LeadersTab, StreaksTab, TableTab } from '../../../components/tabs/LeagueTabs.tsx';
 import HistoryTab from '../../../components/tabs/History.tsx';
 import AnalystTab from '../../../components/tabs/Analyst.tsx';
 import PressTab from '../../../components/tabs/Press.tsx';
@@ -142,6 +142,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'paper' && <PaperTab {...props} />}
           {tab === 'awards' && <AwardsTab {...props} />}
           {tab === 'leaders' && <LeadersTab {...props} />}
+          {tab === 'streaks' && <StreaksTab {...props} />}
           {tab === 'history' && <HistoryTab {...props} />}
         </div>
       </div>

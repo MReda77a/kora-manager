@@ -13,7 +13,7 @@ const WHO = { kareem: { name: 'KAREEM', role: 'THE CRITIC', c: '#F4C24E', ink: '
 const STYLE_ARROWS: Record<string, string[]> = {
   'Tiki-taka': ['M90 60 L130 45', 'M130 45 L170 60', 'M170 60 L210 48', 'M210 48 L250 62'],
   Gegenpress: ['M240 30 L210 50', 'M240 90 L210 70', 'M200 60 L250 60'],
-  'Low block': ['M80 30 L80 90', 'M110 40 L110 80', 'M110 60 L270 60'],
+  'Counter attack': ['M80 30 L80 90', 'M110 40 L110 80', 'M110 60 L270 60'],
   'Wing play': ['M120 18 L250 18', 'M250 18 L260 55', 'M120 102 L250 102', 'M250 102 L260 65'],
   'Long ball': ['M70 60 L260 50'],
   'Shoot on sight': ['M200 40 L285 58', 'M210 80 L285 62', 'M180 60 L285 60'],

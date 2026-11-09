@@ -134,3 +134,5 @@ The manager	المدرب
 Offside! {0} went too early.	تسلل! {0} طلع بدري.
 The flag is up: {0} is offside.	الراية اترفعت: {0} متسلل.
 Offside against {0}.	تسلل على {0}.
+VAR check... {0} was offside in the build-up. No goal!	الفار بيراجع... {0} كان متسلل في الهجمة. مفيش جون!
+VAR check... the referee goes to the screen: penalty to {0}!	الفار بيراجع... الحكم راح للشاشة: بلنتي لـ{0}!

@@ -28,7 +28,7 @@ export type Change =
   | { m: number; side: 0 | 1; kind: 'tactic'; tactic: Partial<Tactic> & { preset?: string; plan?: string } }
   | { m: number; side: 0 | 1; kind: 'sub'; out: string; in: string };
 export type SimOpts = { changes?: Change[]; knockout?: boolean; derby?: boolean; weather?: string; strict?: number };
-export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean };
+export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean; var?: boolean }; // var: in the net, ruled out by VAR
 export type Shootout = { kicks: { side: 0 | 1; pid: string; scored: boolean }[]; score: [number, number] };
 export type MatchEvent = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 export type PlayerLine = { id: string; name: string; side: 0 | 1; pos: string; r: number; g: number; a: number; mins: number; fitEnd: number; yc: number; rc: boolean; inj: boolean };
@@ -198,8 +198,10 @@ class Side {
       A.passing += c(ch.MID);
       A.finishing += c(ch.FWD); A.pace_att += c(ch.FWD) * 0.5; A.aerial_att += c(ch.FWD) * 0.5;
     }
-    if (this.weather === 'rain') this.agg.passing -= 1.5;
-    if (this.weather === 'snow') { this.agg.pace_att -= 4; this.agg.pace_def -= 4; }
+    // a wet or snowy pitch slows everyone down and takes the edge off the quick men (pace counts for less)
+    const slow = (k: string, keep: number, drop: number) => { this.agg[k] = 60 + (this.agg[k] - 60) * keep - drop; };
+    if (this.weather === 'rain') { this.agg.passing -= 0.75; slow('pace_att', 0.7, 1.5); slow('pace_def', 0.7, 1.5); }
+    if (this.weather === 'snow') { slow('pace_att', 0.55, 4); slow('pace_def', 0.55, 4); }
     const fam = ((this.s.familiarity ?? 60) - 60) / 40;
     // a plan that suits these players is carried out better (see tacticFit); worked out again only when the plan or players change
     const key = `${this.tactic.press}${this.tactic.line}${this.tactic.build}${this.tactic.focus}${this.tactic.width}${this.tactic.tempo}${this.tactic.mentality}|${all.map((o) => o.p.id + o.slot).join(',')}`;
@@ -314,8 +316,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       const sc = pickScorer(a, kind === 'corner' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
       // VAR checks every goal; a few are ruled out for offside
       if (kind !== 'free kick' && r.next() < 0.035) {
-        shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: false });
-        log('var', a, `VAR check... goal by ${sc.p.name} ruled out for offside!`, sc.p.id);
+        shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: true, pid: sc.p.id, var: true });
+        log('var', a, say([`VAR check... goal by ${sc.p.name} ruled out for offside!`, `VAR check... ${sc.p.name} was offside in the build-up. No goal!`]), sc.p.id);
         return;
       }
       goals[a]++;
@@ -448,14 +450,16 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     }
     // a small share of attacks in the box end with a foul and a penalty (more against wild tackling)
     if (f !== 3 && r.next() < 0.017 * penMul * [0.75, 1, 1.45][tk(b)]) return penalty(a);
+    // ...and now and then the referee misses one and VAR calls him to the screen
+    if (f !== 3 && r.next() < 0.0012 * penMul) { log('var', a, `VAR check... the referee goes to the screen: penalty to ${S[a].s.name}!`); return penalty(a, true); }
     const n = r.next() < two ? 2 : 1;
     for (let i = 0; i < n; i++) shot(a, q, ['cross', 'through ball', 'build-up', 'long shot'][f]);
   };
 
-  const penalty = (a: 0 | 1) => {
+  const penalty = (a: 0 | 1, byVar = false) => {
     const b = (1 - a) as 0 | 1;
     reach(a, 2);
-    if (r.next() < 0.1) {
+    if (!byVar && r.next() < 0.1) {
       log('var', a, `Penalty to ${S[a].s.name}... VAR overturns it! No penalty.`);
       return;
     }
@@ -531,6 +535,9 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     return true;
   };
 
+  // the assistant keeps the manager's plan: he only turns the mentality up once when behind late and down
+  // once to protect a late lead, never back and forth, and never into a different style of play
+  const assistDid: [Set<string>, Set<string>] = [new Set(), new Set()];
   const assistant = (side: 0 | 1) => {
     const sd = S[side];
     if (sd.manual) {
@@ -547,7 +554,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       const bk = sd.pitch.find((o) => o.yc === 1 && o.slot === 'DEF' && !o.line.inj && (o.p.a.Aggression || 50) > 60);
       if (bk && r.next() < 0.15) substitute(side, bk, 'Protecting a booked player');
     }
-    if (as.losing && minute >= 60 && diff < 0 && sd.tactic.mentality < 2 && minute % 5 === 0) {
+    if (as.losing && minute >= 60 && diff < 0 && sd.tactic.mentality < 2 && minute % 5 === 0 && !assistDid[side].has('attack') && !assistDid[side].has('protect')) {
+      assistDid[side].add('attack');
       sd.tactic = { ...sd.tactic, mentality: 2 };
       logStyle(side, sd.tactic);
       log('tactic', side, `${sd.s.name} go all out attack`);
@@ -566,7 +574,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         }
       }
     }
-    if (as.winning && minute >= 75 && diff > 0 && sd.tactic.mentality > 0) {
+    if (as.winning && minute >= 75 && diff > 0 && sd.tactic.mentality > 0 && !assistDid[side].has('protect')) {
+      assistDid[side].add('protect');
       sd.tactic = { ...sd.tactic, mentality: 0, line: Math.min(sd.tactic.line, 1) };
       logStyle(side, sd.tactic);
       log('tactic', side, `${sd.s.name} sit back to protect the lead`);
@@ -661,7 +670,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     }
     if (ta.build === 2 && r.next() < 0.5) {
       const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) - (tb.press === 1 ? 0.35 : 0)
-        + S[a].flags.holdup - (weather === 'wind' || weather === 'rain' ? 0.3 : 0);
+        + S[a].flags.holdup - (weather === 'wind' ? 0.3 : weather === 'fog' ? 0.9 : weather === 'rain' ? 0.12 : 0); // in fog nobody sees the long ball coming down
       if (r.next() < sig(duel - 1.45)) { reach(a, 2); create(a, tb.line === 2 ? 0.02 : 0); }
       else if (tb.mentality === 0 && r.next() < 0.06) counter(b);
       return;
@@ -674,7 +683,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     // game state: a team chasing the game late on throws bodies forward, more so when told to attack
     const behind = goals[b] - goals[a];
     if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 * intoBlock : ta.mentality === 0 ? -0.1 : 0);
-    prog += ta.tempo === 2 ? 0.1 : ta.tempo === 0 ? -0.08 : 0;
+    // quick play: worth it on a dry day, not on a heavy pitch; in the heat a patient side keeps its legs and loses little
+    prog += ta.tempo === 2 ? (weather === 'rain' ? 0.01 : weather === 'snow' ? -0.03 : weather === 'heat' ? 0.06 : 0.1) : ta.tempo === 0 ? (weather === 'heat' ? 0 : -0.08) : 0;
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
     prog += S[a].flags.prog;
     if (r.next() < sig(prog - 1.55)) { reach(a, 2); create(a); }
@@ -714,7 +724,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       for (const o of S[i].pitch) {
         const stam = o.p.a.Stamina || 70;
         const roleTire = S[i].roleOf.size && ['Wing back', 'Box to box', 'Overlap'].includes(S[i].roleOf.get(o.p.id) || '') ? 1.18 : 1;
-        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 : 1) * roleTire;
+        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 + 0.12 * (t.tempo - 1) + ((o.p.a.Dribbling || 50) > 74 ? 0.1 : 0) : weather === 'snow' ? 0.8 : 1) * roleTire; // heat drains the runners and the men on the ball; snow keeps legs fresh
       }
       // injuries: rare, more likely when exhausted
       if (r.next() < 0.0009 * (S[i].s.injuryRisk ?? 1) * S[i].pitch.length / 11) {
@@ -816,12 +826,12 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 // Win share of the row tactic against the column tactic on a neutral pitch with equal squads
 // (measured with this engine: scripts/tactics-study.ts). Every tactic has at least one clear counter.
 const M = {
-  'Tiki-taka': { 'Tiki-taka': 50, Gegenpress: 48, 'Low block': 36, 'Wing play': 54, 'Long ball': 46, 'Shoot on sight': 60 },
-  Gegenpress: { 'Tiki-taka': 52, Gegenpress: 50, 'Low block': 30, 'Wing play': 56, 'Long ball': 47, 'Shoot on sight': 58 },
-  'Low block': { 'Tiki-taka': 64, Gegenpress: 70, 'Low block': 50, 'Wing play': 46, 'Long ball': 50, 'Shoot on sight': 44 },
-  'Wing play': { 'Tiki-taka': 46, Gegenpress: 44, 'Low block': 54, 'Wing play': 50, 'Long ball': 58, 'Shoot on sight': 52 },
-  'Long ball': { 'Tiki-taka': 54, Gegenpress: 53, 'Low block': 50, 'Wing play': 42, 'Long ball': 50, 'Shoot on sight': 37 },
-  'Shoot on sight': { 'Tiki-taka': 40, Gegenpress: 42, 'Low block': 56, 'Wing play': 48, 'Long ball': 63, 'Shoot on sight': 50 },
+  'Tiki-taka': { 'Tiki-taka': 50, Gegenpress: 48, 'Counter attack': 36, 'Wing play': 54, 'Long ball': 46, 'Shoot on sight': 60 },
+  Gegenpress: { 'Tiki-taka': 52, Gegenpress: 50, 'Counter attack': 30, 'Wing play': 56, 'Long ball': 47, 'Shoot on sight': 58 },
+  'Counter attack': { 'Tiki-taka': 64, Gegenpress: 70, 'Counter attack': 50, 'Wing play': 46, 'Long ball': 50, 'Shoot on sight': 44 },
+  'Wing play': { 'Tiki-taka': 46, Gegenpress: 44, 'Counter attack': 54, 'Wing play': 50, 'Long ball': 58, 'Shoot on sight': 52 },
+  'Long ball': { 'Tiki-taka': 54, Gegenpress: 53, 'Counter attack': 50, 'Wing play': 42, 'Long ball': 50, 'Shoot on sight': 37 },
+  'Shoot on sight': { 'Tiki-taka': 40, Gegenpress: 42, 'Counter attack': 56, 'Wing play': 48, 'Long ball': 63, 'Shoot on sight': 50 },
 } as Record<string, Record<string, number>>;
 export const counterShare = (mine: string, theirs: string) => (M[mine]?.[theirs] ?? 50) / 100;
 

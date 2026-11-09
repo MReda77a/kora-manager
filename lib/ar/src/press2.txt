@@ -139,3 +139,7 @@ Mind games begin: {0} boss takes aim at {1}	الحرب النفسية بدأت: 
 🎙️ {0} ({1}) before {2}: "{3}"	🎙️ {0} ({1}) قبل {2}: "{3}"
 🎙️ {0} manager spoke about you	🎙️ مدرب {0} اتكلم عنك
 "{0}" Answer him in your own press conference.	"{0}" رد عليه في المؤتمر بتاعك.
+heavy rain	مطر جامد
+strong wind	هوا جامد
+thick fog	شبورة كثيفة
+scorching heat	حر نار

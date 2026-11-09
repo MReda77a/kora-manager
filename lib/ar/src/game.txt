@@ -50,7 +50,7 @@ Win the ball back more often, but more fouls, free kicks, cards and penalties. S
 Gegenpress	جيجن برس
 Keep the ball, short passes, high line.	احتفظ بالكورة، باصات قصيرة، خط عالي.
 Win it back high and fast. Tiring.	اخطفها من فوق وبسرعة. مُتعب.
-Sit deep, stay compact, hit on the break.	ارجع ورا، خليك مقفول، واضرب بالمرتدة.
+Wait deep, win it, and break fast.	استنى ورا، اخطف الكورة، واضرب بسرعة.
 Stretch them wide and cross. Balanced.	وسّع الملعب وعرّض. متوازن.
 Skip midfield, go direct to the strikers.	اقفز على الوسط، وعلى المهاجمين على طول.
 Shoot from anywhere. Good vs deep blocks.	شوّط من أي حتة. حلو قدام الدفاع المتأخر.
@@ -191,3 +191,8 @@ Technique	التكنيك
 Decisions	القرارات
 Teamwork	الجماعية
 Leadership	القيادة
+Heavy pitch: quick play and fast players lose their edge.	الأرض تقيلة: اللعب السريع واللعيبة السريعين بيفقدوا ميزتهم.
+Legs tire fast, most of all with a high tempo and on the dribblers. A slow tempo suits it.	الرجلين بتتعب بسرعة، خصوصاً مع الريتم العالي والمراوغين. الريتم البطيء أنسب.
+Slow pitch: pace and quick play count for little, but legs stay fresh.	الأرض بطيئة: السرعة واللعب السريع مش هيفرقوا كتير، بس الرجلين بتفضل فريش.
+Fog	شبورة
+Hard to see: long balls rarely find their man.	الرؤية صعبة: الكور الطويلة نادراً لما توصل لصاحبها.

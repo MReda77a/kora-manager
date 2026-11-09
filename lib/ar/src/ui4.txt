@@ -191,3 +191,35 @@ Under pressure	تحت الضغط
 Tackle!	تاكلينج!
 Through ball	كورة بينية
 Offside!	تسلل!
+PENALTY GIVEN	بلنتي!
+Penalty overturned (VAR)	بلنتي اتلغت (فار)
+Penalty given (VAR)	بلنتي من الفار
+In the net…	في الشبكة…
+VAR check…	الفار بيراجع…
+No goal: offside	مفيش جون: تسلل
+Calendar	المواعيد
+Streaks	السلاسل
+Team streaks	سلاسل الفرق
+League · after {0} rounds	الدوري · بعد {0} جولات
+No matches yet. Streaks start after the first round.	لسه مفيش ماتشات. السلاسل بتبدأ بعد أول جولة.
+Longest winning run	أطول سلسلة انتصارات
+Longest unbeaten run	أطول سلسلة من غير هزيمة
+Clean sheets in a row	شباك نظيفة ورا بعض
+Longest without a win	أطول فترة من غير فوز
+Now	دلوقتي
+Wins	فوز
+Unbeaten	من غير هزيمة
+Clean	نظيفة
+Scoring	بيجيب أجوال
+Won {0} in a row	كسب {0} ورا بعض
+Unbeaten in {0}	من غير هزيمة في {0}
+No win in {0}	من غير فوز في {0}
+Won the last one	كسب آخر ماتش
+Drew the last one	اتعادل آخر ماتش
+Lost the last one	خسر آخر ماتش
+Wins, Unbeaten and Clean: the best run this season. Scoring: matches in a row with a goal, right now.	فوز، من غير هزيمة، ونظيفة: أحسن سلسلة الموسم ده. بيجيب أجوال: كام ماتش ورا بعض جاب فيهم جون لحد دلوقتي.
+Best winning run	أحسن سلسلة فوز
+Best unbeaten run	أحسن سلسلة من غير هزيمة
+Best run of clean sheets	أحسن سلسلة شباك نظيفة
+Scored in this many in a row (now)	جاب جون في الكام ماتش دول ورا بعض (دلوقتي)
+They have switched to {0}. Our {1} is the right answer: keep it.	غيّروا لـ{0}. الـ{1} بتاعنا هو الرد الصح: كمّل بيه.
