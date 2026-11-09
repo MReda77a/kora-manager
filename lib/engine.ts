@@ -49,7 +49,7 @@ export type Report = {
   // 2 final third, 3 shot), index into shots or -1]. Logged only: it never changes the result.
   flow?: [number, 0 | 1, number, number][];
   // how each side was set up over the match (start, then every live change), so the pitch can show the style
-  styles?: { m: number; side: 0 | 1; preset?: string; mentality: number; press: number; line: number; build: number; width: number; tempo: number }[];
+  styles?: { m: number; side: 0 | 1; preset?: string; mentality: number; press: number; line: number; build: number; width: number; tempo: number; shift?: number }[];
 };
 
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
@@ -73,6 +73,7 @@ class Side {
   form: number;
   tactic: Tactic;
   agg: Record<string, number> = {};
+  flank = { att: [60, 60], def: [60, 60] }; // [left, right]: wide attacking and defending quality on each flank
   capBonus = 0; // the captain driving the team on (worked out every minute)
   armband: string | null = null;
   constructor(s: ESide, r: Rng, idx: 0 | 1, lines: PlayerLine[], derbyForm = false) {
@@ -121,6 +122,18 @@ class Side {
       trap: avg(D.length ? D : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Marking')) / 3, base) - avg(D, (o) => o.tired, 0) * 8,
       runs: avg(F.length ? F : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Pace')) / 3, base),
     };
+    // each flank: the wide men going forward (pace, dribbling, crossing) and the ones defending it
+    // (tackling, marking, pace); tired legs and a yellow card make a flank weaker
+    {
+      const sideOf = (o: OnPitch) => (/^L/.test(o.p.pos) ? 0 : /^R/.test(o.p.pos) ? 1 : -1);
+      const legs = (o: OnPitch) => 1 - Math.max(0, o.tired - 0.45) * 0.25;
+      for (const f of [0, 1] as const) {
+        const men = all.filter((o) => o.slot !== 'GK' && sideOf(o) === f);
+        this.flank.att[f] = avg(men, (o) => ((this.val(o, 'Pace') + this.val(o, 'Dribbling') + this.val(o, 'Crossing')) / 3) * legs(o), base - 8);
+        const backs = men.filter((o) => o.slot !== 'FWD');
+        this.flank.def[f] = avg(backs, (o) => ((this.val(o, 'Tackling') + this.val(o, 'Marking') + this.val(o, 'Pace')) / 3) * legs(o) - o.yc * 4, base - 10);
+      }
+    }
     // roles: each player in a role that fits his slot changes how the team plays (see ROLES), scaled by
     // how well his attributes suit it; every role has a cost too
     this.flags = { ...NO_FLAGS };
@@ -249,7 +262,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const shotsList: Shot[] = [];
   const flow: [number, 0 | 1, number, number][] = [];
   const styles: NonNullable<Report['styles']> = [];
-  const logStyle = (side: 0 | 1, t: Tactic) => styles.push({ m: minute, side, preset: t.preset, mentality: t.mentality, press: t.press, line: t.line, build: t.build, width: t.width, tempo: t.tempo });
+  const logStyle = (side: 0 | 1, t: Tactic) => styles.push({ m: minute, side, preset: t.preset, mentality: t.mentality, press: t.press, line: t.line, build: t.build, width: t.width, tempo: t.tempo, ...(t.shift ? { shift: t.shift } : {}) });
   const reach = (side: 0 | 1, r: number) => {
     const f = flow[flow.length - 1];
     if (!f || f[1] !== side || f[0] !== minute || f[3] !== -1) flow.push([minute, side, r, -1]);
@@ -621,6 +634,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
         : moved('press') && t.press === 3 ? 'a high press'
         : changed.length === 1 && changed[0] === 'trap' ? (t.trap ? 'an offside trap' : 'no offside trap')
         : changed.length === 1 && changed[0] === 'tackle' ? (t.tackle === 2 ? 'harder tackling' : t.tackle === 0 ? 'softer tackling' : 'normal tackling')
+        : changed.length === 1 && changed[0] === 'shift' ? (t.shift ? `the ${t.shift < 0 ? 'left' : 'right'} flank` : 'the middle')
         : 'a new plan';
       // several changes in the same minute (the half-time break) read as one decision: the last one
       const prev = ev[ev.length - 1];
@@ -684,6 +698,15 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const behind = goals[b] - goals[a];
     if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 * intoBlock : ta.mentality === 0 ? -0.1 : 0);
     // quick play: worth it on a dry day, not on a heavy pitch; in the heat a patient side keeps its legs and loses little
+    // leaning to one flank: worth it against a weak full-back, wasted against a strong one or a side that has
+    // leaned the same way to stop it; and whoever leans leaves the other flank open behind
+    {
+      const sa = (ta.shift || 0) / 100, sb = (tb.shift || 0) / 100;
+      const fa = Math.sign(sa), fb = -Math.sign(sb); // fb: the flank they cover, seen from our side (their left is our right)
+      const edge = fa ? S[a].flank.att[fa < 0 ? 0 : 1] - S[b].flank.def[fa < 0 ? 1 : 0] : 0;
+      const covered = fa && fa === fb ? Math.abs(sb) : 0, open = Math.abs(sb) * (fa === 0 ? 0.5 : fa === fb ? 0 : 1);
+      prog += Math.abs(sa) * (Math.max(-12, Math.min(14, edge)) * 0.04 - 0.05) - 0.18 * covered * Math.abs(sa) + 0.1 * open;
+    }
     prog += ta.tempo === 2 ? (weather === 'rain' ? 0.01 : weather === 'snow' ? -0.03 : weather === 'heat' ? 0.06 : 0.1) : ta.tempo === 0 ? (weather === 'heat' ? 0 : -0.08) : 0;
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
     prog += S[a].flags.prog;

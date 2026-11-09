@@ -552,6 +552,7 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
     const t: Record<string, unknown> = {};
     if (b.preset && PRESETS[b.preset]) t.preset = b.preset;
     for (const k of ['mentality', 'press', 'line', 'tempo', 'trap', 'tackle']) if (b[k] !== undefined) t[k] = Math.max(0, Math.min(k === 'press' ? 3 : k === 'trap' ? 1 : 2, Math.floor(Number(b[k]))));
+    if (b.shift !== undefined) { const v = Math.round(Number(b.shift) / 10) * 10; if (Number.isFinite(v)) t.shift = Math.max(-100, Math.min(100, v)); }
     if (!Object.keys(t).length) fail(400, 'Nothing to change.');
     ch = { m: minute, side: side as 0 | 1, kind: 'tactic', tactic: t };
   }
@@ -561,7 +562,7 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   const l = await getLeague(f.league_id);
   const botSide = (1 - side) as 0 | 1;
   const botClub = await one('SELECT user_id FROM clubs WHERE id=$1', [botSide === 0 ? f.home_id : f.away_id]);
-  if (!botClub?.user_id && ch.kind === 'tactic' && l.ai_level === 2) {
+  if (!botClub?.user_id && ch.kind === 'tactic' && l.ai_level === 2 && Object.keys(ch.tactic).some((k) => !['shift', 'trap', 'tackle'].includes(k))) {
     const r = rng(hashSeed('react', f.id, minute));
     if (r.next() < (l.ai_level === 2 ? 0.6 : 0.3)) {
       const mine = side === 0 ? hs : as;

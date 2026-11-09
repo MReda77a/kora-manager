@@ -223,3 +223,18 @@ Best unbeaten run	أحسن سلسلة من غير هزيمة
 Best run of clean sheets	أحسن سلسلة شباك نظيفة
 Scored in this many in a row (now)	جاب جون في الكام ماتش دول ورا بعض (دلوقتي)
 They have switched to {0}. Our {1} is the right answer: keep it.	غيّروا لـ{0}. الـ{1} بتاعنا هو الرد الصح: كمّل بيه.
+LEAN TO A FLANK	ميّل على جنب
+Lean to a flank	ميّل على جنب
+Middle	النص
+Apply	طبّق
+Left	شمال
+Right	يمين
+ · their weak side	 · جنبهم الضعيف
+More attacks go down that side. Against a weak or tired full-back it pays; against a strong one it is wasted, and the other flank is left open behind you.	هجمات أكتر هتطلع من الجنب ده. قدام ظهير ضعيف أو تعبان بتفرق؛ قدام ظهير قوي بتضيع، والجنب التاني بيفضل مفتوح وراك.
+Back to the middle	رجعنا للنص
+Leaning {0}% to the left	ميلنا {0}% على الشمال
+Leaning {0}% to the right	ميلنا {0}% على اليمين
+Lean left {0}%	ميّل شمال {0}%
+Lean right {0}%	ميّل يمين {0}%
+Most of their chances come down our {0} side. Lean the team that way, or put a fresh full-back there.	أغلب فرصهم جاية من الجنب {0} بتاعنا. ميّل الفريق ناحيته، أو نزّل ظهير فريش هناك.
+Their {0} {1} is on a yellow and can't go in hard. Run at him down our {2}.	الـ{0} بتاعهم {1} واخد كارت أصفر ومش هيقدر يدخل جامد. اهجموا عليه من {2} بتاعنا.

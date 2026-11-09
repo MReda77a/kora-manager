@@ -530,6 +530,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           {Object.keys(PRESETS).map((pr) => <button key={pr} className="seg" style={{ minHeight: 36 }} onClick={() => change({ preset: pr }, `Switched to ${pr}`)}><span>{pr}</span></button>)}
           <span className="tiny muted" style={{ width: '100%', fontWeight: 900, marginTop: 4 }}>TACKLING</span>
           {TACKLE_STYLES.map((x, i) => <button key={x.name} className="seg" style={{ minHeight: 36 }} onClick={() => change({ tackle: i }, `${x.face} ${x.name}`)}><span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 20 }}>{x.face}</span>{x.short}</span></button>)}
+          <FlankSlider d={d} gm={pm} seen={seen} mine={mineSide as 0 | 1} ours={on} theirs={onPitch((1 - mineSide) as 0 | 1).on} apply={(v) => change({ shift: v }, v === 0 ? 'Back to the middle' : `Leaning ${Math.abs(v)}% to the ${v < 0 ? 'left' : 'right'}`)} />
           <span className="tiny muted" style={{ width: '100%', fontWeight: 900, marginTop: 4 }}>OFFSIDE TRAP</span>
           <button className="seg" style={{ minHeight: 36 }} onClick={() => change({ trap: 1 }, '🚩 Offside trap on')}><span>🚩 Trap on</span></button>
           <button className="seg" style={{ minHeight: 36 }} onClick={() => change({ trap: 0 }, 'Offside trap off')}><span>Trap off</span></button>
@@ -548,6 +549,48 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
         </div>
       )}
       {toast.node}
+    </div>
+  );
+}
+
+// Lean the team to one flank: -100 (all left) .. 100 (all right). Each flank shows our wide men going
+// forward against the men defending it for them (their right back defends our left), so the choice is informed.
+function FlankSlider({ d, gm, seen, mine, ours, theirs, apply }: { d: any; gm: number; seen: Ev[]; mine: 0 | 1; ours: string[]; theirs: string[]; apply: (v: number) => void }) {
+  const styles = (d.report.styles || []).filter((x: any) => x.side === mine && tm(x.m) <= gm);
+  const cur = styles.length ? styles[styles.length - 1].shift || 0 : 0;
+  const [v, setV] = useState<number>(cur);
+  useEffect(() => setV(cur), [cur]);
+  const man = (id: string) => {
+    const n = d.names[id] || {}, fit = liveFit(d, id, gm, seen) ?? 100, yc = seen.some((e) => e.type === 'yellow' && e.pid === id);
+    return { id, name: lastName(n.name || '?'), pos: n.pos || '', v: (n.ovr || 60) * (0.75 + 0.25 * fit / 100) - (yc ? 4 : 0), fit, yc };
+  };
+  const pick = (ids: string[], re: RegExp, def: boolean) => ids.map(man).filter((p) => re.test(p.pos) && (!def || !['LW', 'RW', 'ST'].includes(p.pos)));
+  const avgV = (ps: { v: number }[]) => (ps.length ? ps.reduce((s, p) => s + p.v, 0) / ps.length : 0);
+  // our left attacks their right
+  const side = (f: 0 | 1) => {
+    const us = pick(ours, f === 0 ? /^L/ : /^R/, false), them = pick(theirs, f === 0 ? /^R/ : /^L/, true);
+    return { us, them, edge: us.length && them.length ? avgV(us) - avgV(them) : 0 };
+  };
+  const fl = [side(0), side(1)];
+  const ok = (f: 0 | 1) => fl[f].us.length > 0 && fl[f].them.length > 0;
+  const better = ok(0) && ok(1) ? (Math.abs(fl[0].edge - fl[1].edge) >= 3 ? (fl[0].edge > fl[1].edge ? 0 : 1) : -1) : ok(0) && fl[0].edge > 3 ? 0 : ok(1) && fl[1].edge > 3 ? 1 : -1;
+  const who = (ps: ReturnType<typeof man>[]) => (ps.length ? ps.map((p) => `${p.name} ${p.pos}${p.fit < 70 ? ` ${Math.round(p.fit)}%` : ''}${p.yc ? ' 🟨' : ''}`).join(', ') : 'nobody wide');
+  return (
+    <div className="col" style={{ width: '100%', gap: 4, marginTop: 4 }}>
+      <span className="tiny muted" style={{ fontWeight: 900 }}>LEAN TO A FLANK</span>
+      <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+        <b className="lz" style={{ fontSize: 18, color: v < 0 ? 'var(--cyan)' : 'var(--muted)' }}>L</b>
+        <input type="range" min={-100} max={100} step={10} value={v} onChange={(e) => setV(Number(e.target.value))} style={{ flex: 1, accentColor: '#5FD3F3' }} aria-label="Lean to a flank" />
+        <b className="lz" style={{ fontSize: 18, color: v > 0 ? 'var(--cyan)' : 'var(--muted)' }}>R</b>
+        <span className="small" style={{ width: 64, textAlign: 'center', fontWeight: 800 }}>{v === 0 ? 'Middle' : `${Math.abs(v)}% ${v < 0 ? 'L' : 'R'}`}</span>
+        <button className="seg on" style={{ minHeight: 34 }} disabled={v === cur} onClick={() => apply(v)}><span>Apply</span></button>
+      </div>
+      {([0, 1] as const).map((f) => (
+        <div key={f} className="tiny" style={{ fontWeight: 700, color: better === f ? '#2EE6A0' : 'var(--soft)' }}>
+          <b>{f === 0 ? 'Left' : 'Right'}{better === f ? ' · their weak side' : ''}:</b> {who(fl[f].us)} vs {who(fl[f].them)}
+        </div>
+      ))}
+      <span className="tiny muted">More attacks go down that side. Against a weak or tired full-back it pays; against a strong one it is wasted, and the other flank is left open behind you.</span>
     </div>
   );
 }

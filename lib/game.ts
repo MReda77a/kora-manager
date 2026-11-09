@@ -79,6 +79,7 @@ export type Tactic = {
   mentality: number; press: number; line: number; build: number; focus: number; width: number; tempo: number;
   trap?: number; // offside trap: 0 off, 1 on (needs a mid or high line)
   tackle?: number; // 0 stay on feet, 1 normal (default), 2 get stuck in
+  shift?: number; // live only: the team leans to one flank, -100 (all to its left) .. 100 (all to its right)
 };
 export const TACKLE_STYLES = [
   { face: '🙂', short: 'Soft', name: 'Stay on feet', text: 'Few fouls and cards, but they get past you more easily.' },

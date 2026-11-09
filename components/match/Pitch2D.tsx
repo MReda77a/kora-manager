@@ -614,7 +614,15 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     const koEnd = q.restart === 'kickoff' ? (q.cum && q.holds ? q.cum[1] * ce * q.holds[0] * (q.koSide !== undefined && q.koSide !== q.s ? 0.35 : 1) : 0.1) : 0;
     const koW = q.restart === 'kickoff' ? 1 - ease(c01((v - koEnd) / 0.25)) : 0;
     const ownHalf = (side: 0 | 1, xy: [number, number]): [number, number] => (koW > 0 ? [lerp(xy[0], side === 0 ? Math.min(xy[0], L / 2 - 1.2) : Math.max(xy[0], L / 2 + 1.2), koW), xy[1]] : xy);
-    const own = (side: 0 | 1, k: number): [number, number] => { const r0 = ownRaw(side, k); return koW > 0 && !(side === q.koSide && k === (q.koSide === q.s ? q.chain[0] : q.koMan)) ? ownHalf(side, r0) : r0; };
+    // a team told to lean to one flank: every outfield man shifts across that way (its left is the top of the
+    // pitch while it attacks to the right)
+    const leanOf = [0, 1].map((sd) => ((styleAt(sd as 0 | 1, q.t0) as any).shift || 0) / 100);
+    const lean = (side: 0 | 1, k: number, r: [number, number]): [number, number] => {
+      const sh = leanOf[side];
+      if (!sh || F[side].slots[k] === 'GK') return r;
+      return [r[0], Math.max(2, Math.min(W - 2, r[1] + sh * W * 0.13 * (side === 0 ? 1 : -1)))];
+    };
+    const own = (side: 0 | 1, k: number): [number, number] => { const r0 = lean(side, k, ownRaw(side, k)); return koW > 0 && !(side === q.koSide && k === (q.koSide === q.s ? q.chain[0] : q.koMan)) ? ownHalf(side, r0) : r0; };
     const ownRaw = (side: 0 | 1, k: number): [number, number] => {
       let b = base(side, k);
       if (q.restart === 'kickoff' && q.koSide !== undefined && q.koSide !== q.s && side === q.koSide && k === q.koMan) {
@@ -659,7 +667,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
           // goal and the more the side presses (a man marker, not a wall moving as one)
           const mm = gk ? undefined : marksOf(q).get(k);
           if (mm !== undefined) {
-            const man = ownRaw(q.s, mm), ownGoal = side === 0 ? 0 : L;
+            const man = lean(q.s, mm, ownRaw(q.s, mm)), ownGoal = side === 0 ? 0 : L;
             const tgt: [number, number] = [man[0] + (side === 0 ? -2.2 : 2.2), man[1] + (W / 2 - man[1]) * 0.1];
             const near = c01(1 - Math.abs(man[0] - ownGoal) / (L * 0.75));
             const wM = Math.min(0.75, (0.26 + 0.1 * stD.press + (F[side].slots[k] === 'DEF' ? 0.08 : 0)) * (0.55 + 0.65 * near)) * shapeOn;

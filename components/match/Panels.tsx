@@ -255,7 +255,10 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
   const theirAll = (rep.shots || []).filter((x: Shot) => x.side === them && x.m <= M && x.m > M - 20 && x.kind !== 'penalty');
   if (theirAll.length >= 3) {
     const leftOfMe = theirAll.filter((x: Shot) => (mine === 0 ? x.y > 55 : x.y < 45)).length, rightOfMe = theirAll.filter((x: Shot) => (mine === 0 ? x.y < 45 : x.y > 55)).length;
-    if (Math.max(leftOfMe, rightOfMe) >= theirAll.length * 0.7) tips.push({ key: `wing-${Math.floor(M / 20)}`, ico: '🧭', text: `Most of their chances come down our ${leftOfMe > rightOfMe ? 'left' : 'right'} side. A fresh full-back there would help.` });
+    if (Math.max(leftOfMe, rightOfMe) >= theirAll.length * 0.7) {
+      const l = leftOfMe > rightOfMe;
+      tips.push({ key: `wing-${Math.floor(M / 20)}`, ico: '🧭', text: `Most of their chances come down our ${l ? 'left' : 'right'} side. Lean the team that way, or put a fresh full-back there.`, act: { label: `Lean ${l ? 'left' : 'right'} 40%`, body: { shift: l ? -40 : 40 } } });
+    }
   }
   if (M >= 65 && diff < 0 && diff >= -2) {
     // against a side parked deep, men through the middle just run into a wall: go round it down the wings
@@ -274,8 +277,17 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
       ? { key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. They shoot from range, so do not sit too deep: stay compact.`, act: { label: 'Stay compact', body: { mentality: 0, line: 1, press: 1 } } }
       : { key: `lead-${score.join('-')}`, ico: '🛡', text: `One goal up with ${90 - M} minutes to go. Protect it.`, act: { label: 'Park the bus', body: { mentality: 0, line: 0, press: 0 } } });
   }
+  // their full-back on a yellow (and still on): attack his flank (their right back defends our left)
+  if (M >= 20) {
+    const gone = new Set(shown.filter((e) => (e.type === 'sub' && e.side === them && e.pid2) || (e.type === 'red' && e.side === them)).map((e) => (e.type === 'sub' ? e.pid2! : e.pid!)));
+    const fb = shown.filter((e) => e.type === 'yellow' && e.side === them && e.pid && !gone.has(e.pid) && /^(LB|RB|LWB|RWB)$/.test(d.names[e.pid]?.pos || '')).pop();
+    if (fb) {
+      const ourLeft = /^R/.test(d.names[fb.pid!].pos);
+      tips.push({ key: `fb-${fb.pid}`, ico: '🎯', text: `Their ${d.names[fb.pid!].pos} ${nm(fb.pid!)} is on a yellow and can't go in hard. Run at him down our ${ourLeft ? 'left' : 'right'}.`, act: { label: `Lean ${ourLeft ? 'left' : 'right'} 50%`, body: { shift: ourLeft ? -50 : 50 } } });
+    }
+  }
   // never suggest what we are already doing
-  const already = (b?: Record<string, unknown>) => !!b && Object.entries(b).every(([k, v]) => (k === 'preset' ? now.preset === v : now[k] === v));
+  const already = (b?: Record<string, unknown>) => !!b && Object.entries(b).every(([k, v]) => (k === 'preset' ? now.preset === v : k === 'shift' ? Math.sign(now.shift || 0) === Math.sign(v as number) : now[k] === v));
   return tips.filter((t) => !t.act?.body || !already(t.act.body));
 }
 
