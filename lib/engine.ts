@@ -47,7 +47,7 @@ export type Report = {
   weather?: string;
   // the flow of play for the match screen: [minute, side, how far the move got (0 own half, 1 midfield,
   // 2 final third, 3 shot), index into shots or -1]. Logged only: it never changes the result.
-  flow?: [number, 0 | 1, number, number][];
+  flow?: ([number, 0 | 1, number, number] | [number, 0 | 1, number, number, number])[]; // 5th: the attack went down our left (-1) or right (1) flank
   // how each side was set up over the match (start, then every live change), so the pitch can show the style
   styles?: { m: number; side: 0 | 1; preset?: string; mentality: number; press: number; line: number; build: number; width: number; tempo: number; shift?: number }[];
 };
@@ -260,12 +260,13 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const cardMul = [0.75, 1, 1.35][opts.strict ?? 1];
   const penMul = [0.8, 1, 1.25][opts.strict ?? 1];
   const shotsList: Shot[] = [];
-  const flow: [number, 0 | 1, number, number][] = [];
+  const flow: ([number, 0 | 1, number, number] | [number, 0 | 1, number, number, number])[] = [];
+  let lane: [0 | 1, number] | null = null; // the side attacking now went down this flank (team's own left -1 / right 1)
   const styles: NonNullable<Report['styles']> = [];
   const logStyle = (side: 0 | 1, t: Tactic) => styles.push({ m: minute, side, preset: t.preset, mentality: t.mentality, press: t.press, line: t.line, build: t.build, width: t.width, tempo: t.tempo, ...(t.shift ? { shift: t.shift } : {}) });
   const reach = (side: 0 | 1, r: number) => {
     const f = flow[flow.length - 1];
-    if (!f || f[1] !== side || f[0] !== minute || f[3] !== -1) flow.push([minute, side, r, -1]);
+    if (!f || f[1] !== side || f[0] !== minute || f[3] !== -1) flow.push(lane && lane[0] === side ? [minute, side, r, -1, lane[1]] : [minute, side, r, -1]);
     else if (r > f[2]) f[2] = r;
   };
   const spot = (a: 0 | 1, kind: string) => {
@@ -274,6 +275,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     else if (kind === 'cross' || kind === 'corner') { x = 90 + r.next() * 6; y = 40 + r.next() * 20; }
     else if (kind === 'penalty') { x = 88.5; y = 50; }
     else { x = 82 + r.next() * 10; y = 32 + r.next() * 36; }
+    // down a flank: the chance comes from that side of the box (the team's left is low y, as in the formations)
+    if (lane && lane[0] === a && kind !== 'penalty' && kind !== 'corner') y = lane[1] < 0 ? Math.min(y, 26 + (y - 22) * 0.35) : Math.max(y, 74 - (78 - y) * 0.35);
     return a === 0 ? [x, y] : [100 - x, 100 - y];
   };
   let nextChange = 0;
@@ -420,6 +423,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   };
 
   const counter = (a: 0 | 1) => {
+    lane = null;
     const b = 1 - a;
     const tr = trap(a);
     if (tr === 'off') return;
@@ -660,7 +664,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const b = (1 - a) as 0 | 1;
     const ta = T(a), tb = T(b);
     possN[a]++;
-    flow.push([minute, a, 0, -1]);
+    // a team leaning to one flank sends most of its attacks down it (the pitch draws them there)
+    lane = null;
+    if (ta.shift && r.next() < 0.3 + 0.55 * Math.abs(ta.shift) / 100) lane = [a, Math.sign(ta.shift)];
+    flow.push(lane ? [minute, a, 0, -1, lane[1]] : [minute, a, 0, -1]);
     const risk = ta.build === 0 ? (weather === 'rain' ? 1.55 : 1.35) : ta.build === 2 ? 0.5 : 1.0;
     const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0) // hard tackling hurts short-passing sides most
       + S[a].flags.lose + (tb.press >= 2 ? S[a].flags.pressed : 0);

@@ -3,9 +3,9 @@
 // It only uses what can be known in advance: who has the ball each minute, how far they get, and where
 // and what kind each shot is. Never a shot's result: so the layout never changes when a result comes in.
 
-export type Flow = [number, 0 | 1, number, number]; // minute, side, how far (0-3), shot index, -1 or -2 (ended offside)
+export type Flow = [number, 0 | 1, number, number] | [number, 0 | 1, number, number, number]; // minute, side, how far (0-3), shot index, -1 or -2 (ended offside); 5th: down the team's left (-1) or right (1)
 export type ShotLike = { m: number; side: 0 | 1; kind: string };
-export type Move = { t0: number; t1: number; s: 0 | 1; r: number; sh: number; merged?: boolean; m0: number; m1: number; off?: boolean };
+export type Move = { t0: number; t1: number; s: 0 | 1; r: number; sh: number; merged?: boolean; m0: number; m1: number; off?: boolean; lane?: number };
 
 // match minute -> time on the clock of the watched match (stoppage time is squeezed in)
 export const tm = (m: number) => (m <= 90 ? m : 90 + (m - 90) * 0.08);
@@ -28,9 +28,9 @@ export function moveTimes(flow: Flow[], shots: ShotLike[]): Move[] {
     const off = !withShot[0] && main[3] === -2;
     const last = raw[raw.length - 1];
     if (main[3] < 0 && last && last.sh < 0 && !last.off && !last.merged && last.s === main[1] && Math.abs(last.t1 - A) < 1e-6 && m !== 46) {
-      last.t1 = B; last.m1 = m; last.merged = true; if (main[2] > last.r) last.r = main[2]; if (off) last.off = true; continue;
+      last.t1 = B; last.m1 = m; last.merged = true; if (main[2] > last.r) last.r = main[2]; if (off) last.off = true; if (main[4]) last.lane = main[4]; continue;
     }
-    raw.push({ t0: A, t1: B, s: main[1], r: main[2], sh: main[3] >= 0 && shots[main[3]] ? main[3] : -1, m0: m, m1: m, ...(off ? { off: true } : {}) });
+    raw.push({ t0: A, t1: B, s: main[1], r: main[2], sh: main[3] >= 0 && shots[main[3]] ? main[3] : -1, m0: m, m1: m, ...(off ? { off: true } : {}), ...(main[4] ? { lane: main[4] } : {}) });
   }
   // possession that makes sense to the eye: a lone quiet minute of the other team between two minutes
   // of ours is our ball all along (no ping-pong), quiet minutes of one team merge into one longer spell
@@ -43,8 +43,8 @@ export function moveTimes(flow: Flow[], shots: ShotLike[]): Move[] {
   for (const m of raw) {
     const last = spells[spells.length - 1];
     const joinable = last && last.s === m.s && Math.abs(last.t1 - m.t0) < 1e-6 && !(last.t1 <= 45.01 && m.t0 >= 45);
-    if (joinable && last.sh < 0 && !last.off && m.sh < 0 && m.t1 - last.t0 <= 3) { last.t1 = m.t1; last.m1 = m.m1; last.r = Math.max(last.r, m.r); if (m.off) last.off = true; continue; }
-    if (joinable && last.sh < 0 && !last.off && m.sh >= 0 && last.t1 - last.t0 <= 1.01) { last.t1 = m.t1; last.m1 = m.m1; last.sh = m.sh; last.r = Math.max(last.r, m.r); continue; }
+    if (joinable && last.sh < 0 && !last.off && m.sh < 0 && m.t1 - last.t0 <= 3) { last.t1 = m.t1; last.m1 = m.m1; last.r = Math.max(last.r, m.r); if (m.off) last.off = true; if (m.lane) last.lane = m.lane; continue; }
+    if (joinable && last.sh < 0 && !last.off && m.sh >= 0 && last.t1 - last.t0 <= 1.01) { last.t1 = m.t1; last.m1 = m.m1; last.sh = m.sh; last.r = Math.max(last.r, m.r); if (m.lane) last.lane = m.lane; continue; }
     spells.push({ ...m });
   }
   raw.length = 0; raw.push(...spells);

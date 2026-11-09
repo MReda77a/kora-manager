@@ -254,7 +254,8 @@ export function buildPlan(rep: any, events: Ev[]) {
           - ((sty.build === 2 || counter) && slots[k] === 'FWD' && goalD > 55 ? 8 : 0) // go long to the strikers
           + (sty.width === 2 ? (50 - Math.abs(yOf(k) - 50)) * 0.12 : sty.width === 0 ? Math.abs(yOf(k) - 50) * 0.12 : 0) // wide or through the middle
           - (PASS_TO[roleIn(s, ids[k])] ?? 0) // play goes through playmakers, crossers and the target man
-          - (roleIn(s, ids[cur]) === 'Long passer' && slots[k] === 'FWD' ? 10 : 0); // the long passer looks for the strikers
+          - (roleIn(s, ids[cur]) === 'Long passer' && slots[k] === 'FWD' ? 10 : 0) // the long passer looks for the strikers
+          + (p.lane ? Math.abs(yOf(k) - (p.lane < 0 ? 10 : 90)) * 0.55 * Math.min(1, 0.3 + n / Math.max(1, N - 1)) : 0); // leaning to a flank: the move goes down it
         chain.push(pool.sort((a, b) => score(a) - score(b))[0]);
       }
       let setTaker: number | undefined, fouler: number | undefined;
@@ -620,7 +621,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     const lean = (side: 0 | 1, k: number, r: [number, number]): [number, number] => {
       const sh = leanOf[side];
       if (!sh || F[side].slots[k] === 'GK') return r;
-      return [r[0], Math.max(2, Math.min(W - 2, r[1] + sh * W * 0.13 * (side === 0 ? 1 : -1)))];
+      return [r[0], Math.max(2, Math.min(W - 2, r[1] + sh * W * 0.2 * (side === 0 ? 1 : -1)))];
     };
     const own = (side: 0 | 1, k: number): [number, number] => { const r0 = lean(side, k, ownRaw(side, k)); return koW > 0 && !(side === q.koSide && k === (q.koSide === q.s ? q.chain[0] : q.koMan)) ? ownHalf(side, r0) : r0; };
     const ownRaw = (side: 0 | 1, k: number): [number, number] => {
