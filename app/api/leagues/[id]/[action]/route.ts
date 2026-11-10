@@ -188,6 +188,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'club': return L.createClub(s.uid, lid, b);
     case 'start': return S.startSeason(s.uid, lid);
     case 'schedule': return L.updateSchedule(s.uid, lid, b);
+    case 'difficulty': return L.updateDifficulty(s.uid, lid, b);
     case 'pack': {
       const l = await L.getLeague(lid);
       // packs are a pre-season thing: before the first match of each season, then coins buy boosts

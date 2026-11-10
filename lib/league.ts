@@ -87,6 +87,18 @@ export async function myClub(uid: number, leagueId: number) {
 }
 
 // The schedule time can change before or during the season; unplayed days move to the new time.
+/** the league creator sets how hard the AI managers play; everyone is told */
+export async function updateDifficulty(uid: number, leagueId: number, b: { aiLevel?: number }) {
+  const l = await getLeague(leagueId);
+  if (l.owner_id !== uid) fail(403, 'Only the league creator can change the difficulty.');
+  const lvl = Math.max(0, Math.min(2, Math.floor(Number(b.aiLevel))));
+  if (!Number.isFinite(lvl)) fail(400, 'Pick a difficulty.');
+  if (lvl === l.ai_level) return { ok: true, aiLevel: lvl };
+  await q('UPDATE leagues SET ai_level=$2 WHERE id=$1', [leagueId, lvl]);
+  await news(leagueId, null, 'schedule', `The league creator set the AI managers to ${['Easy', 'Normal', 'Hard'][lvl]}.`);
+  return { ok: true, aiLevel: lvl };
+}
+
 export async function updateSchedule(uid: number, leagueId: number, b: { kickoffUtcMin?: number }) {
   const l = await getLeague(leagueId);
   if (l.owner_id !== uid) fail(403, 'Only the league creator can change the match time.');

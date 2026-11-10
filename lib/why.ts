@@ -24,11 +24,11 @@ const AGAINST: Record<string, { text: (n: number, x: string) => string; tip: str
   },
   cross: {
     text: (n, x) => `${n} of their chances came from crosses (${x} xG): you lost the headers in your box.`,
-    tip: 'Put a Stopper at centre-back, or close their wide men with Flank cover.',
+    tip: 'Close their wide men with Flank cover: cutting the supply is what stops this. A Stopper helps in the box, but small centre-backs will keep losing headers until you sign a taller one.',
   },
   corner: {
     text: (n, x) => `${n} of their chances came from corners (${x} xG): you lost the headers in your box.`,
-    tip: 'Tall, strong centre-backs win corners. A Stopper role helps.',
+    tip: 'Corners are won in the air and nothing else. A Stopper helps a little; a tall, strong centre-back is the real answer.',
   },
   'high turnover': {
     text: (n, x) => `They won the ball high up the pitch ${n} times and shot straight away (${x} xG). Your build-up was pressed.`,

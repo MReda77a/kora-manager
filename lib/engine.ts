@@ -160,8 +160,8 @@ class Side {
           if (d) { A.passing += 1.0 * e; F.keep += 0.035 * e; F.crossB -= 0.002; }
           else { A.finishing += 1.0 * e; F.longshot2 += 0.03 * e; F.crossB -= 0.001; }
           break;
-        case 'Stopper': A.tackling += 1.2 * e; A.aerial_def += 1.2 * e; A.pace_def -= 0.6; if (d && o.p.pos !== 'CB') F.wingCover += 0.003 * e; break;
-        case 'Wing back': F.crossB += 0.008 * e; A.pace_att += 0.5 * e; F.wingCover += 0.003 * e; F.exposed += 0.008; F.tire += 1; break;
+        case 'Stopper': A.tackling += 1.2 * e; A.aerial_def += 4 * e; A.pace_def -= 0.9; if (d && o.p.pos !== 'CB') F.wingCover += 0.004 * e; break;
+        case 'Wing back': F.crossB += 0.008 * e; A.pace_att += 0.5 * e; F.wingCover += 0.004 * e; F.exposed += 0.008; F.tire += 1; break;
         case 'Sweeper': F.sweeper += 1.2 * e; A.pace_def += 0.8 * e; A.trap -= 1.5; break;
         case 'Long passer': F.holdup += 0.08 * e; F.counterQ += 0.012 * e; F.lose += 0.008; break;
         case 'Supporting CDM': A.passing += 0.8 * e; A.tackling += 0.5 * e; F.keep += 0.03 * e; F.exposed += 0.008; break;
@@ -172,13 +172,13 @@ class Side {
         case 'Anchor': A.tackling += 1.5 * e; F.anchor += e; A.passing -= 0.3; break;
         case 'Marker': F.mark += e; A.passing -= 0.6; break;
         case 'Deep-lying playmaker': A.passing += 1.5 * e; F.through += 0.003 * e; F.keep += 0.03 * e; A.tackling -= 0.6; break;
-        case 'Flank cover': F.wingCover += 0.006 * e; A.tackling += 0.4 * e; F.anchor += 0.3 * e; A.passing -= 0.3; break;
+        case 'Flank cover': F.wingCover += 0.03 * e; A.tackling += 0.4 * e; F.anchor += 0.3 * e; A.passing -= 0.5; break;
         case 'Regista': A.passing += 1.2 * e; F.through += 0.006 * e; F.counterQ += 0.008 * e; A.tackling -= 0.8; F.pressed += 0.02; break;
         case 'Box to box': A.tackling += 0.6 * e; A.passing += 0.6 * e; F.prog += 0.05 * e; F.tire += 1; break;
         case 'Ball carrier': F.prog += 0.08 * e; A.pace_att += 0.4 * e; F.lose += 0.01; break;
         case 'Playmaker': A.passing += 1.8 * e; F.through += 0.006 * e; A.tackling -= 0.5; break;
         case 'Long shooter': F.longshot += 0.008 * e; F.longshot2 += 0.04 * e; break;
-        case 'Supporting wing': F.crossB += 0.005 * e; F.wingCover += 0.003 * e; A.passing -= 0.3; break;
+        case 'Supporting wing': F.crossB += 0.005 * e; F.wingCover += 0.004 * e; A.passing -= 0.3; break;
         case 'Drift wide': F.crossB += 0.006 * e; A.pace_att += 0.4 * e; A.finishing -= 0.4; if (o.slot === 'FWD') A.aerial_att -= 0.8; break;
         case 'Early crosser': F.crossB += (0.006 + target * 0.005) * e; break;
         case 'Inside winger': A.finishing += 1.2 * e; F.longshot += 0.005 * e; F.longshot2 += 0.02 * e; F.crossB -= 0.002; break;
@@ -523,7 +523,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     }
     if (f === 0) {
       q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) + (tb.line === 0 ? 0.015 : 0)
-        + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0) - S[b].flags.wingCover;
+        + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0);
+      // men sent out to double up on the wide players cut the supply off at the source, so they are
+      // worth the most to a side being battered by crosses — never enough to make a weak back line safe
+      q *= Math.max(0.55, 1 - S[b].flags.wingCover * 8);
       two = 0.25;
     } else if (f === 1) {
       q = 0.088 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005 + (tb.line === 2 ? 0.04 - S[b].flags.sweeper * 0.02 : tb.line === 0 ? -0.035 : 0) + S[a].flags.through;
@@ -988,18 +991,22 @@ export function aiPlan(o: { level: number; oppHistory: string[]; own: PlanPlayer
   }
   const t: Tactic = { preset: pick, formation: o.formation, ...stripDesc(PRESETS[pick]) } as Tactic;
   if (o.level === 0) return t;
-  // aim at weak spots (hard always, normal half the time)
-  if (r.next() < (o.level === 2 ? 0.6 : 0.25)) {
-    const paceGap = lineAvg(o.own, 'FWD', ['Pace']) - lineAvg(o.opp, 'DEF', ['Pace']);
-    const airGap = lineAvg(o.own, 'FWD', ['Heading', 'Jumping', 'Strength']) - lineAvg(o.opp, 'DEF', ['Heading', 'Jumping', 'Strength']);
-    const theirKeeper = lineAvg(o.opp, 'GK', ['Reflexes', 'Handling']);
-    const theirRunners = lineAvg(o.opp, 'FWD', ['Pace']) - lineAvg(o.own, 'DEF', ['Pace']);
-    const edges = [
-      { v: paceGap - 4, set: () => { t.focus = 1; t.tempo = Math.max(t.tempo, 1); } },
-      { v: airGap - 4, set: () => { t.focus = 0; t.width = 2; } },
-      { v: 74 - theirKeeper, set: () => { t.focus = 3; } },
-    ].filter((e) => e.v > 0).sort((a, b) => b.v - a.v);
-    if (edges[0]) { edges[0].set(); t.preset = 'Custom'; }
+  // Aim at weak spots. How often follows how glaring the weakness is, not a flat chance: a small gap
+  // is worth going at now and then, a glaring one most weeks. Never every week — a manager who plays
+  // the identical plan at you all season is not a manager, and there is no way to feel you answered him.
+  const paceGap = lineAvg(o.own, 'FWD', ['Pace']) - lineAvg(o.opp, 'DEF', ['Pace']);
+  const airGap = lineAvg(o.own, 'FWD', ['Heading', 'Jumping', 'Strength']) - lineAvg(o.opp, 'DEF', ['Heading', 'Jumping', 'Strength']);
+  const theirKeeper = lineAvg(o.opp, 'GK', ['Reflexes', 'Handling']);
+  const theirRunners = lineAvg(o.opp, 'FWD', ['Pace']) - lineAvg(o.own, 'DEF', ['Pace']);
+  const edges = [
+    { v: paceGap - 4, set: () => { t.focus = 1; t.tempo = Math.max(t.tempo, 1); } },
+    { v: airGap - 4, set: () => { t.focus = 0; t.width = r.next() < 0.6 ? 2 : 1; } },
+    { v: 74 - theirKeeper, set: () => { t.focus = 3; } },
+  ].filter((e) => e.v > 0).sort((a, b) => b.v - a.v);
+  const edge = edges[0];
+  const bite = edge ? Math.min(o.level === 2 ? 0.55 : 0.3, (o.level === 2 ? 0.1 : 0.06) + edge.v * (o.level === 2 ? 0.03 : 0.015)) : 0;
+  if (r.next() < (edge ? bite : o.level === 2 ? 0.2 : 0.1)) {
+    if (edge) { edge.set(); t.preset = 'Custom'; }
     if (theirRunners > 4 && t.line === 2) { t.line = 1; t.preset = 'Custom'; } // never a high line against fast strikers
     // a sharp back line plays an offside trap; some managers like their teams to get stuck in
     const sharp = lineAvg(o.own, 'DEF', ['Positioning', 'Decisions', 'Marking']) - lineAvg(o.opp, 'FWD', ['Positioning', 'Decisions', 'Pace']);

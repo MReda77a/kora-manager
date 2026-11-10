@@ -319,11 +319,15 @@ function Stadium({ home, away, gold }: { home: string; away: string; gold: boole
 function OwnerSchedule({ lid, league, toast, reload }: { lid: number; league: any; toast: TabProps['toast']; reload: () => void }) {
   const [t, setT] = useState(utcMinToLocal(league.kickoffUtcMin));
   const [open, setOpen] = useState(false);
+  const [diff, setDiff] = useState(false);
   const save = async () => {
     try { await api(`/api/leagues/${lid}/schedule`, { kickoffUtcMin: localToUtcMin(t) }); toast.ok('Match time saved'); setOpen(false); reload(); } catch (e: any) { toast.bad(e.message); }
   };
+  const setLevel = async (n: number) => {
+    try { await api(`/api/leagues/${lid}/difficulty`, { aiLevel: n }); toast.ok(`AI managers: ${['Easy', 'Normal', 'Hard'][n]}`); setDiff(false); reload(); } catch (e: any) { toast.bad(e.message); }
+  };
   return (
-    <div className="row small" style={{ gap: 8, color: 'var(--muted)', fontWeight: 700 }}>
+    <div className="row small wrap" style={{ gap: 8, color: 'var(--muted)', fontWeight: 700 }}>
       <span>Matches every day at <b style={{ color: '#F2C14E' }}>{utcMinToLocal(league.kickoffUtcMin)}</b> (your time)</span>
       {open ? (
         <>
@@ -331,6 +335,10 @@ function OwnerSchedule({ lid, league, toast, reload }: { lid: number; league: an
           <button className="seg on" onClick={save}><span>Save</span></button>
         </>
       ) : <button className="seg" onClick={() => setOpen(true)}><span>Change time</span></button>}
+      <span>AI managers: <b style={{ color: '#F2C14E' }}>{['Easy', 'Normal', 'Hard'][league.aiLevel ?? 1]}</b></span>
+      {diff ? ['Easy', 'Normal', 'Hard'].map((x, i) => (
+        <button key={x} className={`seg ${(league.aiLevel ?? 1) === i ? 'on' : ''}`} onClick={() => setLevel(i)}><span>{x}</span></button>
+      )) : <button className="seg" onClick={() => setDiff(true)}><span>Change difficulty</span></button>}
     </div>
   );
 }

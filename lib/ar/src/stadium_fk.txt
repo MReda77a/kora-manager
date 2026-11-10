@@ -71,3 +71,14 @@ This upgrade costs {0}M.	التطوير ده بـ{0}M.
 Unknown part of the stadium.	جزء من الاستاد مش معروف.
 Picked, but out of your line-up. They still hold their place for when they are back in it — tap to let them go.	مختارهم، بس مش في التشكيلة. محتفظين بدورهم لما يرجعوا — دوس عشان تشيلهم.
 Not in the line-up	مش في التشكيلة
+Close their wide men with Flank cover: cutting the supply is what stops this. A Stopper helps in the box, but small centre-backs will keep losing headers until you sign a taller one.	اقفل أطرافهم بـ Flank cover: قطع الإمداد هو اللي بيوقف ده. الـ Stopper بيساعد جوه الصندوق، بس القلوب القصيرة هتفضل تخسر الراسيات لحد ما تجيب واحد أطول.
+Corners are won in the air and nothing else. A Stopper helps a little; a tall, strong centre-back is the real answer.	الكورنر بيتكسب في الهوا وبس. الـ Stopper بيساعد شوية؛ بس الحل الحقيقي قلب دفاع طويل وقوي.
+The AI managers pick a plan and stick to it.	مدربين الكمبيوتر بيختاروا خطة ويمشوا عليها.
+They play well and aim at a weak spot now and then.	بيلعبوا كويس وبيضربوا في نقطة ضعفك من وقت للتاني.
+They study your last plans, pick the one that beats them and go at your weakest line.	بيذاكروا خططك الأخيرة، يختاروا اللي بيكسبها، ويضربوا في أضعف خط عندك.
+AI managers:	مدربين الكمبيوتر:
+Change difficulty	غيّر الصعوبة
+Easy	سهل
+Normal	عادي
+Hard	صعب
+The league creator changed the match time.	صاحب الدوري غيّر معاد الماتشات.

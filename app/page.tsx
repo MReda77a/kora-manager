@@ -203,7 +203,7 @@ function Lobby({ me, reload }: { me: Me; reload: () => void }) {
 
 function CreateLeague({ onCreated, toast }: { onCreated: (id: number) => void; toast: ReturnType<typeof useToast> }) {
   const [meta, setMeta] = useState<{ pools: Record<string, string>; caps: Record<string, number> } | null>(null);
-  const [f, setF] = useState({ name: '', pool: 'ENG', maxClubs: 16, aiLevel: 2, time: '18:00', divisions: 1, startDivision: 'bottom' });
+  const [f, setF] = useState({ name: '', pool: 'ENG', maxClubs: 16, aiLevel: 1, time: '18:00', divisions: 1, startDivision: 'bottom' });
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     api('/api/leagues').then(setMeta).catch(() => {});
@@ -257,6 +257,7 @@ function CreateLeague({ onCreated, toast }: { onCreated: (id: number) => void; t
           <div className="row wrap">
             {['Easy', 'Normal', 'Hard'].map((t, i) => <button key={t} className={`chip ${f.aiLevel === i ? 'on' : ''}`} onClick={() => set('aiLevel', i)}><span>{t}</span></button>)}
           </div>
+          <span className="tiny muted">{['The AI managers pick a plan and stick to it.', 'They play well and aim at a weak spot now and then.', 'They study your last plans, pick the one that beats them and go at your weakest line.'][f.aiLevel]}</span>
         </div>
       </div>
       <div className="glass cut pad col" style={{ gap: 12 }}>
