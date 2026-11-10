@@ -325,14 +325,17 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     return r.weighted(pool, (o) => (o.slot === 'MID' ? 3 : o.slot === 'FWD' ? 2 : 1) * (ROLE_ASSISTS[S[side].roleOf.get(o.p.id) || ''] ?? 1) * Math.pow(Math.max(30, S[side].val(o, kind === 'cross' ? 'Crossing' : 'Passing')) / 70, 3));
   };
 
-  const shot = (a: 0 | 1, baseXg: number, kind: string) => {
+  // `by`: the man who takes it (a free kick), so the kick is worth what HE is worth, not what the
+  // team's forwards are worth, and the goal goes to him
+  const shot = (a: 0 | 1, baseXg: number, kind: string, by?: OnPitch) => {
     const b = (1 - a) as 0 | 1;
     // a quarter of the attempts are blocked or cleared before a shot: fewer shots, each worth a bit more.
-    // A free kick that has been given is always taken.
+    // A free kick that has been given is always taken, and the clearances are already in its numbers.
     const lost = kind === 'free kick' || kind === 'set piece' ? 0 : SHOT_LOST;
     if (lost && r.next() < lost) return;
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
-    let q = (0.73 / (1 - lost)) * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
+    const taken = by ? (S[a].val(by, 'LongShots') + S[a].val(by, 'Composure')) / 2 : 0;
+    let q = (0.73 / (1 - SHOT_LOST)) * baseXg * (1 + (by ? (taken - A(b, 'keeper')) * 0.02 : (A(a, "finishing") - A(b, "keeper")) * 0.015));
     if (S[b].flags.mark > 0) q *= 1 - 0.07 * Math.min(1.5, S[b].flags.mark); // their danger man is man-marked
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
@@ -345,7 +348,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const fk = fkAt && fkAt.fx !== undefined ? { fx: a === 0 ? fkAt.fx : 100 - fkAt.fx, fy: a === 0 ? fkAt.fy! : 100 - fkAt.fy!, tk: fkAt.tk } : {};
     const [sx, sy] = spot(a, kind);
     if (r.next() < q) {
-      const sc = pickScorer(a, kind === 'corner' || kind === 'set piece' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
+      const sc = by ?? pickScorer(a, kind === 'corner' || kind === 'set piece' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
       // VAR checks every goal; a few are ruled out for offside
       if (kind !== 'free kick' && r.next() < 0.035) {
         shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: true, pid: sc.p.id, var: true, ...fk });
@@ -359,7 +362,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       sc.line.r += 1.0;
       let txt = `GOAL! ${sc.p.name}`;
       let as: OnPitch | null = null;
-      if (kind !== 'penalty' && r.next() < 0.75) {
+      if (kind !== 'penalty' && kind !== 'free kick' && r.next() < 0.75) { // nobody assists a free kick struck straight at goal
         as = kind === 'set piece' && fk.tk ? S[a].pitch.find((o) => o.p.id === fk.tk && o !== sc) || pickAssist(a, sc, kind) : pickAssist(a, sc, kind);
         as.line.a++;
         as.line.r += 0.6;
@@ -423,7 +426,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     return { wide, yards: Math.max(17, Math.min(42, yards)) };
   };
   // the xG and what the taker's quality is worth, by how far out it is
-  const FK_XG = [0.088, 0.062, 0.04, 0.022], FK_SK = [0.0026, 0.0022, 0.0017, 0.0011];
+  // what a free kick is worth at each distance for an ordinary taker; a specialist is worth far more (see shot)
+  const FK_XG = [0.105, 0.072, 0.045, 0.023];
   const freeKick = (a: 0 | 1, at: { wide: boolean; yards: number }) => {
     const b = (1 - a) as 0 | 1;
     const sp = S[a].s.setpieces || {};
@@ -434,12 +438,11 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const shootFrom = Number(sp.shoot) || 30;
     if (!wide && yards <= shootFrom) {
       const t = taker(a, sp.fk, 'LongShots');
-      const skill = t ? (S[a].val(t, 'LongShots') + S[a].val(t, 'Composure')) / 2 : 65;
       const where = yards >= 35 ? 'Free kick 35 yards out' : yards <= 20 ? 'Free kick on the edge of the box' : `Free kick ${yards} yards out`;
       log('freekick', a, t ? say([`${where}. ${t.p.name} stands over it...`, `${where}. ${t.p.name} fancies this one...`]) : `${where}...`, t?.p.id);
       const y = 36 + r.next() * 28;
       fkAt = { x: 100 - at.yards * 0.87, y: lane && lane[0] === a ? (lane[1] < 0 ? Math.min(y, 42) : Math.max(y, 58)) : y };
-      return shot(a, Math.max(0.01, FK_XG[di] + (skill - 70) * FK_SK[di]), 'free kick');
+      return shot(a, FK_XG[di], 'free kick', t);
     }
     const how = sp.deliver === 'pass' || sp.deliver === 'lift' ? sp.deliver : 'cross';
     const t = taker(a, how === 'pass' ? undefined : sp.fk || sp.corner, how === 'pass' ? 'Passing' : 'Crossing');
@@ -759,7 +762,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     }
     reach(a, 1);
     // a man running at the defence is brought down: how often follows who is running and who is tackling
-    const pFoul = 0.013 * [0.6, 1, 1.6][tk(b)] * (1 + (tb.press - 1) * 0.16)
+    const pFoul = 0.024 * [0.6, 1, 1.6][tk(b)] * (1 + (tb.press - 1) * 0.16)
       * (1 + Math.max(-0.5, Math.min(0.7, (A(a, 'carry') - A(b, 'tackling')) * 0.014)));
     if (r.next() < pFoul) {
       const at = fkSpot(a, b);
@@ -767,7 +770,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       // the referee's book comes out for what the foul stopped: a man brought down on the edge of the
       // box going for goal is a booking, a shirt pull 40 yards out on the touchline is not
       const danger = Math.max(0, Math.min(1, (40 - at.yards) / 20)) * (at.wide ? 0.45 : 1);
-      if (f && r.next() < (0.1 + 0.42 * danger) * cardMul * calm(b) * [0.75, 1, 1.25][tk(b)]) card(b, f);
+      if (f && r.next() < (0.045 + 0.3 * danger) * cardMul * calm(b) * [0.75, 1, 1.25][tk(b)]) card(b, f);
       return freeKick(a, at);
     }
     if (ta.build === 2 && r.next() < 0.5) {
