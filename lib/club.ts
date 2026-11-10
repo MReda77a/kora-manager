@@ -3,7 +3,7 @@
 import { notifyEach } from './push.ts';
 import { q, one, type Row, writes } from './db.ts';
 import { fail } from './errors.ts';
-import { recoveryPerDay, CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey , wageOf, BOOSTS, fitNow } from './game.ts';
+import { recoveryPerDay, CLUB_TYPES, PAPER_NAMES, POSITIONS, SPONSORS, STAFF_ROLES, TRAINABLE, type ClubTypeKey, type SponsorKey , wageOf, BOOSTS, fitNow, STADIUM, stadiumFx, gateOf, type StadiumPart } from './game.ts';
 import { getLeague, myClub, news, squadOf, standings } from './league.ts';
 import { inboxOf } from './people.ts';
 import { movers } from './career.ts';
@@ -217,7 +217,12 @@ export async function officeView(uid: number, leagueId: number) {
     ],
     sponsors: (Object.keys(SPONSORS) as SponsorKey[]).map((k) => ({ key: k, ...SPONSORS[k], estimate: est(k) })),
     canChooseSponsor: !club.sponsor || !!club.sponsor_auto,
-    attendance: Math.min(club.capacity, club.fans), gate: Math.round(Math.min(club.capacity, club.fans) * 0.00002 * 100) / 100,
+    attendance: gateOf(club).crowd, gate: Math.round(gateOf(club).money * 100) / 100,
+    stadium: (Object.keys(STADIUM) as StadiumPart[]).map((k) => {
+      const lv = Number(club[`${k}_lv`] || 1), def = STADIUM[k];
+      return { key: k, name: def.name, level: lv, max: def.max, now: def.levels[lv - 1], next: def.levels[lv] || null, cost: def.cost[lv - 1] ?? null };
+    }),
+    stadiumFx: stadiumFx({ seats: club.seats_lv, pitch: club.pitch_lv, lights: club.lights_lv }),
     grade: club.board >= 75 ? 'A' : club.board >= 60 ? 'B' : club.board >= 45 ? 'C' : club.board >= 30 ? 'D' : 'F',
     finance: await financeOf(l, club),
   };
@@ -253,11 +258,24 @@ export async function renameStadium(uid: number, leagueId: number, name: string)
 }
 
 export async function expandStadium(uid: number, leagueId: number) {
+  return upgradeStadium(uid, leagueId, 'seats');
+}
+
+/** one level up for the seats, the pitch or the lights, paid from the club's money */
+export async function upgradeStadium(uid: number, leagueId: number, part: string) {
   const club = await myClub(uid, leagueId);
-  const r = await q('UPDATE clubs SET money=money-6, capacity=capacity+5000 WHERE id=$1 AND money>=6 AND capacity<80000 RETURNING capacity', [club.id]);
-  if (!r[0]) fail(400, 'Expansion costs 6M (max 80,000 seats).');
-  await news(leagueId, club.id, 'stadium', `${club.name} expand ${club.stadium} to ${r[0].capacity.toLocaleString()} seats.`);
-  return { ok: true, capacity: r[0].capacity };
+  if (!(part in STADIUM)) fail(400, 'Unknown part of the stadium.');
+  const def = STADIUM[part as StadiumPart], col = `${part}_lv`;
+  const lv = Number(club[col] || 1);
+  if (lv >= def.max) fail(400, `${def.name} are already at the top level.`);
+  const cost = def.cost[lv - 1];
+  const r = await q(`UPDATE clubs SET money=money-$2, ${col}=${col}+1${part === 'seats' ? ', capacity=capacity+5000' : ''} WHERE id=$1 AND money>=$2 AND ${col}=$3 RETURNING ${col} AS lv, capacity`, [club.id, cost, lv]);
+  if (!r[0]) fail(400, `This upgrade costs ${cost}M.`);
+  const what = def.levels[r[0].lv - 1];
+  await news(leagueId, club.id, 'stadium', part === 'seats'
+    ? `${club.name} expand ${club.stadium} to ${Number(r[0].capacity).toLocaleString()} seats.`
+    : `${club.name} put in ${what.toLowerCase()} at ${club.stadium}.`);
+  return { ok: true, level: r[0].lv };
 }
 
 // ---------------------------------------------------------------- the paper

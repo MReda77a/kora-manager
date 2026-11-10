@@ -207,6 +207,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     case 'sponsor': return C.chooseSponsor(s.uid, lid, String(b.key));
     case 'stadium': return C.renameStadium(s.uid, lid, String(b.name));
     case 'expand': return C.expandStadium(s.uid, lid);
+    case 'upgrade': return C.upgradeStadium(s.uid, lid, String(b.part));
     case 'comment': return C.postComment(s.uid, lid, b);
     case 'nextseason': return S.nextSeason(s.uid, lid);
     case 'analyst': return A.upgradeAnalyst(s.uid, lid);

@@ -69,7 +69,7 @@ export function moveTimes(flow: Flow[], shots: ShotLike[]): Move[] {
   const needOf = (i: number) => {
     const m = raw[i], pv = raw[i - 1];
     const kind = m.sh >= 0 ? shots[m.sh]?.kind : '';
-    let n = m.sh < 0 ? (m.off ? 0.85 : 0.6) : kind === 'penalty' ? 1.6 : kind === 'free kick' ? 1.25 : 0.95;
+    let n = m.sh < 0 ? (m.off ? 0.85 : 0.6) : kind === 'penalty' ? 1.6 : kind === 'free kick' || kind === 'set piece' ? 1.25 : 0.95;
     if (pv && pv.sh >= 0) n += pv.s === m.s ? 0.75 : 0.6;
     return n;
   };

@@ -91,13 +91,41 @@ export default function OfficeTab({ lid, d: ov, toast, reload, go }: TabProps) {
               <div className="row between"><b className="lz" style={{ fontSize: 19 }}>{c.stadium}</b><button className="seg" onClick={() => setEditing(true)}><span>Rename</span></button></div>
             )}
             <div className="tiny muted">{d.attendance.toLocaleString()} / {c.capacity.toLocaleString()} seats · {d.gate}M per home game</div>
-            <button className="ghost" onClick={() => act('expand', {}, '+5,000 seats')}><span>+5,000 seats · 6M</span></button>
+            {(d.stadium || []).map((x: any) => (
+              <div key={x.key} className="stad-row">
+                <div className="row between" style={{ gap: 8 }}>
+                  <b>{x.name}</b>
+                  <span className="stad-lv" aria-label={`Level ${x.level} of ${x.max}`}>{Array.from({ length: x.max }, (_, i) => <i key={i} className={i < x.level ? 'on' : ''} />)}</span>
+                </div>
+                <span className="tiny" style={{ fontWeight: 800 }}>{x.now}</span>
+                <span className="tiny muted">{stadNow(x.key, d)}</span>
+                {x.next ? (
+                  <button className="ghost" onClick={() => act('upgrade', { part: x.key }, `${x.next}!`)} disabled={c.money < x.cost}>
+                    <span>{x.next} · {x.cost}M</span>
+                  </button>
+                ) : <span className="tiny" style={{ color: 'var(--cyan)', fontWeight: 800 }}>Top level</span>}
+                {x.next && <span className="tiny muted">{STAD_NEXT[x.key]}</span>}
+              </div>
+            ))}
           </div>
         </section>
       </div>
       <Resign lid={lid} club={c.name} toast={toast} />
     </div>
   );
+}
+
+// what each part of the stadium does now, and what the next level adds
+const STAD_NEXT: Record<string, string> = {
+  seats: 'Next: +5,000 seats, tickets 10% dearer, more fans turn up.',
+  pitch: 'Next: 8% fewer injuries and 3% less tiredness at home; rain and snow hurt less.',
+  lights: 'Next: more TV money for night matches, and fog hurts less.',
+};
+function stadNow(k: string, d: any) {
+  const fx = d.stadiumFx || {};
+  if (k === 'seats') return `Tickets ${Math.round(((fx.ticket || 1) - 1) * 100) ? `+${Math.round((fx.ticket - 1) * 100)}%` : 'at the base price'} · ${Math.round(((fx.turnout || 1) - 1) * 100) ? `${Math.round((fx.turnout - 1) * 100)}% more fans come` : 'no extra fans'}`;
+  if (k === 'pitch') { const i = Math.round((1 - (fx.injuries ?? 1)) * 100), t = Math.round((1 - (fx.legs ?? 1)) * 100); return i ? `At home: ${i}% fewer injuries, ${t}% less tiredness, better in rain and snow` : 'No help with injuries or tiredness yet'; }
+  return fx.tv ? `+${fx.tv}M TV money every home match · fog ${fx.fog}% less trouble` : 'No night-match TV money yet';
 }
 
 // leaving the league: the club carries on with an AI manager; asks for the club name to be typed first

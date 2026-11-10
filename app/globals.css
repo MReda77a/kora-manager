@@ -1120,3 +1120,11 @@ table.t tbody tr td { padding-top: 9px; padding-bottom: 9px; }
 /* the TV studio stays a feature, not the whole page */
 .media2 .tv-studio { height: clamp(250px, 46vh, 430px); }
 .media2 .tv-wrap { grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); gap: 14px; }
+
+/* stadium upgrades in the Club Office */
+.stad-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0 2px; border-top: 1px solid rgba(255,255,255,0.08); }
+.stad-row .ghost { align-self: flex-start; }
+.stad-row .ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+.stad-lv { display: inline-flex; gap: 4px; }
+.stad-lv i { width: 16px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.14); }
+.stad-lv i.on { background: var(--mint, #2EF2B0); box-shadow: 0 0 6px rgba(46,242,176,0.5); }

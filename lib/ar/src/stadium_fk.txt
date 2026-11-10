@@ -1,0 +1,71 @@
+# free kicks by distance, and the stadium upgrades
+Free kick {0} yards out. {1} stands over it...	فاول على بعد {0} ياردة. {1} واقف على الكورة...
+Free kick {0} yards out. {1} fancies this one...	فاول على بعد {0} ياردة. {1} حاسس إنها بتاعته...
+Free kick on the edge of the box. {0} stands over it...	فاول على حدود الصندوق. {0} واقف على الكورة...
+Free kick on the edge of the box. {0} fancies this one...	فاول على حدود الصندوق. {0} حاسس إنها بتاعته...
+Free kick {0} yards out...	فاول على بعد {0} ياردة...
+Free kick on the edge of the box...	فاول على حدود الصندوق...
+Free kick out wide: {0} plays it short.	فاول على الطرف: {0} بيلعبها قصيرة.
+Free kick {0} yards out: {1} plays it short.	فاول على بعد {0} ياردة: {1} بيلعبها قصيرة.
+Free kick out wide: {0} lifts it into the box... cleared!	فاول على الطرف: {0} بيرفعها في الصندوق... اتشالت!
+Free kick {0} yards out: {1} lifts it into the box... cleared!	فاول على بعد {0} ياردة: {1} بيرفعها في الصندوق... اتشالت!
+Free kick out wide. {0} whips it in...	فاول على الطرف. {0} بيلفّها جوه...
+Free kick {0} yards out. {1} whips it in...	فاول على بعد {0} ياردة. {1} بيلفّها جوه...
+Free kick out wide. {0} lifts it into the box...	فاول على الطرف. {0} بيرفعها في الصندوق...
+Free kick {0} yards out. {1} lifts it into the box...	فاول على بعد {0} ياردة. {1} بيرفعها في الصندوق...
+GOAL! {0}, assisted by {1} meeting the free kick with his head	جووول! {0}، أسيست {1}، بيقابل الفاول براسه
+GOAL! {0} meeting the free kick with his head	جووول! {0} بيقابل الفاول براسه
+GOAL! {0}, assisted by {1} with a header from a free kick	جووول! {0}، أسيست {1}، براسية من فاول
+GOAL! {0} with a header from a free kick	جووول! {0} براسية من فاول
+GOAL! {0}, assisted by {1} getting on the end of the free kick	جووول! {0}، أسيست {1}، بيلحق كورة الفاول
+GOAL! {0} getting on the end of the free kick	جووول! {0} بيلحق كورة الفاول
+Shoot from	سدّد من
+Wide and far free kicks	الفاولات البعيدة واللي على الطرف
+35+ yards	+35 ياردة
+30 yards	30 ياردة
+25 yards	25 ياردة
+20 yards	20 ياردة
+Pass	باص
+Lift	رفعة في الصندوق
+Free kicks this close or closer are shot at goal; the rest, and every one out wide, are delivered. A great free kick taker can shoot from further. Pass keeps the ball, Cross suits a good crosser, Lift suits a tall side but gives away counters.	الفاولات اللي في المسافة دي أو أقرب بتتسدّد على المرمى؛ الباقي، وكل فاول على الطرف، بيتلعب. لو عندك منفّذ فاولات جامد تقدر تسدّد من أبعد. الباص بيحافظ على الكورة، العرضية تنفع لو عندك لاعب بيعرّض كويس، والرفعة تنفع الفريق الطويل بس بتسيب كاونترات.
+Cross into the box…	عرضية في الصندوق…
+HEADER!	راسية!
+Seats	الكراسي
+Pitch	أرضية الملعب
+Lights	الكشافات
+Basic stands	مدرجات عادية
+Covered stands	مدرجات مسقوفة
+Padded seats	كراسي مبطّنة
+Corporate boxes	مقصورات VIP
+Top-class arena	ستاد عالمي
+Bumpy grass	نجيلة مكسّرة
+Good grass	نجيلة كويسة
+Drained pitch	أرضية بصرف
+Hybrid grass	نجيلة هايبرد
+Top-class pitch	أرضية عالمية
+Basic floodlights	كشافات عادية
+TV floodlights	كشافات تلفزيون
+LED floodlights	كشافات LED
+good grass	نجيلة كويسة
+drained pitch	أرضية بصرف
+hybrid grass	نجيلة هايبرد
+top-class pitch	أرضية عالمية
+tv floodlights	كشافات تلفزيون
+led floodlights	كشافات LED
+Top level	أعلى مستوى
+Next: +5,000 seats, tickets 10% dearer, more fans turn up.	الجاي: +5,000 كرسي، التذاكر أغلى 10%، وجمهور أكتر بييجي.
+Next: 8% fewer injuries and 3% less tiredness at home; rain and snow hurt less.	الجاي: إصابات أقل 8% وتعب أقل 3% في ملعبك؛ والمطر والتلج بيأثروا أقل.
+Next: more TV money for night matches, and fog hurts less.	الجاي: فلوس تلفزيون أكتر لماتشات بالليل، والشبورة بتأثر أقل.
+Tickets +{0}%	التذاكر أغلى {0}%
+Tickets at the base price	التذاكر بسعرها الأساسي
+{0}% more fans come	جمهور زيادة {0}%
+no extra fans	مفيش جمهور زيادة
+At home: {0}% fewer injuries, {1}% less tiredness, better in rain and snow	في ملعبك: إصابات أقل {0}%، تعب أقل {1}%، وأحسن في المطر والتلج
+No help with injuries or tiredness yet	لسه مفيش فايدة للإصابات والتعب
++{0}M TV money every home match	+{0}M فلوس تلفزيون كل ماتش على أرضك
+fog {0}% less trouble	الشبورة بتأثر أقل {0}%
+No night-match TV money yet	لسه مفيش فلوس تلفزيون لماتشات الليل
+{0} put in {1} at {2}.	{0} ركّبوا {1} في {2}.
+{0} are already at the top level.	{0} وصلت لأعلى مستوى خلاص.
+This upgrade costs {0}M.	التطوير ده بـ{0}M.
+Unknown part of the stadium.	جزء من الاستاد مش معروف.

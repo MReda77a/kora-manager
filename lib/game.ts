@@ -204,6 +204,35 @@ export const BOOSTS: Record<string, { cost: number; name: string }> = {
 // TV money every club gets after every match, and the end-of-season prize: a base for everyone plus
 // more the higher you finish (in a 14-club top flight: about 11M for the champions, 4.5M for the last).
 export const TV_MONEY = 0.2;
+
+// The stadium: three things a club can upgrade, each level costs more than the last (millions).
+// Seats: +5,000 seats a level, dearer tickets, and more fans turn up. Pitch: fewer injuries and fresher
+// legs at home, and it takes rain and snow better. Lights: night matches on TV (money every home match)
+// and a clear view of the long ball in fog.
+export type StadiumPart = 'seats' | 'pitch' | 'lights';
+export const STADIUM: Record<StadiumPart, { name: string; max: number; cost: number[]; levels: string[] }> = {
+  seats: { name: 'Seats', max: 5, cost: [6, 8, 11, 15], levels: ['Basic stands', 'Covered stands', 'Padded seats', 'Corporate boxes', 'Top-class arena'] },
+  pitch: { name: 'Pitch', max: 5, cost: [4, 6, 9, 13], levels: ['Bumpy grass', 'Good grass', 'Drained pitch', 'Hybrid grass', 'Top-class pitch'] },
+  lights: { name: 'Lights', max: 3, cost: [5, 9], levels: ['Basic floodlights', 'TV floodlights', 'LED floodlights'] },
+};
+/** what a level of each part does, in numbers the game uses */
+export const stadiumFx = (lv: { seats?: number; pitch?: number; lights?: number }) => {
+  const s = Math.max(1, lv.seats || 1) - 1, p = Math.max(1, lv.pitch || 1) - 1, l = Math.max(1, lv.lights || 1) - 1;
+  return {
+    ticket: 1 + 0.1 * s, // ticket price
+    turnout: 1 + 0.04 * s, // more of the fans come
+    injuries: 1 - 0.08 * p, // at home
+    legs: 1 - 0.03 * p, // tiredness at home
+    tv: [0, 0.15, 0.3][l] ?? 0, // night-match TV money, every home match
+    fog: Math.round(35 * l), // % less fog trouble
+  };
+};
+/** a home crowd and its ticket money (millions) */
+export const gateOf = (c: { capacity?: number; fans?: number; seats_lv?: number; pitch_lv?: number; lights_lv?: number }, derby = false) => {
+  const fx = stadiumFx({ seats: c.seats_lv, pitch: c.pitch_lv, lights: c.lights_lv });
+  const crowd = Math.round(Math.min(c.capacity || 30000, (c.fans || 20000) * fx.turnout));
+  return { crowd, money: crowd * 0.00002 * fx.ticket * (derby ? 1.5 : 1) + fx.tv };
+};
 export const seasonPrize = (clubs: number, pos: number, div: number) =>
   (div === 1 ? 4 : div === 2 ? 3 : 2) + Math.max(0, clubs - pos + 1) * (div === 1 ? 0.5 : div === 2 ? 0.3 : 0.2);
 
@@ -315,6 +344,9 @@ export function roleFit(r: string, attrs: Record<string, number>) {
 /** the roles that fit a position label (LB, CM...) */
 export const rolesFor = (label: string) => Object.keys(ROLES).filter((r) => ROLES[r].pos.includes(label));
 export const CORNER_ROUTINES: Record<string, string> = { near: 'Near post', far: 'Far post', short: 'Short' };
+// free kicks: shoot from this distance or closer (35 = from anywhere); anything further or out wide is delivered
+export const FK_SHOOT: Record<string, string> = { '35': '35+ yards', '30': '30 yards', '25': '25 yards', '20': '20 yards' };
+export const FK_DELIVER: Record<string, string> = { pass: 'Pass', cross: 'Cross', lift: 'Lift' };
 
 // ---------------------------------------------------------------- personalities
 export const TRAITS: Record<string, string> = {

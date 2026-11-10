@@ -7,7 +7,7 @@
 import { batch, counter, q, one, writes, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, LIVE_TOTAL, minuteAt, recoveryPerDay, PAPER_NAMES, PRESETS, SPONSORS,
+  AI_COLORS, AI_NAMES_BY_POOL, FORMATIONS, colorDist, conditionsFor, stripDesc, traitOf, CLUB_TYPES, CUP_NAMES, DEFAULT_TACTIC, LINE, LIVE_SECONDS, LIVE_TOTAL, minuteAt, recoveryPerDay, PAPER_NAMES, PRESETS, SPONSORS, stadiumFx, gateOf,
   shortName, type ClubTypeKey, type SponsorKey, type Tactic, bestLeader, leadership,
   windowFromDays, WINDOW_DAYS, roleFit, rolesFor, slotLabel,
   wageOf,
@@ -419,7 +419,10 @@ export async function sideFor(club: Row, l: Row, f: Row, opp: Row, home: boolean
       : xi.filter((p) => p.pos !== 'GK').sort((a, b) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure)).slice(0, 5).map((p) => p.id),
     captain, vice, leaders,
     homeBoost: home ? (club.club_type === 'fan' ? 1 : 0) + Math.min(1, (club.fans || 20000) / 40000) : 0,
-    injuryRisk: 1 - lv.doctor * 0.08,
+    // the home pitch: fewer injuries and fresher legs for the side that plays on it every week
+    injuryRisk: (1 - lv.doctor * 0.08) * (home ? stadiumFx({ pitch: club.pitch_lv }).injuries : 1),
+    tireMul: home ? stadiumFx({ pitch: club.pitch_lv }).legs : 1,
+    ...(home ? { venue: { pitch: club.pitch_lv || 1, lights: club.lights_lv || 1 } } : {}),
     ...(club.user_id ? humanRoles(club, xi, tactic.formation) : autoRoles(xi, tactic.formation)),
     chem: club.user_id ? lineChem(xi.map((p) => p.id), tactic.formation, await chemPairs(club.id)) : { DEF: CHEM_AI, MID: CHEM_AI, FWD: CHEM_AI },
   };
@@ -436,7 +439,7 @@ function humanRoles(club: Row, xi: Row[], formation: string) {
   const sp = club.setpieces || {};
   return {
     roles: { ...auto.roles, ...(club.roles || {}) },
-    setpieces: { corner: sp.corner || auto.setpieces.corner, fk: sp.fk || auto.setpieces.fk, routine: sp.routine || 'far' },
+    setpieces: { corner: sp.corner || auto.setpieces.corner, fk: sp.fk || auto.setpieces.fk, routine: sp.routine || 'far', shoot: sp.shoot || '30', deliver: sp.deliver || 'cross' },
     familiarity: familiarityOf(club, formation),
   };
 }
@@ -654,7 +657,7 @@ async function finalizeFixture(f: Row) {
     if (!lost && sp) money += gf * sp.perGoal;
     if (c.club_type === 'commercial' && !lost) money += gf * 0.1;
     money += TV_MONEY; // TV money: every club, every match, whatever the result
-    if (isHome) money += Math.min(c.capacity || 30000, c.fans || 20000) * 0.00002 * (derby ? 1.5 : 1);
+    if (isHome) money += gateOf(c, derby).money; // tickets (the seats), and the night-match TV money (the lights)
     if (f.comp === 'cup' && won) money += f.round && rep ? 1 : 0;
     // big words before the match raise the stakes: a win means more, a defeat hurts more
     const after = c.user_id && (derby || f.comp === 'cup') ? await pressAftermath(f.id, c.id) : null;

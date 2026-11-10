@@ -3,7 +3,7 @@
 import { q, one, writes, type Row } from './db.ts';
 import { fail } from './errors.ts';
 import {
-  CLUB_TYPES, CORNER_ROUTINES, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK, STAFF_PRICES, STAFF_ROLES,
+  CLUB_TYPES, CORNER_ROUTINES, FK_SHOOT, FK_DELIVER, DEFAULT_TACTIC, FORMATIONS, LINE, MAX_SQUAD, MIN_SQUAD, PACKS, PATTERNS, POOLS, ROLES, STAFF_PACK, STAFF_PRICES, STAFF_ROLES,
   shortName, type ClubTypeKey, type PackKey, type Tactic,
   windowFromDays, assignShirts,
   fitNow,
@@ -452,6 +452,8 @@ export async function saveSetup(uid: number, leagueId: number, b: {
       corner: ids.has(String(sp.corner)) ? String(sp.corner) : undefined,
       fk: ids.has(String(sp.fk)) ? String(sp.fk) : undefined,
       routine: CORNER_ROUTINES[String(sp.routine)] ? String(sp.routine) : 'far',
+      shoot: FK_SHOOT[String(sp.shoot)] ? String(sp.shoot) : '30',
+      deliver: FK_DELIVER[String(sp.deliver)] ? String(sp.deliver) : 'cross',
     }));
     sets.push(`setpieces=$${params.length}::jsonb`);
   }

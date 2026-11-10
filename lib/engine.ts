@@ -16,19 +16,21 @@ export type ESide = {
   assistant: Record<string, boolean>; pens: string[]; homeBoost: number; boost?: number;
   injuryRisk?: number; // 1 = normal, lower with a good doctor
   roles?: Record<string, string>; // player id -> role
-  setpieces?: { corner?: string; fk?: string; routine?: string };
+  setpieces?: { corner?: string; fk?: string; routine?: string; shoot?: string; deliver?: string };
   familiarity?: number; // 0..100 with the formation
   chem?: { DEF: number; MID: number; FWD: number }; // 0..100 per line, 50 = neutral
   captain?: string; vice?: string; // player ids: whoever of them is on the pitch wears the armband
   leaders?: Record<string, number>; // leadership 0..1 of the captain and vice
   cardMul?: number; // how harshly the referee treats this side (press conference), 1 = normal
+  tireMul?: number; // how fast legs go: lower at home on a good pitch, 1 = normal
+  venue?: { pitch: number; lights: number }; // the home side's stadium: pitch level 1..5, lights level 1..3
 };
 // A manager's decision during a live match. It takes effect from minute m on.
 export type Change =
   | { m: number; side: 0 | 1; kind: 'tactic'; tactic: Partial<Tactic> & { preset?: string; plan?: string } }
   | { m: number; side: 0 | 1; kind: 'sub'; out: string; in: string };
 export type SimOpts = { changes?: Change[]; knockout?: boolean; derby?: boolean; weather?: string; strict?: number };
-export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean; var?: boolean }; // var: in the net, ruled out by VAR
+export type Shot = { m: number; side: 0 | 1; x: number; y: number; xg: number; goal: boolean; kind: string; pid?: string; on?: boolean; var?: boolean; fx?: number; fy?: number; tk?: string }; // var: in the net, ruled out by VAR; fx/fy/tk: a free kick crossed in ('set piece'): where it was taken and who took it
 export type Shootout = { kicks: { side: 0 | 1; pid: string; scored: boolean }[]; score: [number, number] };
 export type MatchEvent = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
 export type PlayerLine = { id: string; name: string; side: 0 | 1; pos: string; r: number; g: number; a: number; mins: number; fitEnd: number; yc: number; rc: boolean; inj: boolean };
@@ -91,6 +93,7 @@ class Side {
   // attribute of a player in his slot, after tiredness
   manual = false;
   weather = 'clear';
+  ground = 0; // how well the pitch takes rain and snow: 0 a basic pitch .. 1 the best
   fit = 0;
   fitKey = '';
   flags: Record<string, number> = { ...NO_FLAGS };
@@ -213,8 +216,10 @@ class Side {
     }
     // a wet or snowy pitch slows everyone down and takes the edge off the quick men (pace counts for less)
     const slow = (k: string, keep: number, drop: number) => { this.agg[k] = 60 + (this.agg[k] - 60) * keep - drop; };
-    if (this.weather === 'rain') { this.agg.passing -= 0.75; slow('pace_att', 0.7, 1.5); slow('pace_def', 0.7, 1.5); }
-    if (this.weather === 'snow') { slow('pace_att', 0.55, 4); slow('pace_def', 0.55, 4); }
+    // (a top-class pitch drains: the rain does much less to it, and the snow a bit less)
+    const g = this.ground;
+    if (this.weather === 'rain') { this.agg.passing -= 0.75 * (1 - 0.6 * g); slow('pace_att', 0.7 + 0.18 * g, 1.5 * (1 - 0.6 * g)); slow('pace_def', 0.7 + 0.18 * g, 1.5 * (1 - 0.6 * g)); }
+    if (this.weather === 'snow') { slow('pace_att', 0.55 + 0.15 * g, 4 * (1 - 0.4 * g)); slow('pace_def', 0.55 + 0.15 * g, 4 * (1 - 0.4 * g)); }
     const fam = ((this.s.familiarity ?? 60) - 60) / 40;
     // a plan that suits these players is carried out better (see tacticFit); worked out again only when the plan or players change
     const key = `${this.tactic.press}${this.tactic.line}${this.tactic.build}${this.tactic.focus}${this.tactic.width}${this.tactic.tempo}${this.tactic.mentality}|${all.map((o) => o.p.id + o.slot).join(',')}`;
@@ -239,6 +244,7 @@ const last = (n: string) => n.split(' ').slice(-1)[0];
 const SHOT_LOST = 0.25;
 const HOW: Record<string, string[]> = {
   corner: ['with a header from a corner', 'rising highest at a corner', 'bundling it in from a corner'],
+  'set piece': ['meeting the free kick with his head', 'with a header from a free kick', 'getting on the end of the free kick'],
   'free kick': ['with a stunning free kick', 'curling a free kick into the top corner', 'from a free kick the keeper never saw'],
   cross: ['with a header from a cross', 'meeting the cross at the far post', 'with a diving header'],
   'through ball': ['running onto a through ball', 'slotting it past the keeper one on one', 'after a perfect pass in behind'],
@@ -257,6 +263,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const changes = [...(opts.changes || [])].sort((a, b) => a.m - b.m);
   const weather = opts.weather || 'clear';
   S[0].weather = weather; S[1].weather = weather;
+  // the home stadium: its pitch (rain and snow), its floodlights (fog)
+  const venue = home.venue || { pitch: 1, lights: 1 };
+  S[0].ground = S[1].ground = Math.max(0, Math.min(1, (venue.pitch - 1) / 4));
+  const fogMul = 1 - 0.35 * Math.max(0, Math.min(2, venue.lights - 1));
   const cardMul = [0.75, 1, 1.35][opts.strict ?? 1];
   const penMul = [0.8, 1, 1.25][opts.strict ?? 1];
   const shotsList: Shot[] = [];
@@ -269,8 +279,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (!f || f[1] !== side || f[0] !== minute || f[3] !== -1) flow.push(lane && lane[0] === side ? [minute, side, r, -1, lane[1]] : [minute, side, r, -1]);
     else if (r > f[2]) f[2] = r;
   };
+  let fkAt: { x: number; y: number; fx?: number; fy?: number; tk?: string } | null = null; // the next shot is this free kick
   const spot = (a: 0 | 1, kind: string) => {
     let x: number, y: number;
+    if (fkAt) { const f = fkAt; fkAt = null; return a === 0 ? [f.x, f.y] : [100 - f.x, 100 - f.y]; }
     if (kind === 'long shot' || kind === 'free kick') { x = 72 + r.next() * 9; y = 22 + r.next() * 56; }
     else if (kind === 'cross' || kind === 'corner') { x = 90 + r.next() * 6; y = 40 + r.next() * 20; }
     else if (kind === 'penalty') { x = 88.5; y = 50; }
@@ -314,7 +326,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const b = (1 - a) as 0 | 1;
     // a quarter of the attempts are blocked or cleared before a shot: fewer shots, each worth a bit more.
     // A free kick that has been given is always taken.
-    const lost = kind === 'free kick' ? 0 : SHOT_LOST;
+    const lost = kind === 'free kick' || kind === 'set piece' ? 0 : SHOT_LOST;
     if (lost && r.next() < lost) return;
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     let q = (0.73 / (1 - lost)) * baseXg * (1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
@@ -327,24 +339,25 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     shots[a]++;
     xg[a] += q;
     const onTarget = r.next() < Math.min(0.9, 0.16 + q * 1.1); // a third of shots hit the target, like real football
+    const fk = fkAt && fkAt.fx !== undefined ? { fx: a === 0 ? fkAt.fx : 100 - fkAt.fx, fy: a === 0 ? fkAt.fy! : 100 - fkAt.fy!, tk: fkAt.tk } : {};
     const [sx, sy] = spot(a, kind);
     if (r.next() < q) {
-      const sc = pickScorer(a, kind === 'corner' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
+      const sc = pickScorer(a, kind === 'corner' || kind === 'set piece' ? 'cross' : kind === 'free kick' ? 'long shot' : kind);
       // VAR checks every goal; a few are ruled out for offside
       if (kind !== 'free kick' && r.next() < 0.035) {
-        shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: true, pid: sc.p.id, var: true });
+        shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: true, pid: sc.p.id, var: true, ...fk });
         log('var', a, say([`VAR check... goal by ${sc.p.name} ruled out for offside!`, `VAR check... ${sc.p.name} was offside in the build-up. No goal!`]), sc.p.id);
         return;
       }
       goals[a]++;
       onT[a]++;
-      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: true, kind, pid: sc.p.id, on: true });
+      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: true, kind, pid: sc.p.id, on: true, ...fk });
       sc.line.g++;
       sc.line.r += 1.0;
       let txt = `GOAL! ${sc.p.name}`;
       let as: OnPitch | null = null;
       if (kind !== 'penalty' && r.next() < 0.75) {
-        as = pickAssist(a, sc, kind);
+        as = kind === 'set piece' && fk.tk ? S[a].pitch.find((o) => o.p.id === fk.tk && o !== sc) || pickAssist(a, sc, kind) : pickAssist(a, sc, kind);
         as.line.a++;
         as.line.r += 0.6;
         txt += `, assisted by ${last(as.p.name)}`;
@@ -352,7 +365,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       log('goal', a, `${txt} ${say(HOW[kind] || [''])}`.trim(), sc.p.id, as?.p.id);
       S[b].pitch.filter((o) => o.slot === 'DEF' || o.slot === 'GK').forEach((o) => (o.line.r -= 0.25));
     } else {
-      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: onTarget });
+      shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: false, kind, on: onTarget, ...fk });
       if (onTarget) {
         onT[a]++;
         const gk = S[b].pitch.find((o) => o.slot === 'GK');
@@ -385,12 +398,53 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     q += S[a].flags.setPiece; // a centre-back who goes up for corners
     shot(a, Math.max(0.015, q), 'corner');
   };
+  // a foul in the attacking half: central at 20 to 35+ yards, or out wide. The manager says how close
+  // it has to be to shoot; anything further, and anything wide, is delivered: played short, crossed, or
+  // lifted high into the box (a big aerial side wins those, a small one gives away a counter)
+  const FK_D = [20, 25, 30, 35], FK_W = [0.22, 0.3, 0.28, 0.2];
+  const FK_XG = [0.088, 0.062, 0.04, 0.022], FK_SK = [0.0026, 0.0022, 0.0017, 0.0011];
   const freeKick = (a: 0 | 1) => {
+    const b = (1 - a) as 0 | 1;
     const sp = S[a].s.setpieces || {};
-    const t = taker(a, sp.fk, 'LongShots');
-    const skill = t ? (S[a].val(t, 'LongShots') + S[a].val(t, 'Composure')) / 2 : 65;
-    log('freekick', a, t ? say([`Free kick in a dangerous position. ${t.p.name} stands over it...`, `${t.p.name} lines up a free kick on the edge of the box...`]) : 'Free kick in a dangerous position...', t?.p.id);
-    shot(a, Math.max(0.02, 0.045 + (skill - 70) * 0.002), 'free kick');
+    const wide = r.next() < 0.35;
+    let di = 0;
+    if (!wide) { let u = r.next(); while (di < 3 && u > FK_W[di]) { u -= FK_W[di]; di++; } }
+    const yards = FK_D[di];
+    const shootFrom = Number(sp.shoot) || 30;
+    if (!wide && yards <= shootFrom) {
+      const t = taker(a, sp.fk, 'LongShots');
+      const skill = t ? (S[a].val(t, 'LongShots') + S[a].val(t, 'Composure')) / 2 : 65;
+      const where = yards >= 35 ? 'Free kick 35 yards out' : yards <= 20 ? 'Free kick on the edge of the box' : `Free kick ${yards} yards out`;
+      log('freekick', a, t ? say([`${where}. ${t.p.name} stands over it...`, `${where}. ${t.p.name} fancies this one...`]) : `${where}...`, t?.p.id);
+      const y = 36 + r.next() * 28;
+      fkAt = { x: 100 - (yards + (yards >= 35 ? 3 : 0)) * 0.87 - r.next() * 2, y: lane && lane[0] === a ? (lane[1] < 0 ? Math.min(y, 42) : Math.max(y, 58)) : y };
+      return shot(a, Math.max(0.01, FK_XG[di] + (skill - 70) * FK_SK[di]), 'free kick');
+    }
+    const how = sp.deliver === 'pass' || sp.deliver === 'lift' ? sp.deliver : 'cross';
+    const t = taker(a, how === 'pass' ? undefined : sp.fk || sp.corner, how === 'pass' ? 'Passing' : 'Crossing');
+    const where = wide ? 'Free kick out wide' : `Free kick ${yards >= 35 ? '35' : yards} yards out`;
+    const fx = wide ? 76 + r.next() * 12 : 100 - yards * 0.87 - r.next() * 2;
+    const left = lane && lane[0] === a ? lane[1] < 0 : r.next() < 0.5;
+    const fy = wide ? (left ? 6 + r.next() * 14 : 80 + r.next() * 14) : 35 + r.next() * 30;
+    if (how === 'pass') {
+      // played short: the move goes on, but the defence has set itself
+      log('setpiece', a, `${where}: ${t ? t.p.name : S[a].s.name} plays it short.`, t?.p.id);
+      if (r.next() < 0.5) { reach(a, 2); create(a, -0.01); }
+      return;
+    }
+    const aerial = A(a, 'aerial_att') - A(b, 'aerial_def');
+    const cross = t ? S[a].val(t, 'Crossing') : 65;
+    let q: number;
+    if (how === 'cross') q = 0.036 + aerial * 0.003 + (cross - 70) * 0.001 - (weather === 'wind' ? 0.01 : 0) + (wide ? 0.004 : 0);
+    else {
+      // lifted high into the box: everybody up, all about the headers; lose it and they break
+      if (r.next() < 0.1 + Math.max(0, -aerial) * 0.012) { log('setpiece', a, `${where}: ${t ? t.p.name : S[a].s.name} lifts it into the box... cleared!`, t?.p.id); return counter(b); }
+      q = 0.03 + aerial * 0.0065 + (cross - 70) * 0.0003 - (weather === 'wind' ? 0.016 : 0);
+    }
+    q += S[a].flags.setPiece;
+    log('freekick', a, `${where}. ${t ? t.p.name : S[a].s.name} ${how === 'cross' ? 'whips it in' : 'lifts it into the box'}...`, t?.p.id);
+    fkAt = { x: 89 + r.next() * 6, y: 38 + r.next() * 24, fx, fy, tk: t?.p.id };
+    shot(a, Math.max(0.012, q), 'set piece');
   };
 
   const tk = (i: number) => T(i).tackle ?? 1; // 0 stay on feet, 1 normal, 2 get stuck in
@@ -684,14 +738,14 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     }
     reach(a, 1);
     // fouls in shooting range give free kicks
-    if (r.next() < (0.012 + (tb.press >= 2 ? 0.004 : 0)) * [0.6, 1, 1.6][tk(b)]) {
+    if (r.next() < (0.017 + (tb.press >= 2 ? 0.005 : 0)) * [0.6, 1, 1.6][tk(b)]) {
       const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => o.p.a.Aggression || 50);
-      if (f && r.next() < 0.35 * cardMul * calm(b) * [0.75, 1, 1.25][tk(b)]) card(b, f);
+      if (f && r.next() < 0.25 * cardMul * calm(b) * [0.75, 1, 1.25][tk(b)]) card(b, f); // (more of these fouls are out wide or far out now: fewer cards each)
       return freeKick(a);
     }
     if (ta.build === 2 && r.next() < 0.5) {
       const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) - (tb.press === 1 ? 0.35 : 0)
-        + S[a].flags.holdup - (weather === 'wind' ? 0.3 : weather === 'fog' ? 0.9 : weather === 'rain' ? 0.12 : 0); // in fog nobody sees the long ball coming down
+        + S[a].flags.holdup - (weather === 'wind' ? 0.3 : weather === 'fog' ? 0.9 * fogMul : weather === 'rain' ? 0.12 : 0); // in fog nobody sees the long ball coming down
       if (r.next() < sig(duel - 1.45)) { reach(a, 2); create(a, tb.line === 2 ? 0.02 : 0); }
       else if (tb.mentality === 0 && r.next() < 0.06) counter(b);
       return;
@@ -754,7 +808,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       for (const o of S[i].pitch) {
         const stam = o.p.a.Stamina || 70;
         const roleTire = S[i].roleOf.size && ['Wing back', 'Box to box', 'Overlap'].includes(S[i].roleOf.get(o.p.id) || '') ? 1.18 : 1;
-        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 + 0.12 * (t.tempo - 1) + ((o.p.a.Dribbling || 50) > 74 ? 0.1 : 0) : weather === 'snow' ? 0.8 : 1) * roleTire; // heat drains the runners and the men on the ball; snow keeps legs fresh
+        o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 + 0.12 * (t.tempo - 1) + ((o.p.a.Dribbling || 50) > 74 ? 0.1 : 0) : weather === 'snow' ? 0.8 : 1) * roleTire * (S[i].s.tireMul ?? 1); // heat drains the runners and the men on the ball; snow keeps legs fresh
       }
       // injuries: rare, more likely when exhausted
       if (r.next() < 0.0009 * (S[i].s.injuryRisk ?? 1) * S[i].pitch.length / 11) {

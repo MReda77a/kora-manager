@@ -28,6 +28,14 @@ async function counterName() {
   await q(`INSERT INTO meta (k, v) VALUES ('counter', '1') ON CONFLICT (k) DO NOTHING`);
 }
 
+/** once: clubs that already expanded their stadium get the seats level that matches */
+async function seatLevels() {
+  const done = await q<{ v: string }>(`SELECT v FROM meta WHERE k='seats'`);
+  if (done.length) return;
+  await q(`UPDATE clubs SET seats_lv = LEAST(5, 1 + GREATEST(0, (capacity - CASE WHEN club_type='fan' THEN 40000 ELSE 30000 END) / 5000)) WHERE seats_lv = 1`);
+  await q(`INSERT INTO meta (k, v) VALUES ('seats', '1') ON CONFLICT (k) DO NOTHING`);
+}
+
 const VERSION = (() => { let h = 0; for (const c of SCHEMA) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h.toString(36); })();
 let done: Promise<void> | null = null;
 
@@ -37,10 +45,12 @@ export function migrate() {
     const r = await q<{ v: string }>(`SELECT v FROM meta WHERE k='schema'`);
     await wideMids();
     await counterName();
-    if (r[0]?.v === VERSION) return;
-    // all statements in one round trip: a visit may only make 50 outgoing requests on the free plan
-    await batch(SCHEMA.split(';').map((s) => s.trim()).filter(Boolean));
-    await q(`INSERT INTO meta (k, v) VALUES ('schema', $1) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v`, [VERSION]);
+    if (r[0]?.v !== VERSION) {
+      // all statements in one round trip: a visit may only make 50 outgoing requests on the free plan
+      await batch(SCHEMA.split(';').map((s) => s.trim()).filter(Boolean));
+      await q(`INSERT INTO meta (k, v) VALUES ('schema', $1) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v`, [VERSION]);
+    }
+    await seatLevels(); // needs the new columns
   })().catch((e) => { done = null; throw e; });
   return done;
 }

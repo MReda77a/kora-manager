@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/client.ts';
-import { CORNER_ROUTINES, FORMATIONS, LINE, PRESETS, ROLES, TACKLE_STYLES, roleFit, roleName, rolesFor, slotLabel, stripDesc, tacticFit, type Tactic } from '../../lib/game.ts';
+import { CORNER_ROUTINES, FK_DELIVER, FK_SHOOT, FORMATIONS, LINE, PRESETS, ROLES, TACKLE_STYLES, roleFit, roleName, rolesFor, slotLabel, stripDesc, tacticFit, type Tactic } from '../../lib/game.ts';
 import { Bar, BackHead, Seg, Spinner, lastName } from '../ui.tsx';
 import { Pitch, autoXI, useSquad } from './Lineup.tsx';
 import type { TabProps } from './types.ts';
@@ -223,6 +223,17 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
               </Line>
               <Line label="Routine"><Seg small opts={Object.entries(CORNER_ROUTINES).map(([k, l]) => [k, l]) as any} value={sp.routine || 'far'} onPick={(v: any) => change(() => setSp({ ...sp, routine: v }))} /></Line>
               <div className="tiny muted">Near post suits quick movers, far post suits tall headers, short corners keep the ball and suit good passers.</div>
+              <Line label="Shoot from">
+                <select value={sp.shoot || '30'} onChange={(e) => change(() => setSp({ ...sp, shoot: e.target.value }))} style={{ height: 30 }}>
+                  {Object.entries(FK_SHOOT).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </Line>
+              <Line label="Wide and far free kicks">
+                <select value={sp.deliver || 'cross'} onChange={(e) => change(() => setSp({ ...sp, deliver: e.target.value }))} style={{ height: 30 }}>
+                  {Object.entries(FK_DELIVER).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </Line>
+              <div className="tiny muted">Free kicks this close or closer are shot at goal; the rest, and every one out wide, are delivered. A great free kick taker can shoot from further. Pass keeps the ball, Cross suits a good crosser, Lift suits a tall side but gives away counters.</div>
             </div>
           )}
           {panel === 'pens' && (
