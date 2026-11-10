@@ -82,6 +82,10 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
   const fitOf = (n: string) => tacticFit(fitXi.map((p) => ({ ...p })), stripDesc(PRESETS[n])).score;
   const fitColor = (v: number) => (v >= 65 ? '#2EE6A0' : v >= 45 ? 'var(--cyan)' : '#FF8A80');
   const takers = xiPlayers.filter((p: any) => p.pos !== 'GK').sort((a: any, b: any) => (b.attrs.Finishing + b.attrs.Composure) - (a.attrs.Finishing + a.attrs.Composure));
+  // who takes them, in order, out of the men on the pitch: a pick who has left the line-up is shown
+  // apart rather than silently holding a number nobody can see or give up
+  const penOrder = pens.filter((id) => takers.some((p: any) => p.id === id));
+  const penOut = pens.filter((id) => !takers.some((p: any) => p.id === id)).map((id) => byId.get(id)).filter(Boolean) as any[];
   return (
     <div className="col" style={{ gap: 8 }}>
       {embedded ? (embedded === 'style' && <div className="row wrap" style={{ gap: 6 }}><PlanTabs plan={plan} plans={plans} setPlan={setPlan} /><span className="tiny muted" style={{ fontWeight: 800 }}>Suits squad <b style={{ color: fitColor(fitNow.score) }}>{fitNow.score}%</b> · Familiarity <b>{fam}</b></span></div>) : <BackHead title="Tactics" onBack={() => go('lineup')} tag={<PlanTabs plan={plan} plans={plans} setPlan={setPlan} />}
@@ -238,9 +242,10 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
           )}
           {panel === 'pens' && (
             <div className="col" style={{ gap: 4 }}>
-              <div className="row between tiny"><span className="muted" style={{ fontWeight: 800 }}>PENALTY TAKERS · TAP IN ORDER</span><b style={{ color: '#2EE6A0' }}>{pens.filter((x) => takers.some((p: any) => p.id === x)).length}/5 picked</b></div>
+              <div className="row between tiny"><span className="muted" style={{ fontWeight: 800 }}>PENALTY TAKERS · TAP IN ORDER</span><b style={{ color: '#2EE6A0' }}>{penOrder.length}/5 picked</b></div>
               {takers.map((p: any) => {
-                const n = pens.indexOf(p.id);
+                // the number is his place among the men who are actually in the line-up, so it never skips
+                const n = penOrder.indexOf(p.id);
                 const skill = Math.round((p.attrs.Finishing + p.attrs.Composure) / 2);
                 return (
                   <button key={p.id} className={`row-item ${n >= 0 ? 'sel' : ''}`} style={{ textAlign: 'left', minHeight: 30 }} onClick={() => change(() => setPens(n >= 0 ? pens.filter((x) => x !== p.id) : pens.length < 5 ? [...pens, p.id] : pens))}>
@@ -251,6 +256,18 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
                   </button>
                 );
               })}
+              {penOut.length > 0 && (
+                <>
+                  <div className="tiny muted" style={{ marginTop: 6 }}>Picked, but out of your line-up. They still hold their place for when they are back in it — tap to let them go.</div>
+                  {penOut.map((p: any) => (
+                    <button key={p.id} className="row-item" style={{ textAlign: 'left', minHeight: 30, opacity: 0.55 }} onClick={() => change(() => setPens(pens.filter((x) => x !== p.id)))}>
+                      <span style={{ width: 22, height: 22, display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.1)', clipPath: 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)', fontWeight: 900, fontSize: 12 }}>—</span>
+                      <b className="grow ellipsis">{p.name} <span className="tiny muted">{p.pos}</span></b>
+                      <span className="tiny muted">Not in the line-up</span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
           {panel === 'assistant' && (

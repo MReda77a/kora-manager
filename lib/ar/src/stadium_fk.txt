@@ -69,3 +69,5 @@ No night-match TV money yet	لسه مفيش فلوس تلفزيون لماتشا
 {0} are already at the top level.	{0} وصلت لأعلى مستوى خلاص.
 This upgrade costs {0}M.	التطوير ده بـ{0}M.
 Unknown part of the stadium.	جزء من الاستاد مش معروف.
+Picked, but out of your line-up. They still hold their place for when they are back in it — tap to let them go.	مختارهم، بس مش في التشكيلة. محتفظين بدورهم لما يرجعوا — دوس عشان تشيلهم.
+Not in the line-up	مش في التشكيلة
