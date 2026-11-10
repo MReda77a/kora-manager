@@ -124,6 +124,9 @@ class Side {
       // stepping up together for an offside trap, and timing a run against one
       trap: avg(D.length ? D : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Marking')) / 3, base) - avg(D, (o) => o.tired, 0) * 8,
       runs: avg(F.length ? F : M, (o) => (this.val(o, 'Positioning') + this.val(o, 'Decisions') + this.val(o, 'Pace')) / 3, base),
+      // running at a defender with the ball: these are the men who get fouled, and the nearer to goal
+      // they get before it happens, the more dangerous the free kick
+      carry: avg([...F, ...M], (o) => this.val(o, 'Dribbling') * 0.6 + this.val(o, 'Pace') * 0.25 + this.val(o, 'Strength') * 0.15, base),
     };
     // each flank: the wide men going forward (pace, dribbling, crossing) and the ones defending it
     // (tackling, marking, pace); tired legs and a yellow card make a flank weaker
@@ -398,18 +401,36 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     q += S[a].flags.setPiece; // a centre-back who goes up for corners
     shot(a, Math.max(0.015, q), 'corner');
   };
-  // a foul in the attacking half: central at 20 to 35+ yards, or out wide. The manager says how close
-  // it has to be to shoot; anything further, and anything wide, is delivered: played short, crossed, or
-  // lifted high into the box (a big aerial side wins those, a small one gives away a counter)
-  const FK_D = [20, 25, 30, 35], FK_W = [0.22, 0.3, 0.28, 0.2];
+  // Where a foul on an attack happens follows how the side attacks and how the other defends.
+  // Out wide: wing play, a wide shape and a flank lean are stopped near the touchline; a narrow or
+  // shooting side is fouled in the middle. How far out: a side running in behind is brought down near
+  // the box, a shooting side wins them on the edge of the D, a high line stops everything further out
+  // and a deep block only concedes them close in. Quick, strong dribblers get further before the foul.
+  const fkSpot = (a: 0 | 1, b: 0 | 1) => {
+    const ta = T(a), tb = T(b);
+    const pWide = 0.2 + (ta.focus === 0 ? 0.24 : ta.focus === 3 ? -0.1 : ta.focus === 1 ? 0.02 : -0.04)
+      + (ta.width - 1) * 0.1 + (Math.abs(ta.shift || 0) / 100) * 0.2 + (tb.width === 0 ? 0.07 : 0) - (tb.width === 2 ? 0.05 : 0);
+    const wide = r.next() < Math.max(0.05, Math.min(0.62, pWide));
+    // the middle of the spread, in yards from goal (18 is the edge of the box)
+    let yards = 27 + [1, -5.5, -1, 3.5][ta.focus]
+      + (tb.line - 1) * 4.5 // a high line defends far from its goal, a low block right on top of its box
+      + (tb.mentality === 0 ? -1.5 : tb.mentality === 2 ? 1 : 0)
+      + (tb.press >= 2 ? 2 : 0) // a pressing side goes to meet them, so the foul is further from goal
+      - (A(a, 'carry') - A(b, 'tackling')) * 0.14 // men who beat their marker get nearer before being stopped
+      - (ta.tempo === 2 ? 1 : ta.tempo === 0 ? -1 : 0)
+      + (wide ? 2.5 : 0);
+    yards += (r.next() + r.next() - 1) * 7; // the spread around it
+    return { wide, yards: Math.max(17, Math.min(42, yards)) };
+  };
+  // the xG and what the taker's quality is worth, by how far out it is
   const FK_XG = [0.088, 0.062, 0.04, 0.022], FK_SK = [0.0026, 0.0022, 0.0017, 0.0011];
-  const freeKick = (a: 0 | 1) => {
+  const freeKick = (a: 0 | 1, at: { wide: boolean; yards: number }) => {
     const b = (1 - a) as 0 | 1;
     const sp = S[a].s.setpieces || {};
-    const wide = r.next() < 0.35;
-    let di = 0;
-    if (!wide) { let u = r.next(); while (di < 3 && u > FK_W[di]) { u -= FK_W[di]; di++; } }
-    const yards = FK_D[di];
+    const wide = at.wide;
+    // the four distances the manager chooses between, and where this one falls
+    const di = at.yards < 22.5 ? 0 : at.yards < 27.5 ? 1 : at.yards < 32.5 ? 2 : 3;
+    const yards = [20, 25, 30, 35][di];
     const shootFrom = Number(sp.shoot) || 30;
     if (!wide && yards <= shootFrom) {
       const t = taker(a, sp.fk, 'LongShots');
@@ -417,13 +438,13 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       const where = yards >= 35 ? 'Free kick 35 yards out' : yards <= 20 ? 'Free kick on the edge of the box' : `Free kick ${yards} yards out`;
       log('freekick', a, t ? say([`${where}. ${t.p.name} stands over it...`, `${where}. ${t.p.name} fancies this one...`]) : `${where}...`, t?.p.id);
       const y = 36 + r.next() * 28;
-      fkAt = { x: 100 - (yards + (yards >= 35 ? 3 : 0)) * 0.87 - r.next() * 2, y: lane && lane[0] === a ? (lane[1] < 0 ? Math.min(y, 42) : Math.max(y, 58)) : y };
+      fkAt = { x: 100 - at.yards * 0.87, y: lane && lane[0] === a ? (lane[1] < 0 ? Math.min(y, 42) : Math.max(y, 58)) : y };
       return shot(a, Math.max(0.01, FK_XG[di] + (skill - 70) * FK_SK[di]), 'free kick');
     }
     const how = sp.deliver === 'pass' || sp.deliver === 'lift' ? sp.deliver : 'cross';
     const t = taker(a, how === 'pass' ? undefined : sp.fk || sp.corner, how === 'pass' ? 'Passing' : 'Crossing');
     const where = wide ? 'Free kick out wide' : `Free kick ${yards >= 35 ? '35' : yards} yards out`;
-    const fx = wide ? 76 + r.next() * 12 : 100 - yards * 0.87 - r.next() * 2;
+    const fx = wide ? 100 - at.yards * 0.62 : 100 - at.yards * 0.87;
     const left = lane && lane[0] === a ? lane[1] < 0 : r.next() < 0.5;
     const fy = wide ? (left ? 6 + r.next() * 14 : 80 + r.next() * 14) : 35 + r.next() * 30;
     if (how === 'pass') {
@@ -737,11 +758,17 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       return;
     }
     reach(a, 1);
-    // fouls in shooting range give free kicks
-    if (r.next() < (0.017 + (tb.press >= 2 ? 0.005 : 0)) * [0.6, 1, 1.6][tk(b)]) {
+    // a man running at the defence is brought down: how often follows who is running and who is tackling
+    const pFoul = 0.013 * [0.6, 1, 1.6][tk(b)] * (1 + (tb.press - 1) * 0.16)
+      * (1 + Math.max(-0.5, Math.min(0.7, (A(a, 'carry') - A(b, 'tackling')) * 0.014)));
+    if (r.next() < pFoul) {
+      const at = fkSpot(a, b);
       const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => o.p.a.Aggression || 50);
-      if (f && r.next() < 0.25 * cardMul * calm(b) * [0.75, 1, 1.25][tk(b)]) card(b, f); // (more of these fouls are out wide or far out now: fewer cards each)
-      return freeKick(a);
+      // the referee's book comes out for what the foul stopped: a man brought down on the edge of the
+      // box going for goal is a booking, a shirt pull 40 yards out on the touchline is not
+      const danger = Math.max(0, Math.min(1, (40 - at.yards) / 20)) * (at.wide ? 0.45 : 1);
+      if (f && r.next() < (0.1 + 0.42 * danger) * cardMul * calm(b) * [0.75, 1, 1.25][tk(b)]) card(b, f);
+      return freeKick(a, at);
     }
     if (ta.build === 2 && r.next() < 0.5) {
       const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) - (tb.press === 1 ? 0.35 : 0)
