@@ -20,14 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # until both secrets are added the job skips quietly (no failure emails)
       - name: Check secrets
+        id: ready
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
         run: |
-          [ -n "$DATABASE_URL" ] || { echo "::error::Add the DATABASE_URL secret"; exit 1; }
-          [ -n "$BACKUP_KEY" ] || { echo "::error::Add the BACKUP_KEY secret"; exit 1; }
+          if [ -n "$DATABASE_URL" ] && [ -n "$BACKUP_KEY" ]; then echo "ok=1" >> "$GITHUB_OUTPUT";
+          else echo "::warning::Backup skipped: add the DATABASE_URL and BACKUP_KEY secrets to turn it on"; fi
       - name: Dump and encrypt
+        if: steps.ready.outputs.ok == '1'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
@@ -44,6 +47,7 @@ jobs:
           rm -f "$F"
           echo "FILE=$F.gpg" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
+        if: steps.ready.outputs.ok == '1'
         with:
           name: ${{ env.FILE }}
           path: ${{ env.FILE }}
