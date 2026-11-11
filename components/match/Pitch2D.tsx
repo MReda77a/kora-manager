@@ -739,16 +739,20 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     for (const sd of [0, 1] as const) for (let kk = 0; kk < F[sd].xy.length; kk++) { const p0 = was0(sd, kk), p1 = own0(sd, kk); far = Math.max(far, Math.hypot(p0[0] - p1[0], p0[1] - p1[1])); }
     const need = Math.max((q.pre || 0) * dur, 0.4, far / 25); // about 7.5 m a second at most
     const bw = ease(c01(vRaw / Math.min(0.95, need / dur)));
-    if (bw >= 1) return own;
     const was = was0;
     // the corner taker runs to the flag while the ball goes out, so he is there when it is taken
     const tw = (q.restart === 'corner' || q.restart === 'kickoff') && q.pre ? ease(c01(vRaw / q.pre)) : -1;
     // ...and so does the man who takes the kick-off: he is on the centre spot when the celebration ends
     const koTaker = q.restart === 'kickoff' ? (q.koSide !== undefined && q.koSide !== q.s ? { side: q.koSide, k: q.koMan } : { side: q.s, k: q.chain[0] }) : null;
     const blended = (side: 0 | 1, k: number): [number, number] => {
-      const a = was(side, k), b = own(side, k);
       const lead = tw >= 0 && ((q.restart === 'corner' && side === q.s && k === q.chain[0]) || (koTaker && side === koTaker.side && k === koTaker.k));
       const w = lead ? tw : bw;
+      // once a man has finished walking over from the last move he simply stands where this move wants
+      // him. (Only the walk is skipped here: returning early from the whole function would also drop the
+      // runner who is beyond the last defender and the defender closing the man down, and they would
+      // snap back in the middle of the move with the ball jumping after them.)
+      if (w >= 1) return own(side, k);
+      const a = was(side, k), b = own(side, k);
       return [lerp(a[0], b[0], w), lerp(a[1], b[1], w)];
     };
     // the tackler gets to the man on the ball wherever he really is, even while the others still walk on
@@ -890,10 +894,11 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       const win = q.win !== null ? pos(o, q.win) : last;
       if (q.off && v < contact) { st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = v < ce + (1 - ce) * 0.1 ? 'Through ball' : 'Offside!'; st.bannerSide = v < ce + (1 - ce) * 0.1 ? s : o; return st; }
       if (q.off) {
-        const w = ease(c01((v - contact) / ((1 - contact) * 0.4)));
-        const from: [number, number] = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5];
-        st.ball = [lerp(from[0], win[0] + (o === 0 ? 0.9 : -0.9), w), lerp(from[1], win[1] + 0.5, w)];
-        if (w >= 1 && q.win !== null) st.holder = { side: o, k: q.win };
+        // the flag is up: the free kick is taken from where the run was, so the ball stays there and a
+        // defender walks up to it. It must not fly back to the defensive line — that reads as the ball
+        // teleporting across the pitch, and puts the offside somewhere nobody was attacking
+        st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5];
+        st.holder = null;
         st.banner = 'Free kick'; st.bannerSide = o;
         return st;
       }
