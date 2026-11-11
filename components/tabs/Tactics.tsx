@@ -135,6 +135,7 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
             <div className="col" style={{ gap: 8 }}>
               <Line label="Tempo"><Seg small opts={[[0, 'Slow'], [1, 'Normal'], [2, 'Fast']]} value={t.tempo} onPick={(v) => setField('tempo', v)} /></Line>
               <Line label="Width"><Seg small opts={[[0, 'Narrow'], [1, 'Balanced'], [2, 'Wide']]} value={t.width} onPick={(v) => setField('width', v)} /></Line>
+              <span className="tiny muted">Wide stretches their defence for crosses and balls in behind; narrow keeps men close for short passing and packs the middle when you defend.</span>
               <Line label="Build-up"><Seg small opts={[[0, 'Play out'], [1, 'Mixed'], [2, 'Direct']]} value={t.build} onPick={(v) => setField('build', v)} /></Line>
               <Line label="Final third"><Seg small opts={[[0, 'Cross'], [1, 'Through'], [2, 'Work in'], [3, 'Shoot']]} value={t.focus} onPick={(v) => setField('focus', v)} /></Line>
             </div>
@@ -144,6 +145,7 @@ export default function TacticsTab({ lid, toast, go , embedded, onSaved }: TabPr
               <Line label="Mentality"><Seg small opts={[[0, 'Defensive'], [1, 'Balanced'], [2, 'Attacking']]} value={t.mentality} onPick={(v) => setField('mentality', v)} /></Line>
               <Line label="Pressing"><Seg small opts={[[0, 'Low'], [1, 'Mid'], [2, 'High'], [3, 'Gegen']]} value={t.press} onPick={(v) => setField('press', v)} /></Line>
               <Line label="Def. line"><Seg small opts={[[0, 'Low block'], [1, 'Mid'], [2, 'High']]} value={t.line} onPick={(v) => setField('line', v)} /></Line>
+              {t.press - 1 - t.line > 0 && <span className="tiny" style={{ color: '#F2C14E', fontWeight: 700 }}>A high press needs a higher line behind it: with the line this deep, the pressers leave a hole in front of your defence that teams pass straight through.</span>}
               <Line label="Tackling">
                 {/* big faces, so the choice reads without any English */}
                 <div className="segrow">

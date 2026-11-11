@@ -48,14 +48,14 @@ const FOR: Record<string, string> = {
 };
 
 // ---- the causes, in words. Written as "they attack you"; the mirror ("you attack them") swaps the sides.
-const BASE: Record<string, number> = { cross: 0.075, 'through ball': 0.088, 'build-up': 0.1, 'long shot': 0.07, counter: 0.1 };
+const BASE: Record<string, number> = { cross: 0.075, 'through ball': 0.088, 'build-up': 0.1, 'long shot': 0.058, counter: 0.1 };
 const NAME: Record<string, string> = { cross: 'crosses', 'through ball': 'through balls', 'build-up': 'passing moves', 'long shot': 'long shots', counter: 'counter-attacks' };
 const g1 = (x: number) => String(Math.round(Math.abs(x)));
 const CAUSE: Record<string, Record<string, (v: number, gap: number) => string>> = {
   cross: {
     air: (v, g) => (v > 0 ? `Their forwards beat your defenders in the air (by ${g1(g)})` : `Your defenders beat their forwards in the air (by ${g1(g)})`),
     wide: (v) => (v > 0 ? 'They played wide' : 'They played narrow'),
-    narrow: () => 'Your narrow shape left the wings free',
+    narrow: (v) => (v > 0 ? 'Your narrow shape left the wings free' : 'Your wide shape covered the wings'),
     line: () => 'Your low line let the crosses reach the box',
     roles: () => 'Their wide men are set up to cross',
     wind: () => 'The wind',
@@ -67,6 +67,8 @@ const CAUSE: Record<string, Record<string, (v: number, gap: number) => string>> 
     line: (v) => (v > 0 ? 'Your high line left space behind' : 'Your low line left no space behind'),
     roles: () => 'Their runners are set up to go in behind',
     bus: () => 'Your packed box',
+    shape: (v) => (v > 0 ? 'Their wide play pulled your defence apart' : 'Your narrow defence closed the gaps'),
+    press: () => 'Your press left a hole in front of your deep defence',
   },
   'build-up': {
     pass: (v, g) => (v > 0 ? `Their passing beat your tackling (by ${g1(g)})` : `Your tackling beat their passing (by ${g1(g)})`),
@@ -74,12 +76,14 @@ const CAUSE: Record<string, Record<string, (v: number, gap: number) => string>> 
     press: () => 'Your press left gaps to pass through',
     roles: () => 'Their runners are set up to go in behind',
     bus: () => 'Your packed box',
+    shape: (v) => (v > 0 ? 'The middle of your defence was open' : 'The middle of your defence was packed'),
   },
   'long shot': {
     shoot: (v, g) => (v > 0 ? `Their shooting beat your keeper (by ${g1(g)})` : `Your keeper beat their shooting (by ${g1(g)})`),
     line: (v) => (v > 0 ? 'Your low line gave them room to shoot' : 'Your high line closed the shooters down'),
     roles: () => 'Their long-range shooters',
     lobbed: () => 'Your keeper was off his line',
+    shape: (v) => (v > 0 ? 'The middle of your defence was open' : 'The middle of your defence was packed'),
   },
   counter: {
     pace: (v, g) => (v > 0 ? `Their forwards are quicker than your defenders (by ${g1(g)})` : `Your defenders are quicker than their forwards (by ${g1(g)})`),

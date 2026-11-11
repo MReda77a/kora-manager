@@ -290,6 +290,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (!f || f[1] !== side || f[0] !== minute || f[3] !== -1) flow.push(lane && lane[0] === side ? [minute, side, r, -1, lane[1]] : [minute, side, r, -1]);
     else if (r > f[2]) f[2] = r;
   };
+  let minuteShots = 0; // shots so far in this minute of the match
   let fkAt: { x: number; y: number; fx?: number; fy?: number; tk?: string } | null = null; // the next shot is this free kick
   const spot = (a: 0 | 1, kind: string) => {
     let x: number, y: number;
@@ -341,6 +342,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     // A free kick that has been given is always taken, and the clearances are already in its numbers.
     const lost = kind === 'free kick' || kind === 'set piece' ? 0 : SHOT_LOST;
     if (lost && r.next() < lost) return;
+    // a minute holds three shots at most: more than that cannot be watched (each would get under a
+    // second on the pitch) and is not football. A free kick that has been given is still taken.
+    if (lost && minuteShots >= 3) return;
+    minuteShots++;
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     const taken = by ? (S[a].val(by, 'LongShots') + S[a].val(by, 'Composure')) / 2 : 0;
     // (a poor taker against a fine keeper still has some chance: the kick is never worth less than a third of an ordinary one)
@@ -550,7 +555,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const bus = tb.mentality === 0;
     if (f === 0) {
       gap = A(a, 'aerial_att') - A(b, 'aerial_def');
-      t = { air: gap * 0.005, wide: ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0, narrow: tb.width === 0 ? 0.01 : 0, line: tb.line === 0 ? 0.015 : 0,
+      t = { air: gap * 0.005, wide: ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0, narrow: tb.width === 0 ? 0.012 : tb.width === 2 ? -0.01 : 0, line: tb.line === 0 ? 0.015 : 0,
         roles: ta.width >= 1 ? S[a].flags.crossB : 0, wind: weather === 'wind' ? -0.012 : 0 };
       q = 0.075 + t.air + t.wide + t.narrow + t.line + t.roles + t.wind;
       // men sent out to double up on the wide players cut the supply off at the source, so they are
@@ -561,25 +566,30 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       two = 0.25;
     } else if (f === 1) {
       gap = A(a, 'pace_att') - A(b, 'pace_def');
-      t = { pace: gap * 0.005, line: tb.line === 2 ? 0.04 - S[b].flags.sweeper * 0.02 : tb.line === 0 ? -0.035 : 0, roles: S[a].flags.through, bus: bus ? -0.012 : 0 };
-      q = 0.088 + t.pace + t.line + t.roles + t.bus;
+      // a wide side pulls the back four apart for the ball in behind; a narrow defence closes those gaps
+      t = { pace: gap * 0.005, line: tb.line === 2 ? 0.04 - S[b].flags.sweeper * 0.02 : tb.line === 0 ? -0.035 : 0, roles: S[a].flags.through, bus: bus ? -0.012 : 0,
+        shape: (ta.width === 2 ? 0.008 : ta.width === 0 ? -0.006 : 0) + (tb.width === 0 ? -0.008 : tb.width === 2 ? 0.006 : 0), press: 0.012 * stretch(tb) };
+      q = 0.088 + t.pace + t.line + t.roles + t.bus + t.shape + t.press;
       two = 0;
     } else if (f === 2) {
       gap = A(a, 'passing') - A(b, 'tackling');
-      t = { pass: gap * 0.005, line: tb.line === 0 ? -0.03 : 0, press: tb.line !== 0 && tb.press >= 2 ? 0.015 : 0, roles: S[a].flags.through * 0.5, bus: bus ? -0.004 : 0 }; // bodies in the box: hard to pass or run through
-      q = 0.1 + t.pass + t.line + t.press + t.roles + t.bus;
+      // short combinations want men close together (narrow); a narrow defence packs the middle, a wide one leaves it open
+      t = { pass: gap * 0.005, line: tb.line === 0 ? -0.03 : 0, press: (tb.line !== 0 && tb.press >= 2 ? 0.015 : 0) + 0.014 * stretch(tb), roles: S[a].flags.through * 0.5, bus: bus ? -0.004 : 0, // bodies in the box: hard to pass or run through
+        shape: (ta.width === 0 ? 0.01 : ta.width === 2 ? -0.008 : 0) + (tb.width === 0 ? -0.012 : tb.width === 2 ? 0.012 : 0) };
+      q = 0.1 + t.pass + t.line + t.press + t.roles + t.bus + t.shape;
       two = 0.1;
     } else {
       gap = A(a, 'finishing') - A(b, 'keeper');
-      t = { shoot: gap * 0.003, line: (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0), roles: S[a].flags.longshot, lobbed: S[b].flags.lobbed };
-      q = 0.07 + t.shoot + t.line + t.roles + t.lobbed;
-      two = 0.55;
+      // from distance: plenty of shots, each worth little (a narrow defence blocks more of them)
+      t = { shoot: gap * 0.0022, line: (tb.line === 0 ? 0.03 : 0) - (tb.line === 2 ? 0.008 : 0), roles: S[a].flags.longshot * 0.8, lobbed: S[b].flags.lobbed, shape: tb.width === 0 ? -0.005 : tb.width === 2 ? 0.004 : 0 };
+      q = 0.058 + t.shoot + t.line + t.roles + t.lobbed + t.shape;
+      two = 0.8; // most of the time a second go follows the first
     }
     q = Math.max(0.02, q + bonus);
     if (f === 1) {
       const tr = trap(a);
       if (tr === 'off') return;
-      if (tr === 'beaten') q += 0.22;
+      if (tr === 'beaten') q += 0.14;
     }
     // a small share of attacks in the box end with a foul and a penalty (more against wild tackling)
     if (f !== 3 && r.next() < 0.017 * penMul * [0.75, 1, 1.45][tk(b)]) return penalty(a);
@@ -627,7 +637,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   };
 
   const card = (side: 0 | 1, o: OnPitch, pRed = 0) => {
-    if (r.next() < 0.03 + pRed * 0.1) return sendOff(side, o, true);
+    if (r.next() < 0.02 + pRed * 0.1) return sendOff(side, o, true);
     o.yc++;
     o.line.yc++;
     o.line.r -= 0.3;
@@ -786,17 +796,18 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (ta.shift && r.next() < 0.3 + 0.55 * Math.abs(ta.shift) / 100) lane = [a, Math.sign(ta.shift)];
     flow.push(lane ? [minute, a, 0, -1, lane[1]] : [minute, a, 0, -1]);
     const risk = ta.build === 0 ? (weather === 'rain' ? 1.55 : 1.35) : ta.build === 2 ? 0.5 : 1.0;
-    const pLose = 0.08 + tb.press * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0) // hard tackling hurts short-passing sides most
+    const gapB = stretch(tb);
+    const pLose = 0.08 + (tb.press - 0.7 * gapB) * 0.045 * risk - (A(a, 'passing') - A(b, 'tackling')) * 0.004 + [-0.035, 0, 0.07][tk(b)] + (tk(b) === 2 && ta.build === 0 ? 0.035 : 0) // hard tackling hurts short-passing sides most
       + S[a].flags.lose + (tb.press >= 2 ? S[a].flags.pressed : 0);
     if (r.next() < Math.max(0.03, pLose)) {
       // tackles can bring fouls and cards, many more when the team gets stuck in. A booking is a foul: the
       // referee stops play and gives the free kick, so the ball is not won (the card shows at the stop)
       if (r.next() < (0.2 + (tb.press >= 2 ? 0.08 : 0)) * [0.55, 1, 1.6][tk(b)]) {
-        const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1));
+        const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.slot === 'FWD' ? 0.5 : 1) * (o.yc ? 0.4 : 1)); // a man on a yellow pulls out of tackles
         if (f && r.next() < (0.33 + ((f.p.a.Aggression || 50) - 60) * 0.006) * (derby ? 1.5 : 1) * cardMul * calm(b) * [0.7, 1, 1.15][tk(b)]) { card(b, f, tk(b) === 2 ? 0.05 : 0); return; }
       }
-      if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.21 : 0.2)) shot(b, tb.press === 3 ? 0.135 : 0.13, 'high turnover');
-      else if (r.next() < [0.17, 0.13, 0.06][tb.mentality] * (ta.press === 3 ? 0.5 : 1) * (ta.mentality === 2 ? 1.4 : 1)) counter(b); // even an attacking side breaks when it wins it; a gegenpressing side hunts it straight back; men forward leave space behind
+      if (tb.press >= 2 && ta.build !== 2 && r.next() < (tb.press === 3 ? 0.21 : 0.2) * (1 - 0.3 * gapB)) shot(b, tb.press === 3 ? 0.135 : 0.13, 'high turnover'); // (a stretched side wins it with nobody near to help)
+      else if (r.next() < [0.17, 0.13, 0.06][tb.mentality] * (ta.press === 3 ? 0.5 : 1) * (ta.mentality === 2 ? 1.2 : 1)) counter(b); // even an attacking side breaks when it wins it; a gegenpressing side hunts it straight back; men forward leave space behind
       return;
     }
     reach(a, 1);
@@ -805,7 +816,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       * (1 + Math.max(-0.5, Math.min(0.7, (A(a, 'carry') - A(b, 'tackling')) * 0.014)));
     if (r.next() < pFoul) {
       const at = fkSpot(a, b);
-      const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => o.p.a.Aggression || 50);
+      const f = r.weighted(S[b].pitch.filter((o) => o.slot !== 'GK'), (o) => (o.p.a.Aggression || 50) * (o.yc ? 0.4 : 1));
       // the referee's book comes out for what the foul stopped: a man brought down on the edge of the
       // box going for goal is a booking, a shirt pull 40 yards out on the touchline is not
       const danger = Math.max(0, Math.min(1, (40 - at.yards) / 20)) * (at.wide ? 0.45 : 1);
@@ -815,7 +826,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (ta.build === 2 && r.next() < 0.5) {
       const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) - (tb.press === 1 ? 0.35 : 0)
         + S[a].flags.holdup - (weather === 'wind' ? 0.3 : weather === 'fog' ? 0.9 * fogMul : weather === 'rain' ? 0.12 : 0); // in fog nobody sees the long ball coming down
-      if (r.next() < sig(duel - 1.45)) { reach(a, 2); create(a, tb.line === 2 ? 0.02 : 0); }
+      if (r.next() < sig(duel - 1.38)) { reach(a, 2); create(a, tb.line === 2 ? 0.02 : 0); }
       else if (tb.mentality === 0 && r.next() < 0.06) counter(b);
       return;
     }
@@ -824,6 +835,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const intoBlock = tb.line === 0 && tb.mentality === 0 && !(ta.focus === 0 && ta.width >= 1) && ta.focus !== 3 ? 0.35 : 1;
     let prog = (A(a, 'passing') - A(b, 'tackling')) * 0.03 + [0, 0.15, 0.15 + 0.17 * intoBlock][ta.mentality] - 0.12 + (tb.mentality - 1) * (ta.focus === 0 && ta.width >= 1 ? 0.07 : 0.12);
     prog += tb.line === 0 ? (ta.focus === 0 && ta.width >= 1 ? -0.04 : -0.18) : tb.line === 2 ? 0.12 : 0; // wide crossing teams go around a deep block
+    prog += 0.13 * gapB; // through the hole between a high press and a deep line
     // game state: a team chasing the game late on throws bodies forward, more so when told to attack
     const behind = goals[b] - goals[a];
     if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 * intoBlock : ta.mentality === 0 ? -0.1 : 0);
@@ -841,8 +853,10 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
     prog += S[a].flags.prog;
     if (r.next() < sig(prog - 1.55)) { reach(a, 2); create(a); }
+    // the attack breaks down near their box: a cross blocked, a tackle behind for a corner (wide sides win more)
+    else if (r.next() < (ta.focus === 0 ? 0.075 : 0.04) * (ta.width === 2 ? 1.25 : ta.width === 0 ? 0.8 : 1) * (tb.line === 0 ? 1.25 : 1)) { reach(a, 2); corner(a); }
     else if (r.next() < offRate(a)) flagged(a);
-    else if (r.next() < (ta.mentality === 2 ? 0.07 : 0.035) * (tb.mentality === 2 && ta.mentality < 2 ? 0.5 : 1) * (ta.press === 3 ? 0.5 : 1)) counter(b);
+    else if (r.next() < (ta.mentality === 2 ? 0.055 : 0.035) * (tb.mentality === 2 && ta.mentality < 2 ? 0.5 : 1) * (ta.press === 3 ? 0.5 : 1)) counter(b);
   };
   // how often a move that breaks down ends with a runner offside: balls in behind and long balls more,
   // against a high line more, against a deep block hardly ever; runners who live on the shoulder more
@@ -850,6 +864,11 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const ta = T(a), tb = T((1 - a) as 0 | 1);
     return 0.042 * (ta.focus === 1 ? 1.6 : ta.focus === 3 ? 0.6 : 1) * (ta.build === 2 ? 1.35 : 1) * [0.45, 1, 1.55][tb.line] * (ta.mentality === 2 ? 1.2 : 1) * (1 + S[a].flags.offside * 0.6);
   };
+
+  // A press only works when the whole side squeezes up behind it. Pressing high from a deep line leaves
+  // a hole between the pressers and the defence: the press is easier to play round, and whoever gets
+  // through it finds room in front of the back four. 0 = compact, 1 = stretched, 2 = torn in two.
+  const stretch = (t: Tactic) => Math.max(0, t.press - 1 - t.line);
 
   const possShare = () => {
     const t0 = T(0), t1 = T(1);
@@ -868,6 +887,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
   const total = 90 + stoppage1 + stoppage2;
   for (let k = 1; k <= total; k++) {
     minute = k <= 45 + stoppage1 ? Math.min(k, 45) : k - stoppage1;
+    minuteShots = 0;
     if (k === 46 + stoppage1) log('ht', 0, `Half-time: ${home.name} ${goals[0]}–${goals[1]} ${away.name}`);
     while (nextChange < changes.length && changes[nextChange].m <= minute && (k > 45 + stoppage1 || changes[nextChange].m <= 45)) {
       applyChange(changes[nextChange++]);

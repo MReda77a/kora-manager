@@ -4,7 +4,7 @@
 // ball wears a ring and his name, both teams slide as a block with the play, a lost ball goes to the
 // opponent nearest to it, a shot flies at goal from where the engine took it and the real scorer
 // scores. Each move starts exactly where the previous one ended, so nothing jumps.
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FORMATIONS, PRESETS, ROLES } from '../../lib/game.ts';
 import { shirt } from '../../lib/client.ts';
 import { lastName } from '../ui.tsx';
@@ -455,6 +455,26 @@ export function buildPlan(rep: any, events: Ev[]) {
   }
 }
 
+// The line under the pitch. What happens on the pitch can change faster than anyone can read, so a line
+// is only shown once it has lasted a moment, and then stays long enough to be read. The moments that
+// matter (a goal, a shot, the flag, a tackle) come up at once.
+const NOW = /GOAL|PENALTY|SHOT|Saved|Offside|Tackle|Foul|HEADER|KICK-OFF|HALF-TIME|FULL TIME|VAR|No goal|Off target|In the net/i;
+function Banner({ text, color, ink, short }: { text: string; color: string; ink: string; short: string }) {
+  const [shown, setShown] = useState({ text, color, ink, short });
+  const since = useRef(0), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    if (text === shown.text) return;
+    const held = performance.now() - since.current;
+    const wait = !text || !shown.text ? 0 : NOW.test(text) ? Math.max(0, 250 - held) : Math.max(280, 750 - held);
+    const go = () => { since.current = performance.now(); setShown({ text, color, ink, short }); };
+    if (wait <= 0) go(); else timer.current = setTimeout(go, wait);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [text, color, ink, short, shown.text]);
+  if (!shown.text) return null;
+  return <div className={`p2d-banner ${shown.text === 'GOAL!' || shown.text === 'PENALTY!' ? 'big' : ''}`} style={{ borderColor: shown.color }}><b style={{ background: shown.color, color: shown.ink }}>{shown.short}</b><span>{shown.text}</span></div>;
+}
+
 export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t: number; plan: ReturnType<typeof usePlan>; mineSide: number; seen?: Ev[]; fitOf?: (id: string) => number | null }) {
   // where each man was drawn last frame: nobody is ever drawn moving faster than a sprint
   const drawn = useRef<{ t: number; at: Map<string, [number, number]> }>({ t: -1, at: new Map() });
@@ -731,17 +751,19 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     };
     // the players walk on from where the last move left them (about 1 s live), nobody snaps into place
     const prevQ = blend && q.i > 0 && !(q.t0 >= 45 - 1e-6 && plans[q.i - 1].t0 < 45 - 1e-6) ? plans[q.i - 1] : null; // after half-time everybody comes out in place
-    if (!prevQ) return own;
+    // (with no move before it, or when asked where a move ENDS, there is no walk: but the rest of this
+    // function still applies, or the runner flagged offside would be back in line at the end of his move
+    // and jump there when the next one starts)
     const dur = Math.max(0.01, q.t1 - q.t0);
     // a long way back (after an attack at the other end) takes longer to run than a few steps
-    const was0 = posQ(prevQ, 1, false), own0 = own;
+    const was0 = prevQ ? posQ(prevQ, 1, false) : own, own0 = own;
     let far = 0;
-    for (const sd of [0, 1] as const) for (let kk = 0; kk < F[sd].xy.length; kk++) { const p0 = was0(sd, kk), p1 = own0(sd, kk); far = Math.max(far, Math.hypot(p0[0] - p1[0], p0[1] - p1[1])); }
+    if (prevQ) for (const sd of [0, 1] as const) for (let kk = 0; kk < F[sd].xy.length; kk++) { const p0 = was0(sd, kk), p1 = own0(sd, kk); far = Math.max(far, Math.hypot(p0[0] - p1[0], p0[1] - p1[1])); }
     const need = Math.max((q.pre || 0) * dur, 0.4, far / 25); // about 7.5 m a second at most
-    const bw = ease(c01(vRaw / Math.min(0.95, need / dur)));
+    const bw = prevQ ? ease(c01(vRaw / Math.min(0.95, need / dur))) : 1;
     const was = was0;
     // the corner taker runs to the flag while the ball goes out, so he is there when it is taken
-    const tw = (q.restart === 'corner' || q.restart === 'kickoff') && q.pre ? ease(c01(vRaw / q.pre)) : -1;
+    const tw = prevQ && (q.restart === 'corner' || q.restart === 'kickoff') && q.pre ? ease(c01(vRaw / q.pre)) : -1;
     // ...and so does the man who takes the kick-off: he is on the centre spot when the celebration ends
     const koTaker = q.restart === 'kickoff' ? (q.koSide !== undefined && q.koSide !== q.s ? { side: q.koSide, k: q.koMan } : { side: q.s, k: q.chain[0] }) : null;
     const blended = (side: 0 | 1, k: number): [number, number] => {
@@ -767,7 +789,9 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         const xs = F[dSide].slots.map((sl, kk) => (sl !== 'GK' && od[kk] ? blended(dSide, kk)[0] : null)).filter((x): x is number => x !== null);
         if (!xs.length) return r;
         const line = q.s === 0 ? Math.max(...xs) : Math.min(...xs), tx = line + dir * 2.2;
-        const x = q.s === 0 ? Math.max(r[0], tx) : Math.min(r[0], tx);
+        // a step or two beyond the line, never a sprint across half the pitch, and never past the
+        // six-yard box (or off the pitch altogether)
+        const x = q.s === 0 ? Math.min(Math.max(r[0], tx), r[0] + 8, L - 9) : Math.max(Math.min(r[0], tx), r[0] - 8, 9);
         return [lerp(r[0], x, w), r[1]];
       }
       if (q.out !== 'lost' || side === q.s || k !== q.win) return r;
@@ -811,7 +835,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       st.bannerSide = prev.s;
       if (q.restart === 'kickoff') {
         st.ball = w < 0.35 ? f : w < 0.85 ? [lerp(f[0], L / 2, ease((w - 0.35) / 0.5)), lerp(f[1], W / 2, ease((w - 0.35) / 0.5))] : [L / 2, W / 2];
-        st.banner = w < 0.6 ? 'GOAL!' : 'Back to the centre';
+        st.banner = prev.out !== 'goal' ? 'KICK-OFF' : w < 0.6 ? 'GOAL!' : 'Back to the centre'; // (the second half also starts from the centre, with no goal to shout about)
         return st;
       }
       const ko = (1 - s) as 0 | 1, gkO = F[ko].slots.indexOf('GK');
@@ -872,7 +896,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       if (koOther && seg < hold0 * 0.35) st.bannerSide = q.koSide!;
       if (q.kind === 'counter' && v < 0.5) st.banner = 'Counter attack';
       if (q.kind === 'corner' && v > ce * 0.55) st.banner = 'Corner';
-      if (stopped) { st.pass = null; st.ball = [a[0] + dir * 0.9, a[1] + 0.5]; st.holder = { side: s, k: slotAt(j) }; st.banner = q.foul!.evs.some((x) => x.type === 'red') ? 'Foul! Red card' : 'Foul! Yellow card'; st.bannerSide = q.foul!.side; }
+      if (stopped) { st.pass = null; st.banner = q.foul!.evs.some((x) => x.type === 'red') ? 'Foul! Red card' : 'Foul! Yellow card'; st.bannerSide = q.foul!.side; }
       return st;
     }
     const last = pos(s, slotAt(n - 1));
@@ -968,7 +992,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     S.banner = t < 0.2 ? 'KICK-OFF' : t > 45 && t < 46 ? 'HALF-TIME' : t >= 90 ? 'FULL TIME' : '';
   }
   // the break: the clock waits on the second half's first moment
-  if (p && p.restart === 'kickoff' && p.t0 >= 45 - 1e-6 && t - p.t0 < 0.06) S.banner = 'HALF-TIME';
+  if (p && p.restart === 'kickoff' && Math.abs(p.t0 - 45) < 1e-3 && t - p.t0 < 0.06) S.banner = 'HALF-TIME';
   const { ball, holder, pass, lastPass, shotLine, banner, bannerSide, chance } = S;
   const nextDrawn = new Map<string, [number, number]>();
   // the teams change ends at half-time: the second half is drawn turned round (text stays upright)
@@ -1098,7 +1122,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
           </span>
         </div>
       )}
-      {banner && <div className={`p2d-banner ${banner === 'GOAL!' || banner === 'PENALTY!' ? 'big' : ''}`} style={{ borderColor: team(bannerSide).color1 }}><b style={{ background: team(bannerSide).color1, color: ink(team(bannerSide).color1) }}>{team(bannerSide).short}</b><span>{banner}</span></div>}
+      <Banner text={banner} color={team(bannerSide).color1} ink={ink(team(bannerSide).color1)} short={team(bannerSide).short} />
     </div>
   );
 }

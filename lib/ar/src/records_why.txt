@@ -131,3 +131,17 @@ You have beaten {0} {1} times, he has beaten you {2} times, {3} drawn. {4} vs {5
 {0} ({1}) played a friendly against your team. Your team won {2}–{3}. Your players were not tired by it.	{0} ({1}) لعب ودي ضد فريقك. فريقك كسب {2}–{3}. لعيبتك ماتعبوش منه.
 {0} ({1}) played a friendly against your team. Your team lost {2}–{3}. Your players were not tired by it.	{0} ({1}) لعب ودي ضد فريقك. فريقك خسر {2}–{3}. لعيبتك ماتعبوش منه.
 {0} ({1}) played a friendly against your team. It finished {2}–{3}. Your players were not tired by it.	{0} ({1}) لعب ودي ضد فريقك. خلص {2}–{3}. لعيبتك ماتعبوش منه.
+Their wide play pulled your defence apart	لعبهم على الأطراف فتح دفاعك
+Your wide play pulled their defence apart	لعبك على الأطراف فتح دفاعهم
+Your narrow defence closed the gaps	دفاعك الضيق قفل الفراغات
+Their narrow defence closed the gaps	دفاعهم الضيق قفل الفراغات
+Your press left a hole in front of your deep defence	ضغطك ساب حفرة قدام دفاعك الواطي
+Their press left a hole in front of their deep defence	ضغطهم ساب حفرة قدام دفاعهم الواطي
+The middle of your defence was open	نص دفاعك كان مفتوح
+The middle of their defence was open	نص دفاعهم كان مفتوح
+The middle of your defence was packed	نص دفاعك كان مقفول
+The middle of their defence was packed	نص دفاعهم كان مقفول
+Your wide shape covered the wings	شكلك الواسع غطّى الأطراف
+Their wide shape covered the wings	شكلهم الواسع غطّى الأطراف
+A high press needs a higher line behind it: with the line this deep, the pressers leave a hole in front of your defence that teams pass straight through.	الضغط العالي محتاج خط دفاع أعلى وراه: بالخط الواطي ده، اللي بيضغطوا بيسيبوا حفرة قدام دفاعك والفرق بتعدّي منها على طول.
+Wide stretches their defence for crosses and balls in behind; narrow keeps men close for short passing and packs the middle when you defend.	الواسع بيفتح دفاعهم للعرضيات والكور اللي ورا الدفاع؛ الضيق بيقرّب اللعيبة من بعض للتمرير القصير وبيقفل النص وإنت بتدافع.
