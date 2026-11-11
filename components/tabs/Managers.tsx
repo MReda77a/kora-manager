@@ -5,6 +5,7 @@ import { api } from '../../lib/client.ts';
 import { BackHead, Crest, Spinner } from '../ui.tsx';
 import { ClubSheet } from '../ClubSheet.tsx';
 import type { TabProps } from './types.ts';
+import { useRecords } from './Records.tsx';
 
 const ago = (iso: string | null, now: number) => {
   if (!iso) return { text: 'Never', tone: 'off' };
@@ -22,6 +23,7 @@ export default function ManagersTab({ lid, d }: TabProps) {
   const [rows, setRows] = useState<any[] | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   useEffect(() => { api(`/api/leagues/${lid}/managers`).then(setRows); }, [lid]);
+  const rec = useRecords(lid);
   if (!rows) return <Spinner />;
   const now = Date.now();
   return (
@@ -29,7 +31,7 @@ export default function ManagersTab({ lid, d }: TabProps) {
       <BackHead title="Managers" sub={<span className="small muted">{rows.length} managers · ranked by the board's target</span>} />
       <div className="panel cut" style={{ padding: 6, gap: 2, overflowX: 'auto' }}>
         <div className="mgr-row mgr-head tiny muted">
-          <span>#</span><span>Manager</span><span>Board target</span><span className="num">Board</span><span className="num">Goals</span><span>Form</span><span>Last check-in</span>
+          <span>#</span><span>Manager</span><span>Board target</span><span className="num">Board</span><span className="num">Goals</span><span>Form</span><span>Against you</span><span>Last check-in</span>
         </div>
         {rows.map((r, i) => {
           const seen = ago(r.lastSeen, now), me = r.clubId === d.club.id;
@@ -50,6 +52,8 @@ export default function ManagersTab({ lid, d }: TabProps) {
               <b className="num lz" style={{ fontSize: 20, color: r.board >= 60 ? 'var(--mint)' : r.board >= 45 ? '#F2C14E' : '#FF8A80' }}>{r.board}</b>
               <span className="num">{r.gf}<small className="muted">–{r.ga}</small></span>
               <span className="row" style={{ gap: 2 }}>{(r.form || []).slice(-5).map((f: string, k: number) => <i key={k} className={`mgr-f ${f}`}>{f}</i>)}</span>
+              {(() => { const e = me ? null : (rec?.h2h || []).find((x: any) => x.clubId === r.clubId);
+                return <span className="small" style={{ fontWeight: 800 }}>{me ? '' : e ? <b title="won-drawn-lost, from your side" style={{ color: e.w > e.l ? '#2EF2B0' : e.w < e.l ? '#FF7A6B' : '#F2C14E' }}>{`${e.w}-${e.d}-${e.l}`}</b> : <span className="muted">not met</span>}</span>; })()}
               <span className={`mgr-seen ${seen.tone}`}><i />{seen.text}</span>
             </button>
           );

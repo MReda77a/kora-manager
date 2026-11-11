@@ -1,6 +1,7 @@
 'use client';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { whyReport } from '../../../lib/why.ts';
+import { ShareButton } from '../../../components/match/ShareCard.tsx';
 import { api, clock, shirt } from '../../../lib/client.ts';
 import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, minuteAt, type ClubTypeKey } from '../../../lib/game.ts';
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
@@ -890,6 +891,13 @@ function FullTime({ d, skipped, reload }: { d: any; skipped: boolean; reload?: (
           ))}
           <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
             <a className="ghost grow" href={`/m/${d.fixture.id}`}><span>Replay</span></a>
+            <ShareButton data={{
+              home: { name: d.home.name, short: d.home.short, color1: d.home.color1, color2: d.home.color2, manager: d.home.manager },
+              away: { name: d.away.name, short: d.away.short, color1: d.away.color1, color2: d.away.color2, manager: d.away.manager },
+              score: [hg, ag], note: so ? 'After penalties' : d.fixture.comp === 'cup' ? 'Full time · Cup' : `Full time · Matchday ${d.fixture.matchday}`,
+              goals: rep.events.filter((e: Ev) => e.type === 'goal').map((e: Ev) => ({ m: e.m, side: e.side as 0 | 1, name: (e.pid && name(e.pid)) || '' })),
+              line: mine >= 0 && (mine === 0 ? hg > ag : ag > hg) ? whyReport(rep, mine as 0 | 1, [d.home.name, d.away.name])?.title : undefined,
+            }} />
             <a className="cta grow" href={`/l/${d.fixture.leagueId}`}><span>Continue</span></a>
           </div>
         </section>
@@ -936,6 +944,17 @@ function WhyCard({ d, mine }: { d: any; mine: 0 | 1 }) {
           <div key={i} className={`why-r ${r.tone}`}><i aria-hidden>{mark[r.tone]}</i><span>{r.text}</span></div>
         ))}
       </div>
+      {w.causes.length > 0 && <div className="why-causes">{w.causes.map((c, i) => (
+        <div key={i} className="why-cause">
+          <b className="small">{c.title}</b>
+          {c.rows.map((r, j) => (
+            <div key={j} className={`why-cr ${j === 0 ? 'base' : r.bad ? 'bad' : 'good'}`}>
+              <span>{r.text}</span><b className="num">{j === 0 ? r.v.toFixed(3) : `${r.v > 0 ? '+' : '−'}${Math.abs(r.v).toFixed(3)}`}</b>
+            </div>
+          ))}
+          <span className="tiny muted">{c.note}</span>
+        </div>
+      ))}</div>}
       {w.tip && (
         <div className="why-tip">
           <span className="tiny why-next">NEXT MATCH</span>

@@ -797,7 +797,7 @@ export async function pressAnswer(uid: number, leagueId: number, b: { q: number;
     if (total.fans) await q('UPDATE clubs SET fans=fans+$2 WHERE id=$1', [club.id, total.fans]);
     // the words go public, and the rival hears about them
     await news(l.id, club.id, 'press', `🎙️ ${u?.username || club.name} (${club.name}) before ${m!.final ? 'the final' : 'the derby'}: "${sp.text}"`);
-    if (opp.user_id) await notify(opp.user_id, { title: `🎙️ ${club.name} manager spoke about you`, body: `"${sp.text}" Answer him in your own press conference.`, url: `/l/${l.id}?tab=press`, tag: `press-${m!.f.id}` });
+    if (opp.user_id) await notify(opp.user_id, { title: u?.username ? `🎙️ ${u.username} said this about you` : `🎙️ ${club.name} manager spoke about you`, body: `"${sp.text}" Answer him in your own press conference.`, url: `/l/${l.id}?tab=press`, tag: `press-${m!.f.id}` });
   } else {
     await q(`UPDATE pressers SET answers=$2::jsonb WHERE id=$1`, [p!.id, JSON.stringify(next)]);
   }

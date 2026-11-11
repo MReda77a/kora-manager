@@ -1,6 +1,7 @@
 'use client';
 // The match analyst's report on the next opponent, and the plan to beat them.
 import { useEffect, useState } from 'react';
+import { StyleBook, useRecords } from './Records.tsx';
 import { api } from '../../lib/client.ts';
 import { PRESETS } from '../../lib/game.ts';
 import { BackHead, Spinner } from '../ui.tsx';
@@ -13,6 +14,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
   const [busy, setBusy] = useState(false);
   const load = (refresh = false) => api(`/api/leagues/${lid}/analyst${refresh ? '?refresh=1' : ''}`).then(setA).catch((e) => toast.bad(e.message));
   useEffect(() => { load(); }, [lid]);
+  const rec = useRecords(lid);
   if (!a) return <div className="col center" style={{ gap: 10, padding: 30 }}><Spinner /><span className="small muted">Your analyst is studying the opponent…</span></div>;
   const s = a.staff, r = a.report;
   const boost = async () => {
@@ -138,6 +140,7 @@ export default function AnalystTab({ lid, d, reload, toast, go }: TabProps) {
           </div>
         </section>
       </div>
+      <StyleBook rec={rec} oppId={o.id} oppName={o.name} />
     </div>
   );
 }

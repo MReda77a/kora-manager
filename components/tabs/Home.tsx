@@ -1,6 +1,7 @@
 'use client';
 import { timeLeft } from '../WindowSplash.tsx';
 import { useEffect, useState } from 'react';
+import { H2HLine, useRecords } from './Records.tsx';
 import { api, utcMinToLocal, localToUtcMin, shirt } from '../../lib/client.ts';
 import { Bar, Crest, Ring, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
@@ -35,7 +36,7 @@ export default function HomeTab({ lid, d, reload, toast, go }: TabProps) {
   return (
     <div className="col" style={{ gap: 14, minHeight: '100%' }}>
       <div className="h2-top">
-        {next ? <NextMatch f={next} club={club} now={now} go={go} /> : league.status === 'finished' || league.status === 'rolling'
+        {next ? <NextMatch f={next} club={club} now={now} go={go} lid={lid} /> : league.status === 'finished' || league.status === 'rolling'
           ? <SeasonOver lid={lid} d={d} reload={reload} toast={toast} go={go} />
           : <div className="panel cut lz" style={{ fontSize: 22, justifyContent: 'center' }}>No more matches</div>}
         {league.status === 'running' ? <Today lid={lid} go={go} stamp={d} /> : <span />}
@@ -250,7 +251,8 @@ function Stat({ label, v, color, note }: { label: string; v: number; color: stri
   );
 }
 
-function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: TabProps['go'] }) {
+function NextMatch({ f, club, now, go, lid }: { f: any; club: any; now: number; go: TabProps['go']; lid: number }) {
+  const rec = useRecords(lid, f.id);
   const derby = f.ht === 'fan' && f.at === 'fan' && f.hu && f.au;
   const cup = f.comp === 'cup';
   const live = f.status === 'live';
@@ -271,6 +273,7 @@ function NextMatch({ f, club, now, go }: { f: any; club: any; now: number; go: T
           <Crest c1={f.ac} c2="#fff" shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={44} />
           <span className="col small" style={{ gap: 0, lineHeight: 1.4, marginLeft: 4 }}><b>{cup ? 'Cup' : 'League'} · {homeMine ? 'Home' : 'Away'}</b><span className="muted">{new Date(f.kickoff_at).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span></span>
         </div>
+        <H2HLine rec={rec} oppId={homeMine ? f.away_id : f.home_id} />
         <span className="grow" />
         <div className="row wrap" style={{ gap: 16 }}>
           {live ? <a className={`cta ${derby ? 'gold' : ''}`} href={`/m/${f.id}`}><span>WATCH LIVE ›</span></a> : <button className={`cta ${derby ? 'gold' : ''}`} onClick={() => go('lineup')}><span>PREPARE THE MATCH ›</span></button>}

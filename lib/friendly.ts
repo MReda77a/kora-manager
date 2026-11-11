@@ -10,6 +10,7 @@ import { fail } from './errors.ts';
 import { hashSeed, rng } from './rng.ts';
 import { sideFor } from './season.ts';
 import { chemAfterMatch } from './chemistry.ts';
+import { inbox } from './people.ts';
 
 export async function playFriendly(uid: number, leagueId: number, oppId: number) {
   const l = await getLeague(leagueId);
@@ -78,6 +79,14 @@ export async function playFriendly(uid: number, leagueId: number, oppId: number)
   };
   await q('INSERT INTO friendlies (league_id, club_id, opp_id, day, data) VALUES ($1,$2,$3,$4,$5::jsonb)', [leagueId, club.id, opp.id, day, JSON.stringify(data)]);
   void LINE;
+  // the other manager is told: who played his team, and how it went
+  if (opp.user_id) {
+    const who = (await one<{ username: string }>('SELECT username FROM users WHERE id=$1', [uid]))?.username || club.name;
+    const [gf, ga] = rep.score; // the challenger first
+    const how = ga > gf ? `Your team won ${ga}–${gf}.` : ga < gf ? `Your team lost ${gf}–${ga}.` : `It finished ${gf}–${ga}.`;
+    await inbox(leagueId, opp.id, `${who} (${club.name}) played a friendly against your team. ${how} Your players were not tired by it.`,
+      { title: `🤝 ${who} played a friendly against you`, url: `/l/${leagueId}?tab=friendly` });
+  }
   return data;
 }
 

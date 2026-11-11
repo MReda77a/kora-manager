@@ -2,7 +2,7 @@ import type { useToast } from '../ui.tsx';
 
 export const TABS = [
   ['home', 'Home', 'home'], ['lineup', 'Match plan', 'lineup'], ['tactics', 'Tactics', 'tactics'], ['players', 'Squad', 'players'],
-  ['training', 'Training', 'training'], ['condition', 'Condition', 'condition'], ['office', 'Office', 'office'], ['store', 'Packs', 'store'],
+  ['profile', 'Team profile', 'stats'], ['training', 'Training', 'training'], ['condition', 'Condition', 'condition'], ['office', 'Office', 'office'], ['store', 'Packs', 'store'],
   ['market', 'Market', 'market'], ['deals', 'Deals', 'market'], ['table', 'Standings', 'table'], ['managers', 'Managers', 'awards'], ['fixtures', 'Fixtures', 'fixtures'], ['cup', 'Cup', 'cup'],
   ['analyst', 'Prepare', 'stats'], ['press', 'Press', 'paper'], ['friendly', 'Friendly', 'fixtures'], ['paper', 'Paper', 'paper'], ['tv', 'TV & fans', 'paper'], ['social', 'Fans', 'paper'], ['awards', 'Awards', 'awards'], ['leaders', 'Leaders', 'stats'], ['streaks', 'Streaks', 'stats'], ['history', 'History', 'history'],
 ] as const;
@@ -10,7 +10,7 @@ export type Tab = (typeof TABS)[number][0];
 // The rail shows sections; a section with several screens shows them as tabs at the top.
 export const SECTIONS: { key: string; label: string; icon: string; tabs: Tab[] }[] = [
   { key: 'home', label: 'Home', icon: 'home', tabs: ['home'] },
-  { key: 'team', label: 'Team', icon: 'players', tabs: ['lineup', 'players', 'training', 'condition'] },
+  { key: 'team', label: 'Team', icon: 'players', tabs: ['lineup', 'players', 'profile', 'training', 'condition'] },
   { key: 'matches', label: 'Calendar', icon: 'fixtures', tabs: ['fixtures', 'cup', 'analyst'] },
   { key: 'standings', label: 'Standings', icon: 'table', tabs: ['table', 'awards'] },
   { key: 'transfers', label: 'Transfers', icon: 'market', tabs: ['market', 'deals', 'store'] },

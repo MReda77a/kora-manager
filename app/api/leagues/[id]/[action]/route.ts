@@ -135,6 +135,8 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
   if (action === 'press') return PR.pressView(s.uid, lid);
   if (action === 'transfers') { mustClub(); return V.transfersView(lid); }
   if (action === 'managers') { mustClub(); return V.managersView(lid); }
+  if (action === 'records') { mustClub(); return V.recordsView(s.uid, lid); }
+  if (action === 'profile') { mustClub(); return V.profileView(s.uid, lid); }
   if (action === 'tv') { mustClub(); return MD.tvShow(s.uid, lid); }
   if (action === 'social') { mustClub(); return { ...(await MD.socialFeed(s.uid, lid)), options: MD.replyOptions() }; }
   if (action === 'clubview') { mustClub(); return V.clubView(lid, Number(new URL(req.url).searchParams.get('club'))); }

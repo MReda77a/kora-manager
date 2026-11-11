@@ -662,7 +662,7 @@ h1.lz, .press-title, .trk-what { letter-spacing: 1.5px; }
 .derby-ui table.t tr.me td:first-child { box-shadow: inset 3px 0 0 #F4C24E; }
 
 /* managers list */
-.mgr-row { display: grid; grid-template-columns: 30px minmax(140px, 1fr) 140px 50px 56px 112px 120px; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; text-align: left; min-width: 600px; width: 100%; }
+.mgr-row { display: grid; grid-template-columns: 30px minmax(140px, 1fr) 140px 50px 56px 112px 92px 120px; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; text-align: left; min-width: 700px; width: 100%; }
 .mgr-row:not(.mgr-head):hover { background: rgba(255, 255, 255, 0.04); }
 .mgr-row.me { background: color-mix(in srgb, var(--mint) 10%, transparent); box-shadow: inset 3px 0 0 var(--mint); }
 .mgr-head { font-weight: 900; letter-spacing: 0.5px; min-height: 26px; }
@@ -1128,3 +1128,31 @@ table.t tbody tr td { padding-top: 9px; padding-bottom: 9px; }
 .stad-lv { display: inline-flex; gap: 4px; }
 .stad-lv i { width: 16px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.14); }
 .stad-lv i.on { background: var(--mint, #2EF2B0); box-shadow: 0 0 6px rgba(46,242,176,0.5); }
+
+/* the engine's own reasons under "Why" */
+.why-cause { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
+.why-cr { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 3px 0; border-top: 1px solid rgba(255,255,255,0.05); }
+.why-cr.base { color: var(--muted); border-top: 0; }
+.why-cr.bad b { color: #FF7A6B; }
+.why-cr.good b { color: var(--mint, #2EF2B0); }
+
+/* head-to-head line and the record book */
+.h2h-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; font-weight: 700; }
+.h2h-line > b.lz { font-size: 13px; letter-spacing: 1.5px; color: #8FA6C4; font-weight: 600; }
+.h2h-chip { font-style: normal; font-weight: 800; font-size: 12px; padding: 1px 6px; border: 1px solid; border-radius: 6px; }
+.sb-wrap { overflow-x: auto; }
+.sb-grid { display: grid; gap: 4px; align-items: center; min-width: 440px; }
+.sb-h { font-size: 11px; font-weight: 900; color: var(--muted); text-align: center; letter-spacing: 0.5px; }
+.sb-cell { font-size: 12px; font-weight: 800; text-align: center; padding: 4px 2px; border-radius: 6px; white-space: nowrap; }
+.sb-cell.empty { color: rgba(255,255,255,0.2); }
+
+/* team profile */
+.prof-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.prof-row { display: grid; grid-template-columns: minmax(120px, 190px) minmax(60px, 1fr) 34px 84px; gap: 10px; align-items: center; }
+.prof-bar { position: relative; height: 10px; border-radius: 5px; background: rgba(255,255,255,0.08); }
+.prof-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 5px; }
+.prof-bar em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #EAF2FF; border-radius: 1px; }
+.prof-row .num { text-align: right; }
+@media (max-width: 520px) { .prof-row { grid-template-columns: 1fr 34px 76px; } .prof-row .prof-bar { grid-column: 1 / -1; order: 5; } }
+
+.why-causes { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }

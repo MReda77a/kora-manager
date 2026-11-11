@@ -122,6 +122,24 @@ CREATE TABLE IF NOT EXISTS news (
 ALTER TABLE leagues ADD COLUMN IF NOT EXISTS season INT NOT NULL DEFAULT 1;
 ALTER TABLE clubs ADD COLUMN IF NOT EXISTS fans INT NOT NULL DEFAULT 20000;
 ALTER TABLE clubs ADD COLUMN IF NOT EXISTS capacity INT NOT NULL DEFAULT 30000;
+-- every finished match, kept for good (fixtures are cleared at the end of a season): who met whom,
+-- the score and the style each side started with. Head-to-head records and "which style beats which".
+CREATE TABLE IF NOT EXISTS meetings (
+  fixture_id INT NOT NULL,
+  league_id INT NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  season INT NOT NULL DEFAULT 1,
+  comp TEXT NOT NULL DEFAULT 'league',
+  home_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  away_id INT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  home_goals INT NOT NULL,
+  away_goals INT NOT NULL,
+  winner_id INT,
+  home_style TEXT,
+  away_style TEXT,
+  played_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (league_id, season, fixture_id)
+);
+CREATE INDEX IF NOT EXISTS meetings_league ON meetings (league_id);
 ALTER TABLE clubs ADD COLUMN IF NOT EXISTS seats_lv INT NOT NULL DEFAULT 1;
 ALTER TABLE clubs ADD COLUMN IF NOT EXISTS pitch_lv INT NOT NULL DEFAULT 1;
 ALTER TABLE clubs ADD COLUMN IF NOT EXISTS lights_lv INT NOT NULL DEFAULT 1;

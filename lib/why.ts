@@ -1,10 +1,13 @@
 // "Why did that happen?" after the final whistle: a verdict (was the result deserved?), the few things
 // that decided the match and one change to try next time. Everything is read from the match report
 // (shots with their kind and xG, the events, the plans over time), so it only says what really happened.
-import type { Report, Shot } from './engine.ts';
+import type { Cause, Report, Shot } from './engine.ts';
 
 export type WhyLine = { tone: 'good' | 'bad' | 'luck'; text: string };
-export type Why = { title: string; tone: 'good' | 'bad' | 'even'; line: string; reasons: WhyLine[]; tip: string | null };
+// the engine's own account of one kind of chance: what an ordinary one is worth, then what each cause
+// added or took off (xG a chance). `bad` rows went against the reader.
+export type WhyCause = { title: string; rows: { text: string; v: number; bad: boolean }[]; note: string };
+export type Why = { title: string; tone: 'good' | 'bad' | 'even'; line: string; reasons: WhyLine[]; tip: string | null; causes: WhyCause[] };
 
 type Cand = WhyLine & { w: number; tip?: string };
 
@@ -43,6 +46,69 @@ const FOR: Record<string, string> = {
   counter: 'counter-attacks', 'through ball': 'through balls', cross: 'crosses', corner: 'corners',
   'high turnover': 'winning the ball high', 'build-up': 'patient passing', 'long shot': 'shots from distance',
 };
+
+// ---- the causes, in words. Written as "they attack you"; the mirror ("you attack them") swaps the sides.
+const BASE: Record<string, number> = { cross: 0.075, 'through ball': 0.088, 'build-up': 0.1, 'long shot': 0.07, counter: 0.1 };
+const NAME: Record<string, string> = { cross: 'crosses', 'through ball': 'through balls', 'build-up': 'passing moves', 'long shot': 'long shots', counter: 'counter-attacks' };
+const g1 = (x: number) => String(Math.round(Math.abs(x)));
+const CAUSE: Record<string, Record<string, (v: number, gap: number) => string>> = {
+  cross: {
+    air: (v, g) => (v > 0 ? `Their forwards beat your defenders in the air (by ${g1(g)})` : `Your defenders beat their forwards in the air (by ${g1(g)})`),
+    wide: (v) => (v > 0 ? 'They played wide' : 'They played narrow'),
+    narrow: () => 'Your narrow shape left the wings free',
+    line: () => 'Your low line let the crosses reach the box',
+    roles: () => 'Their wide men are set up to cross',
+    wind: () => 'The wind',
+    cover: () => 'Your men covering the wings',
+    bus: () => 'Your packed box',
+  },
+  'through ball': {
+    pace: (v, g) => (v > 0 ? `Their forwards are quicker than your defenders (by ${g1(g)})` : `Your defenders are quicker than their forwards (by ${g1(g)})`),
+    line: (v) => (v > 0 ? 'Your high line left space behind' : 'Your low line left no space behind'),
+    roles: () => 'Their runners are set up to go in behind',
+    bus: () => 'Your packed box',
+  },
+  'build-up': {
+    pass: (v, g) => (v > 0 ? `Their passing beat your tackling (by ${g1(g)})` : `Your tackling beat their passing (by ${g1(g)})`),
+    line: () => 'Your low line crowded the middle',
+    press: () => 'Your press left gaps to pass through',
+    roles: () => 'Their runners are set up to go in behind',
+    bus: () => 'Your packed box',
+  },
+  'long shot': {
+    shoot: (v, g) => (v > 0 ? `Their shooting beat your keeper (by ${g1(g)})` : `Your keeper beat their shooting (by ${g1(g)})`),
+    line: (v) => (v > 0 ? 'Your low line gave them room to shoot' : 'Your high line closed the shooters down'),
+    roles: () => 'Their long-range shooters',
+    lobbed: () => 'Your keeper was off his line',
+  },
+  counter: {
+    pace: (v, g) => (v > 0 ? `Their forwards are quicker than your defenders (by ${g1(g)})` : `Your defenders are quicker than their forwards (by ${g1(g)})`),
+    line: (v) => (v > 0 ? 'Your high line left space behind' : 'Your low line left no space behind'),
+    allout: () => 'You were all-out attack',
+    anchor: () => 'Your Anchor in front of the defence',
+    caught: () => 'Your attacking roles left men up the pitch',
+    breakers: () => 'Their men are set up to break',
+  },
+};
+// "they attack you" turned into "you attack them"
+const SWAP: Record<string, string> = { Their: 'Your', Your: 'Their', their: 'your', your: 'their', They: 'You', You: 'They', them: 'you', you: 'them' };
+const mirror = (t: string) => t.replace(/\b(Their|Your|their|your|They|You|them|you)\b/g, (w) => SWAP[w]);
+
+/** one side's main route to goal, explained from the engine's ledger */
+function causeOf(led: Record<string, Cause> | undefined, mineAttack: boolean): WhyCause | null {
+  if (!led) return null;
+  const top = Object.entries(led).filter(([k, c]) => CAUSE[k] && c.n >= 3).sort((a, b) => b[1].n * b[1].q - a[1].n * a[1].q)[0];
+  if (!top) return null;
+  const [kind, c] = top;
+  const rows = Object.entries(c.t).filter(([k, v]) => CAUSE[kind][k] && Math.abs(v) >= 0.004).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4)
+    .map(([k, v]) => { const text = CAUSE[kind][k](v, c.gap); return { text: mineAttack ? mirror(text) : text, v, bad: mineAttack ? v < 0 : v > 0 }; });
+  if (!rows.length) return null;
+  return {
+    title: mineAttack ? `Your ${NAME[kind]}: ${c.n} chances worth ${c.q.toFixed(2)} xG each` : `Their ${NAME[kind]}: ${c.n} chances worth ${c.q.toFixed(2)} xG each`,
+    rows: [{ text: 'An ordinary chance of this kind', v: BASE[kind], bad: false }, ...rows],
+    note: 'xG a chance, before the finish',
+  };
+}
 
 export function whyReport(rep: Report, me: 0 | 1, names: [string, string]): Why | null {
   if (!rep?.stats) return null;
@@ -164,5 +230,8 @@ export function whyReport(rep: Report, me: 0 | 1, names: [string, string]): Why 
   const tip = picked.find((x) => x.tip)?.tip || c.find((x) => x.tip)?.tip
     || (gM >= gO ? 'This plan works. Keep it, and watch for their changes during the match.' : null);
   void names;
-  return { title, tone, line, reasons: picked.map(({ tone, text }) => ({ tone, text })), tip };
+  // the engine's own reasons: their main route first after a defeat, yours first after a win
+  const ag = causeOf(rep.causes?.[op], false), fr = causeOf(rep.causes?.[me], true);
+  const causes = (gM > gO ? [fr, ag] : [ag, fr]).filter(Boolean) as WhyCause[];
+  return { title, tone, line, reasons: picked.map(({ tone, text }) => ({ tone, text })), tip, causes };
 }

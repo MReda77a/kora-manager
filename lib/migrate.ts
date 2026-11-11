@@ -4,6 +4,7 @@
 import { batch, q } from './db.ts';
 import { SCHEMA } from './schema.ts';
 import { wideMidOf } from './game.ts';
+import { nearestPreset } from './engine.ts';
 
 /** once: wingers with a midfielder's profile become LM / RM (a position the database did not have).
  * Only the player's natural position changes; a position a club trained him in stays as it is */
@@ -36,6 +37,23 @@ async function seatLevels() {
   await q(`INSERT INTO meta (k, v) VALUES ('seats', '1') ON CONFLICT (k) DO NOTHING`);
 }
 
+/** once: the matches already played this season go into the lasting record */
+async function meetingsBackfill() {
+  const done = await q<{ v: string }>(`SELECT v FROM meta WHERE k='meetings'`);
+  if (done.length) return;
+  const rows = await q(`SELECT f.id, f.league_id, l.season, f.comp, f.home_id, f.away_id, f.home_goals, f.away_goals, f.winner_id, f.kickoff_at,
+      f.sides->0->'tactic' AS ht, f.sides->1->'tactic' AS at
+    FROM fixtures f JOIN leagues l ON l.id=f.league_id WHERE f.status='done' AND f.home_goals IS NOT NULL`);
+  if (rows.length) {
+    const v = rows.map((r) => ({ f: r.id, l: r.league_id, s: r.season, c: r.comp, h: r.home_id, a: r.away_id, hg: r.home_goals, ag: r.away_goals, w: r.winner_id,
+      hs: r.ht ? nearestPreset(r.ht) : null, as: r.at ? nearestPreset(r.at) : null, t: r.kickoff_at }));
+    await q(`INSERT INTO meetings (fixture_id, league_id, season, comp, home_id, away_id, home_goals, away_goals, winner_id, home_style, away_style, played_at)
+      SELECT (x->>'f')::int, (x->>'l')::int, (x->>'s')::int, x->>'c', (x->>'h')::int, (x->>'a')::int, (x->>'hg')::int, (x->>'ag')::int, (x->>'w')::int, x->>'hs', x->>'as', (x->>'t')::timestamptz
+      FROM jsonb_array_elements($1::jsonb) x ON CONFLICT DO NOTHING`, [JSON.stringify(v)]);
+  }
+  await q(`INSERT INTO meta (k, v) VALUES ('meetings', '1') ON CONFLICT (k) DO NOTHING`);
+}
+
 const VERSION = (() => { let h = 0; for (const c of SCHEMA) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h.toString(36); })();
 let done: Promise<void> | null = null;
 
@@ -51,6 +69,7 @@ export function migrate() {
       await q(`INSERT INTO meta (k, v) VALUES ('schema', $1) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v`, [VERSION]);
     }
     await seatLevels(); // needs the new columns
+    await meetingsBackfill();
   })().catch((e) => { done = null; throw e; });
   return done;
 }

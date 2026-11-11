@@ -1,0 +1,133 @@
+# the engine's reasons under "Why"
+Their crosses: {0} chances worth {1} xG each	عرضياتهم: {0} فرص، كل واحدة بـ{1} xG
+Your crosses: {0} chances worth {1} xG each	عرضياتك: {0} فرص، كل واحدة بـ{1} xG
+Their through balls: {0} chances worth {1} xG each	بينياتهم: {0} فرص، كل واحدة بـ{1} xG
+Your through balls: {0} chances worth {1} xG each	بينياتك: {0} فرص، كل واحدة بـ{1} xG
+Their passing moves: {0} chances worth {1} xG each	هجماتهم بالتمرير: {0} فرص، كل واحدة بـ{1} xG
+Your passing moves: {0} chances worth {1} xG each	هجماتك بالتمرير: {0} فرص، كل واحدة بـ{1} xG
+Their long shots: {0} chances worth {1} xG each	تسديداتهم من بعيد: {0} فرص، كل واحدة بـ{1} xG
+Your long shots: {0} chances worth {1} xG each	تسديداتك من بعيد: {0} فرص، كل واحدة بـ{1} xG
+Their counter-attacks: {0} chances worth {1} xG each	مرتداتهم: {0} فرص، كل واحدة بـ{1} xG
+Your counter-attacks: {0} chances worth {1} xG each	مرتداتك: {0} فرص، كل واحدة بـ{1} xG
+An ordinary chance of this kind	فرصة عادية من النوع ده
+xG a chance, before the finish	xG للفرصة، قبل التسديد
+Their forwards beat your defenders in the air (by {0})	مهاجمينهم كسبوا دفاعك في الهوا (بفرق {0})
+Your forwards beat their defenders in the air (by {0})	مهاجمينك كسبوا دفاعهم في الهوا (بفرق {0})
+Your defenders beat their forwards in the air (by {0})	دفاعك كسب مهاجمينهم في الهوا (بفرق {0})
+Their defenders beat your forwards in the air (by {0})	دفاعهم كسب مهاجمينك في الهوا (بفرق {0})
+They played wide	لعبوا على الأطراف
+You played wide	لعبت على الأطراف
+They played narrow	لعبوا في العمق
+You played narrow	لعبت في العمق
+Your narrow shape left the wings free	شكلك الضيق ساب الأطراف فاضية
+Their narrow shape left the wings free	شكلهم الضيق ساب الأطراف فاضية
+Your low line let the crosses reach the box	خطك الواطي خلّى العرضيات توصل الصندوق
+Their low line let the crosses reach the box	خطهم الواطي خلّى العرضيات توصل الصندوق
+Their wide men are set up to cross	أطرافهم متظبطة على العرضيات
+Your wide men are set up to cross	أطرافك متظبطة على العرضيات
+The wind	الهوا
+Your men covering the wings	لعيبتك اللي مغطيين الأطراف
+Their men covering the wings	لعيبتهم اللي مغطيين الأطراف
+Your packed box	صندوقك المليان
+Their packed box	صندوقهم المليان
+Their forwards are quicker than your defenders (by {0})	مهاجمينهم أسرع من دفاعك (بفرق {0})
+Your forwards are quicker than their defenders (by {0})	مهاجمينك أسرع من دفاعهم (بفرق {0})
+Your defenders are quicker than their forwards (by {0})	دفاعك أسرع من مهاجمينهم (بفرق {0})
+Their defenders are quicker than your forwards (by {0})	دفاعهم أسرع من مهاجمينك (بفرق {0})
+Your high line left space behind	خطك العالي ساب مساحة وراه
+Their high line left space behind	خطهم العالي ساب مساحة وراه
+Your low line left no space behind	خطك الواطي ماسابش مساحة وراه
+Their low line left no space behind	خطهم الواطي ماسابش مساحة وراه
+Their runners are set up to go in behind	لعيبتهم متظبطين يجروا ورا الدفاع
+Your runners are set up to go in behind	لعيبتك متظبطين يجروا ورا الدفاع
+Their passing beat your tackling (by {0})	تمريرهم كسب افتكاكك (بفرق {0})
+Your passing beat their tackling (by {0})	تمريرك كسب افتكاكهم (بفرق {0})
+Your tackling beat their passing (by {0})	افتكاكك كسب تمريرهم (بفرق {0})
+Their tackling beat your passing (by {0})	افتكاكهم كسب تمريرك (بفرق {0})
+Your low line crowded the middle	خطك الواطي زحم النص
+Their low line crowded the middle	خطهم الواطي زحم النص
+Your press left gaps to pass through	ضغطك ساب فراغات يتلعب منها
+Their press left gaps to pass through	ضغطهم ساب فراغات يتلعب منها
+Their shooting beat your keeper (by {0})	تسديدهم كسب حارسك (بفرق {0})
+Your shooting beat their keeper (by {0})	تسديدك كسب حارسهم (بفرق {0})
+Your keeper beat their shooting (by {0})	حارسك كسب تسديدهم (بفرق {0})
+Their keeper beat your shooting (by {0})	حارسهم كسب تسديدك (بفرق {0})
+Your low line gave them room to shoot	خطك الواطي إداهم مساحة يسددوا
+Their low line gave you room to shoot	خطهم الواطي إداك مساحة تسدد
+Your high line closed the shooters down	خطك العالي قفل على المسددين
+Their high line closed the shooters down	خطهم العالي قفل على المسددين
+Their long-range shooters	مسددينهم من بعيد
+Your long-range shooters	مسددينك من بعيد
+Your keeper was off his line	حارسك كان متقدم
+Their keeper was off his line	حارسهم كان متقدم
+You were all-out attack	كنت بتهاجم بكل حاجة
+They were all-out attack	كانوا بيهاجموا بكل حاجة
+Your Anchor in front of the defence	الـ Anchor بتاعك قدام الدفاع
+Their Anchor in front of the defence	الـ Anchor بتاعهم قدام الدفاع
+Your attacking roles left men up the pitch	أدوارك الهجومية سابت لعيبة قدام
+Their attacking roles left men up the pitch	أدوارهم الهجومية سابت لعيبة قدام
+Their men are set up to break	لعيبتهم متظبطين على المرتدة
+Your men are set up to break	لعيبتك متظبطين على المرتدة
+# records
+HEAD TO HEAD	المواجهات
+First meeting	أول مواجهة
+{0} won · {1} drawn · {2} lost	{0} فوز · {1} تعادل · {2} خسارة
+The record book	سجل الدوري
+{0} matches played in this league · won-drawn-lost for the style on the left	{0} ماتش اتلعبوا في الدوري ده · فوز-تعادل-خسارة للأسلوب اللي على الشمال
+The book is nearly empty. Every match played in this league is written into it: which style met which, and who won.	السجل لسه فاضي تقريبًا. كل ماتش بيتلعب في الدوري بيتكتب فيه: أنهي أسلوب قابل أنهي، ومين كسب.
+against ›	ضد ›
+Your last meetings with {0}	آخر مواجهاتك مع {0}
+You played {0}, they played {1}	إنت لعبت {0}، وهما لعبوا {1}
+Your own matches by style	ماتشاتك إنت حسب الأسلوب
+Against you	قدامك
+not met	ماتقابلتوش
+# team profile
+Team profile	بروفايل الفريق
+Your first eleven against the {0} clubs in your division	التشكيلة الأساسية بتاعتك قدام الـ{0} نادي في درجتك
+Where they will go at you	هيضربوك منين
+What to build your plan on	ابني خطتك على إيه
+No line of this team is clearly below the division. Nobody has an easy way at you.	مفيش خط في الفريق أقل من الدرجة بشكل واضح. محدش عنده طريق سهل ليك.
+Nothing stands out above the division yet. Pick the plan that hides your weak lines.	مفيش حاجة باينة فوق الدرجة لسه. اختار الخطة اللي بتخبّي خطوطك الضعيفة.
+Measure by measure	مقياس مقياس
+bar = you · line = division average	الشريط = إنت · الخط = متوسط الدرجة
+Lowest: {0} {1}	الأقل: {0} {1}
+Best: {0} {1}	الأحسن: {0} {1}
+Transfer market	سوق الانتقالات
+In the air at the back	الهوا في الدفاع
+Pace at the back	السرعة في الدفاع
+Winning the ball	افتكاك الكورة
+Goalkeeper	حارس المرمى
+Pace up front	السرعة في الهجوم
+In the air up front	الهوا في الهجوم
+Shooting from distance	التسديد من بعيد
+Crosses and corners will hurt you: teams that see this play wide and cross.	العرضيات والكورنرات هتوجعك: الفرق اللي بتشوف ده بتلعب أطراف وتعرّض.
+Crosses and corners rarely beat you.	العرضيات والكورنرات قليل لما تعدي منك.
+A high line is a risk: quick forwards get in behind on through balls and counters.	الخط العالي خطر: المهاجمين السريعين بيعدّوا من وراك بالبينيات والمرتدات.
+You can hold a high line: your defenders catch the runners.	تقدر تلعب بخط عالي: دفاعك بيلحق اللي بيجروا.
+Passing sides play through your midfield.	فرق التمرير بتعدّي من وسطك.
+Passing sides struggle to play through you.	فرق التمرير بتتعب عشان تعدّي منك.
+Shots from distance are worth more against you: expect teams to shoot on sight.	التسديد من بعيد بيفرق قدامك: استنى فرق تسدد من أي حتة.
+Shooting from distance against you is a waste.	التسديد من بعيد قدامك حرام.
+Patient build-up will break down: play more direct.	البناء بالراحة هيتقطع: العب مباشر أكتر.
+You can keep the ball and pass through a press.	تقدر تحتفظ بالكورة وتعدّي الضغط بالتمرير.
+Through balls and counter-attacks will not get you far.	البينيات والمرتدات مش هتوديك بعيد.
+Through balls and counters suit you, above all against a high line.	البينيات والمرتدات لايقة عليك، خصوصًا قدام خط عالي.
+Crossing is not your game: your forwards lose the headers.	العرضيات مش لعبتك: مهاجمينك بيخسروا الراسيات.
+Wing play and crosses suit you: your forwards win headers.	الأطراف والعرضيات لايقة عليك: مهاجمينك بيكسبوا الراسيات.
+You need more chances than most to score.	محتاج فرص أكتر من غيرك عشان تسجل.
+Your forwards make the most of their chances.	مهاجمينك بيستغلوا فرصهم.
+Shoot on sight is a waste with these players.	التسديد من أي حتة حرام باللعيبة دول.
+Shoot on sight is a real weapon, above all against a deep block.	التسديد من أي حتة سلاح حقيقي، خصوصًا قدام دفاع متكتل.
+Pressing and a fast tempo will empty your legs before the end.	الضغط واللعب السريع هيخلصوا رجليك قبل الآخر.
+You can press and play fast for ninety minutes.	تقدر تضغط وتلعب سريع تسعين دقيقة.
+# share and notifications
+Share result	شارك النتيجة
+🎙️ {0} said this about you	🎙️ {0} قال عنك كده
+🔥 Derby: you against {0}	🔥 ديربي: إنت ضد {0}
+⚽ You against {0}	⚽ إنت ضد {0}
+Your first meeting with {0}. {1} vs {2} is live.	أول مواجهة ليك مع {0}. {1} ضد {2} شغال دلوقتي.
+You have beaten {0} {1} times, he has beaten you {2} times, {3} drawn. {4} vs {5} is live.	إنت كسبت {0} {1} مرة، وهو كسبك {2} مرة، و{3} تعادل. {4} ضد {5} شغال دلوقتي.
+🤝 {0} played a friendly against you	🤝 {0} لعب ودي ضدك
+{0} ({1}) played a friendly against your team. Your team won {2}–{3}. Your players were not tired by it.	{0} ({1}) لعب ودي ضد فريقك. فريقك كسب {2}–{3}. لعيبتك ماتعبوش منه.
+{0} ({1}) played a friendly against your team. Your team lost {2}–{3}. Your players were not tired by it.	{0} ({1}) لعب ودي ضد فريقك. فريقك خسر {2}–{3}. لعيبتك ماتعبوش منه.
+{0} ({1}) played a friendly against your team. It finished {2}–{3}. Your players were not tired by it.	{0} ({1}) لعب ودي ضد فريقك. خلص {2}–{3}. لعيبتك ماتعبوش منه.

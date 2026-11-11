@@ -481,8 +481,25 @@ async function kickOff(f: Row) {
   if (spoke.size) await applyPressers(f.id, hs, as, home.id);
   const cond = conditionsFor(f.id, l.pool, f.day);
   const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, weather: cond.weather, strict: cond.referee.strict });
+  // two managers meeting: the kick-off message is about the two of them, by name, with the record so far
+  let rec: { w: number; d: number; l: number; home: string; away: string } | null = null;
+  if (home.user_id && away.user_id) {
+    const r = await one(`SELECT
+        COUNT(*) FILTER (WHERE (home_id=$2 AND home_goals>away_goals) OR (away_id=$2 AND away_goals>home_goals))::int AS w,
+        COUNT(*) FILTER (WHERE home_goals=away_goals)::int AS d,
+        COUNT(*) FILTER (WHERE (home_id=$3 AND home_goals>away_goals) OR (away_id=$3 AND away_goals>home_goals))::int AS l
+      FROM meetings WHERE league_id=$1 AND ((home_id=$2 AND away_id=$3) OR (home_id=$3 AND away_id=$2))`, [l.id, home.id, away.id]);
+    const names = new Map((await q('SELECT id, username FROM users WHERE id = ANY($1::int[])', [[home.user_id, away.user_id]])).map((u) => [u.id, u.username as string]));
+    rec = { w: r?.w || 0, d: r?.d || 0, l: r?.l || 0, home: names.get(home.user_id) || home.name, away: names.get(away.user_id) || away.name };
+  }
   for (const c of [home, away]) {
-    if (c.user_id) await notify(c.user_id, { title: derby ? '🔥 Derby kick-off!' : '⚽ Kick-off!', body: `${home.name} vs ${away.name} is live. Watch it and change your tactics, or let your assistant handle it.`, url: `/m/${f.id}`, tag: `kick-${f.id}` });
+    if (!c.user_id) continue;
+    if (rec) {
+      const mineHome = c.id === home.id, him = mineHome ? rec.away : rec.home, w = mineHome ? rec.w : rec.l, lost = mineHome ? rec.l : rec.w;
+      const body = w + rec.d + lost === 0 ? `Your first meeting with ${him}. ${home.name} vs ${away.name} is live.`
+        : `You have beaten ${him} ${w} times, he has beaten you ${lost} times, ${rec.d} drawn. ${home.name} vs ${away.name} is live.`;
+      await notify(c.user_id, { title: derby ? `🔥 Derby: you against ${him}` : `⚽ You against ${him}`, body, url: `/m/${f.id}`, tag: `kick-${f.id}` });
+    } else await notify(c.user_id, { title: derby ? '🔥 Derby kick-off!' : '⚽ Kick-off!', body: `${home.name} vs ${away.name} is live. Watch it and change your tactics, or let your assistant handle it.`, url: `/m/${f.id}`, tag: `kick-${f.id}` });
   }
   await q(
     `UPDATE fixtures SET status='live', sides=$2::jsonb, report=$3::jsonb, changes='[]'::jsonb,
@@ -596,6 +613,12 @@ async function finalizeFixture(f: Row) {
     [f.id, hg, ag, winnerId],
   );
   if (!saved[0]) return;
+  // into the lasting record: head-to-head between managers, and which style beat which
+  const sd = f.sides as [ESide, ESide] | null;
+  await q(`INSERT INTO meetings (fixture_id, league_id, season, comp, home_id, away_id, home_goals, away_goals, winner_id, home_style, away_style)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT DO NOTHING`,
+    [f.id, f.league_id, l.season || 1, f.comp || 'league', home.id, away.id, hg, ag, winnerId,
+      rep.near?.[0] ?? (sd?.[0]?.tactic ? nearestPreset(sd[0].tactic) : null), rep.near?.[1] ?? (sd?.[1]?.tactic ? nearestPreset(sd[1].tactic) : null)]);
 
   // fitness, injuries and suspensions
   const sides = f.sides as [ESide, ESide];

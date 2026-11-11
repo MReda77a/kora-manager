@@ -9,6 +9,7 @@ import TacticsTab from '../../../components/tabs/Tactics.tsx';
 import PlayersTab from '../../../components/tabs/Players.tsx';
 import TrainingTab from '../../../components/tabs/Training.tsx';
 import ConditionTab from '../../../components/tabs/Condition.tsx';
+import ProfileTab from '../../../components/tabs/Profile.tsx';
 import OfficeTab from '../../../components/tabs/Office.tsx';
 import StoreTab from '../../../components/tabs/Store.tsx';
 import MarketTab from '../../../components/tabs/Market.tsx';
@@ -154,6 +155,7 @@ export default function LeaguePage({ params }: { params: Promise<{ id: string }>
           {tab === 'players' && <PlayersTab {...props} />}
           {tab === 'training' && <TrainingTab {...props} />}
           {tab === 'condition' && <ConditionTab {...props} />}
+          {tab === 'profile' && <ProfileTab {...props} />}
           {tab === 'office' && <OfficeTab {...props} />}
           {tab === 'store' && <StoreTab {...props} />}
           {tab === 'market' && <MarketTab {...props} />}

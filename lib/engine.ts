@@ -51,8 +51,16 @@ export type Report = {
   // 2 final third, 3 shot), index into shots or -1]. Logged only: it never changes the result.
   flow?: ([number, 0 | 1, number, number] | [number, 0 | 1, number, number, number])[]; // 5th: the attack went down our left (-1) or right (1) flank
   // how each side was set up over the match (start, then every live change), so the pitch can show the style
+  // why each side's chances were worth what they were: for every kind of chance, how many there were,
+  // what an average one was worth before the finish, and what each cause added or took off (xG a chance).
+  // `gap` is the duel behind it: air for crosses, pace for through balls and counters, passing against
+  // tackling for build-up, shooting against the keeper for long shots.
+  causes?: [Record<string, Cause>, Record<string, Cause>];
+  near?: [string, string]; // the named style nearest to each side's starting plan (so custom plans can be compared)
   styles?: { m: number; side: 0 | 1; preset?: string; mentality: number; press: number; line: number; build: number; width: number; tempo: number; shift?: number }[];
 };
+
+export type Cause = { n: number; q: number; gap: number; t: Record<string, number> };
 
 const sig = (x: number) => 1 / (1 + Math.exp(-x));
 // how much a well-suited plan helps: fit runs about -1.5..+1.5, so up to about ±3 on every duel
@@ -335,7 +343,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (lost && r.next() < lost) return;
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     const taken = by ? (S[a].val(by, 'LongShots') + S[a].val(by, 'Composure')) / 2 : 0;
-    let q = (0.73 / (1 - SHOT_LOST)) * baseXg * (1 + (by ? (taken - A(b, 'keeper')) * 0.02 : (A(a, "finishing") - A(b, "keeper")) * 0.015));
+    // (a poor taker against a fine keeper still has some chance: the kick is never worth less than a third of an ordinary one)
+    let q = (0.73 / (1 - SHOT_LOST)) * baseXg * (by ? Math.max(0.35, 1 + (taken - A(b, 'keeper')) * 0.02) : 1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
     if (S[b].flags.mark > 0) q *= 1 - 0.07 * Math.min(1.5, S[b].flags.mark); // their danger man is man-marked
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
@@ -500,6 +509,14 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     return 'beaten';
   };
 
+  // the ledger behind "why": every chance writes down what it was worth and what made it so
+  const ledger: [Record<string, Cause>, Record<string, Cause>] = [{}, {}];
+  const note = (a: 0 | 1, kind: string, q: number, gap: number, t: Record<string, number>) => {
+    const c = (ledger[a][kind] ||= { n: 0, q: 0, gap: 0, t: {} });
+    c.n++; c.q += q; c.gap += gap;
+    for (const [k, v] of Object.entries(t)) if (v) c.t[k] = (c.t[k] || 0) + v;
+  };
+
   const counter = (a: 0 | 1) => {
     lane = null;
     const b = 1 - a;
@@ -509,6 +526,14 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     const exposed = (T(b).line === 2 ? 0.025 : T(b).line === 1 ? 0.01 : -0.03) + (T(b).mentality === 2 ? 0.035 : 0)
       - (T(b).line === 2 ? S[b].flags.sweeper * 0.02 : 0) - S[b].flags.anchor * 0.012 + S[b].flags.exposed + S[a].flags.counterQ;
     const gap = (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005;
+    note(a, 'counter', Math.max(0.03, 0.1 + exposed + gap), A(a, 'pace_att') - A(b, 'pace_def'), {
+      pace: gap,
+      line: (T(b).line === 2 ? 0.025 : T(b).line === 1 ? 0.01 : -0.03) - (T(b).line === 2 ? S[b].flags.sweeper * 0.02 : 0),
+      allout: T(b).mentality === 2 ? 0.035 : 0,
+      anchor: -S[b].flags.anchor * 0.012,
+      caught: S[b].flags.exposed,
+      breakers: S[a].flags.counterQ,
+    });
     shot(a, Math.max(0.03, 0.1 + exposed + gap), 'counter');
   };
 
@@ -521,25 +546,35 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     if (S[a].flags.longshot2 > 0 && r.next() < S[a].flags.longshot2) {
       return shot(a, Math.max(0.03, 0.095 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + S[a].flags.longshot + S[b].flags.lobbed), 'long shot');
     }
+    let gap: number, t: Record<string, number>;
+    const bus = tb.mentality === 0;
     if (f === 0) {
-      q = 0.075 + (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.005 + (ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0) + (tb.width === 0 ? 0.01 : 0) + (tb.line === 0 ? 0.015 : 0)
-        + (ta.width >= 1 ? S[a].flags.crossB : 0) - (weather === 'wind' ? 0.012 : 0);
+      gap = A(a, 'aerial_att') - A(b, 'aerial_def');
+      t = { air: gap * 0.005, wide: ta.width === 2 ? 0.02 : ta.width === 0 ? -0.015 : 0, narrow: tb.width === 0 ? 0.01 : 0, line: tb.line === 0 ? 0.015 : 0,
+        roles: ta.width >= 1 ? S[a].flags.crossB : 0, wind: weather === 'wind' ? -0.012 : 0 };
+      q = 0.075 + t.air + t.wide + t.narrow + t.line + t.roles + t.wind;
       // men sent out to double up on the wide players cut the supply off at the source, so they are
       // worth the most to a side being battered by crosses — never enough to make a weak back line safe
-      q *= Math.max(0.55, 1 - S[b].flags.wingCover * 8);
+      t.cover = q * (Math.max(0.55, 1 - S[b].flags.wingCover * 8) - 1);
+      q += t.cover;
+      if (bus && tb.line === 0) { t.bus = -0.007; q -= 0.007; } // a parked bus has more heads in the box for the crosses
       two = 0.25;
     } else if (f === 1) {
-      q = 0.088 + (A(a, 'pace_att') - A(b, 'pace_def')) * 0.005 + (tb.line === 2 ? 0.04 - S[b].flags.sweeper * 0.02 : tb.line === 0 ? -0.035 : 0) + S[a].flags.through;
+      gap = A(a, 'pace_att') - A(b, 'pace_def');
+      t = { pace: gap * 0.005, line: tb.line === 2 ? 0.04 - S[b].flags.sweeper * 0.02 : tb.line === 0 ? -0.035 : 0, roles: S[a].flags.through, bus: bus ? -0.012 : 0 };
+      q = 0.088 + t.pace + t.line + t.roles + t.bus;
       two = 0;
     } else if (f === 2) {
-      q = 0.1 + (A(a, 'passing') - A(b, 'tackling')) * 0.005 + (tb.line === 0 ? -0.03 : tb.press >= 2 ? 0.015 : 0) + S[a].flags.through * 0.5;
+      gap = A(a, 'passing') - A(b, 'tackling');
+      t = { pass: gap * 0.005, line: tb.line === 0 ? -0.03 : 0, press: tb.line !== 0 && tb.press >= 2 ? 0.015 : 0, roles: S[a].flags.through * 0.5, bus: bus ? -0.004 : 0 }; // bodies in the box: hard to pass or run through
+      q = 0.1 + t.pass + t.line + t.press + t.roles + t.bus;
       two = 0.1;
     } else {
-      q = 0.07 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0) + S[a].flags.longshot + S[b].flags.lobbed;
+      gap = A(a, 'finishing') - A(b, 'keeper');
+      t = { shoot: gap * 0.003, line: (tb.line === 0 ? 0.04 : 0) - (tb.line === 2 ? 0.01 : 0), roles: S[a].flags.longshot, lobbed: S[b].flags.lobbed };
+      q = 0.07 + t.shoot + t.line + t.roles + t.lobbed;
       two = 0.55;
     }
-    if (tb.mentality === 0 && (f === 1 || f === 2)) q -= f === 1 ? 0.012 : 0.004;
-    if (f === 0 && tb.mentality === 0 && tb.line === 0) q -= 0.007; // a parked bus has more heads in the box for the crosses // bodies in the box: hard to pass or run through
     q = Math.max(0.02, q + bonus);
     if (f === 1) {
       const tr = trap(a);
@@ -551,6 +586,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     // ...and now and then the referee misses one and VAR calls him to the screen
     if (f !== 3 && r.next() < 0.0012 * penMul) { log('var', a, `VAR check... the referee goes to the screen: penalty to ${S[a].s.name}!`); return penalty(a, true); }
     const n = r.next() < two ? 2 : 1;
+    note(a, ['cross', 'through ball', 'build-up', 'long shot'][f], q, gap, t);
     for (let i = 0; i < n; i++) shot(a, q, ['cross', 'through ball', 'build-up', 'long shot'][f]);
   };
 
@@ -936,6 +972,9 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     lineups: [home, away].map((sd, i) => ({ formation: sd.tactic.formation, preset: sd.tactic.preset, xi: sd.xi.map((p) => p.id), bench: sd.bench.map((p) => p.id), captain: sd.captain,
       roles: Object.fromEntries([...sd.xi, ...sd.bench].map((p) => [p.id, roleName(sd.roles?.[p.id])]).filter(([, r]) => r)) as Record<string, string>, fits: Object.fromEntries([...S[i].roleEff.entries()].map(([k, v]) => [k, Math.round(v * 100) / 100])) })),
     shootout, winner, derby, shots: shotsList, weather, flow, styles,
+    near: [nearestPreset(home.tactic), nearestPreset(away.tactic)],
+    causes: ledger.map((l) => Object.fromEntries(Object.entries(l).map(([k, c]) => [k, { n: c.n, q: Math.round((c.q / c.n) * 1000) / 1000, gap: Math.round((c.gap / c.n) * 10) / 10,
+      t: Object.fromEntries(Object.entries(c.t).map(([x, v]) => [x, Math.round((v / c.n) * 1000) / 1000]).filter(([, v]) => v)) }]))) as [Record<string, Cause>, Record<string, Cause>],
   };
 }
 
