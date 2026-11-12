@@ -533,7 +533,16 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
   const smooth3 = (u: number) => u * u * (3 - 2 * u);
   // ...and only as far as it has time for: a short move moves the block a few strides, not the whole pitch
   const reachX = (q: NonNullable<typeof p>) => { const inD = (q.t1 - q.t0) * (1 - (q.pre || 0)) * chainEndOf(q) + (q.t1 - q.t0) * (q.pre || 0) * 0.15, dist = Math.abs(q.targetX - q.startX) * 1.05; return q.startX + (q.targetX - q.startX) * Math.min(1, (40 * inD) / Math.max(1, dist)); };
-  const phaseOf = (q: NonNullable<typeof p>, v: number) => { const pre = q.pre || 0, u = pre ? (v < pre ? 0.15 * (v / pre) : 0.15 + 0.85 * c01(play(q, inner(q, v)) / chainEndOf(q))) : c01(play(q, inner(q, v)) / chainEndOf(q)); return lerp(q.startX, reachX(q), smooth3(c01(u))); };
+  // where the play is, which the whole team's shape follows. A side moves up the pitch together at a jog
+  // at most (about 40 m a minute): in a move squeezed into a few seconds it simply does not get as far,
+  // rather than eleven men sprinting 30 metres in two seconds
+  const SHAPE_SPEED = 40;
+  const phaseOf = (q: NonNullable<typeof p>, v: number) => {
+    const pre = q.pre || 0, u = pre ? (v < pre ? 0.15 * (v / pre) : 0.15 + 0.85 * c01(play(q, inner(q, v)) / chainEndOf(q))) : c01(play(q, inner(q, v)) / chainEndOf(q));
+    const want = lerp(q.startX, reachX(q), smooth3(c01(u)));
+    const room = SHAPE_SPEED * Math.max(0, v) * Math.max(0.01, q.t1 - q.t0);
+    return Math.abs(want - q.startX) <= room ? want : q.startX + Math.sign(want - q.startX) * room;
+  };
 
   // where each player stands, given where the play is
   const posP = (phaseX: number, att: 0 | 1 | null) => (side: 0 | 1, k: number): [number, number] => {
@@ -640,7 +649,10 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       .sort((a, b) => Math.hypot(formAt(a)[0] - spot[0], formAt(a)[1] - spot[1]) - Math.hypot(formAt(b)[0] - spot[0], formAt(b)[1] - spot[1])).slice(0, 3) : [];
     // a kick-off: everyone in his own half until the ball is played, the man taking it on the centre spot
     const koEnd = q.restart === 'kickoff' ? (q.cum && q.holds ? q.cum[1] * ce * q.holds[0] * (q.koSide !== undefined && q.koSide !== q.s ? 0.35 : 1) : 0.1) : 0;
-    const koW = q.restart === 'kickoff' ? 1 - ease(c01((v - koEnd) / 0.25)) : 0;
+    // once the ball is played everyone may leave his half: they go at a run, not all at once (in a short
+    // move a quarter of it could be two seconds for thirty metres)
+    const koSpan = Math.min(0.6, Math.max(0.25, 0.5 / Math.max(0.05, q.t1 - q.t0)));
+    const koW = q.restart === 'kickoff' ? 1 - ease(c01((v - koEnd) / koSpan)) : 0;
     const ownHalf = (side: 0 | 1, xy: [number, number]): [number, number] => (koW > 0 ? [lerp(xy[0], side === 0 ? Math.min(xy[0], L / 2 - 1.2) : Math.max(xy[0], L / 2 + 1.2), koW), xy[1]] : xy);
     // a team told to lean to one flank: every outfield man shifts across that way (its left is the top of the
     // pitch while it attacks to the right)
@@ -681,7 +693,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         // the team without the ball moves as a unit with its tactic: across to the side the attack is on
         // (further and tighter when it presses), stepping up with a high line, sitting off in a low block.
         // It follows the attack's direction (who has it now and who gets it next), so it glides with play
-        const shapeOn = (1 - setW) * (q.restart === 'kickoff' ? c01((v - koEnd) / 0.3) : 1);
+        const shapeOn = (1 - setW) * (q.restart === 'kickoff' ? c01((v - koEnd) / Math.max(0.3, koSpan)) : 1);
         if (shapeOn > 0) {
           const ca = chainAt(q, v / ce), k1 = q.chain[Math.min(n - 1, ca.j)], k2 = q.chain[Math.min(n - 1, ca.j + 1)];
           const fyA = (kk: number) => { const y = F[q.s].xy[kk][1]; return (q.s === 0 ? y : 100 - y) / 100 * W; };

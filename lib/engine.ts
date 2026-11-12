@@ -106,6 +106,7 @@ class Side {
   fitKey = '';
   flags: Record<string, number> = { ...NO_FLAGS };
   roleOf = new Map<string, string>(); // player id -> role he plays now (fits his slot)
+  shooters: { o: OnPitch; w: number }[] = []; // men told to have a go from distance, and how keen
   roleEff = new Map<string, number>();
   val(o: OnPitch, attr: string) {
     let v = (o.p.a[attr] ?? o.p.ovr) + (o.p.mod || 0);
@@ -151,6 +152,7 @@ class Side {
     // roles: each player in a role that fits his slot changes how the team plays (see ROLES), scaled by
     // how well his attributes suit it; every role has a cost too
     this.flags = { ...NO_FLAGS };
+    this.shooters = [];
     this.roleOf.clear(); this.roleEff.clear();
     let target = 0;
     for (const o of all) { const r = roleName(this.s.roles?.[o.p.id]); if (r === 'Target man' && roleLine(r).includes(o.slot)) target = 1; }
@@ -166,7 +168,7 @@ class Side {
         case 'Overlap': F.crossB += 0.007 * e; F.exposed += 0.006; A.pace_def -= 0.4; break;
         case 'Inverted':
           if (d) { A.passing += 1.0 * e; F.keep += 0.035 * e; F.crossB -= 0.002; }
-          else { A.finishing += 1.0 * e; F.longshot2 += 0.03 * e; F.crossB -= 0.001; }
+          else { A.finishing += 1.0 * e; this.shooters.push({ o, w: 0.03 * e }); F.crossB -= 0.001; }
           break;
         case 'Stopper': A.tackling += 1.2 * e; A.aerial_def += 4 * e; A.pace_def -= 0.9; if (d && o.p.pos !== 'CB') F.wingCover += 0.004 * e; break;
         case 'Wing back': F.crossB += 0.008 * e; A.pace_att += 0.5 * e; F.wingCover += 0.004 * e; F.exposed += 0.008; F.tire += 1; break;
@@ -185,11 +187,11 @@ class Side {
         case 'Box to box': A.tackling += 0.6 * e; A.passing += 0.6 * e; F.prog += 0.05 * e; F.tire += 1; break;
         case 'Ball carrier': F.prog += 0.08 * e; A.pace_att += 0.4 * e; F.lose += 0.01; break;
         case 'Playmaker': A.passing += 1.8 * e; F.through += 0.006 * e; A.tackling -= 0.5; break;
-        case 'Long shooter': F.longshot += 0.008 * e; F.longshot2 += 0.04 * e; break;
+        case 'Long shooter': F.longshot += 0.008 * e; this.shooters.push({ o, w: 0.05 * e }); break;
         case 'Supporting wing': F.crossB += 0.005 * e; F.wingCover += 0.004 * e; A.passing -= 0.3; break;
         case 'Drift wide': F.crossB += 0.006 * e; A.pace_att += 0.4 * e; A.finishing -= 0.4; if (o.slot === 'FWD') A.aerial_att -= 0.8; break;
         case 'Early crosser': F.crossB += (0.006 + target * 0.005) * e; break;
-        case 'Inside winger': A.finishing += 1.2 * e; F.longshot += 0.005 * e; F.longshot2 += 0.02 * e; F.crossB -= 0.002; break;
+        case 'Inside winger': A.finishing += 1.2 * e; F.longshot += 0.005 * e; this.shooters.push({ o, w: 0.03 * e }); F.crossB -= 0.002; break;
         case 'Wide winger': F.crossB += 0.009 * e; A.pace_att += 0.6 * e; break;
         case 'Shadow striker': A.finishing += 1.5 * e; A.runs += 1.2 * e; A.tackling -= 0.4; break;
         case 'Line breaker': A.pace_att += 1.4 * e; F.counterQ += 0.012 * e; F.offside += 0.5; break;
@@ -336,7 +338,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
 
   // `by`: the man who takes it (a free kick), so the kick is worth what HE is worth, not what the
   // team's forwards are worth, and the goal goes to him
-  const shot = (a: 0 | 1, baseXg: number, kind: string, by?: OnPitch) => {
+  const shot = (a: 0 | 1, baseXg: number, kind: string, by?: OnPitch, slope = 0.02) => {
     const b = (1 - a) as 0 | 1;
     // a quarter of the attempts are blocked or cleared before a shot: fewer shots, each worth a bit more.
     // A free kick that has been given is always taken, and the clearances are already in its numbers.
@@ -349,7 +351,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     const taken = by ? (S[a].val(by, 'LongShots') + S[a].val(by, 'Composure')) / 2 : 0;
     // (a poor taker against a fine keeper still has some chance: the kick is never worth less than a third of an ordinary one)
-    let q = (0.73 / (1 - SHOT_LOST)) * baseXg * (by ? Math.max(0.35, 1 + (taken - A(b, 'keeper')) * 0.02) : 1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
+    let q = (0.69 / (1 - SHOT_LOST)) * baseXg * (by ? Math.max(0.35, 1 + (taken - A(b, 'keeper')) * slope) : 1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
     if (S[b].flags.mark > 0) q *= 1 - 0.07 * Math.min(1.5, S[b].flags.mark); // their danger man is man-marked
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
@@ -542,15 +544,11 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     shot(a, Math.max(0.03, 0.1 + exposed + gap), 'counter');
   };
 
-  const create = (a: 0 | 1, bonus = 0) => {
+  const create = (a: 0 | 1, bonus = 0, as?: number) => {
     const b = 1 - a;
     const ta = T(a), tb = T(b);
     let q: number, two: number;
-    const f = ta.focus;
-    // a long shooter (or a wide man cutting in) has a go from distance instead of working it closer
-    if (S[a].flags.longshot2 > 0 && r.next() < S[a].flags.longshot2) {
-      return shot(a, Math.max(0.03, 0.095 + (A(a, 'finishing') - A(b, 'keeper')) * 0.003 + S[a].flags.longshot + S[b].flags.lobbed), 'long shot');
-    }
+    const f = as ?? ta.focus;
     let gap: number, t: Record<string, number>;
     const bus = tb.mentality === 0;
     if (f === 0) {
@@ -824,10 +822,17 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       return freeKick(a, at);
     }
     if (ta.build === 2 && r.next() < 0.5) {
-      const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) - (tb.press === 1 ? 0.35 : 0)
+      // the ball over the top: their line (room behind it), their press (the higher they press, the
+      // fewer men are left back to win the header; a side that sits off has them all there)
+      const duel = (A(a, 'aerial_att') - A(b, 'aerial_def')) * 0.04 + (tb.line === 2 ? 0.15 : tb.line === 0 ? -0.2 : 0) + (tb.press - 1) * 0.12
         + S[a].flags.holdup - (weather === 'wind' ? 0.3 : weather === 'fog' ? 0.9 * fogMul : weather === 'rain' ? 0.12 : 0); // in fog nobody sees the long ball coming down
-      if (r.next() < sig(duel - 1.38)) { reach(a, 2); create(a, tb.line === 2 ? 0.02 : 0); }
-      else if (tb.mentality === 0 && r.next() < 0.06) counter(b);
+      // won in the air: knocked down or flicked on for a runner, a chance in behind whatever the plan says
+      if (r.next() < sig(duel - 1.38)) { reach(a, 2); create(a, tb.line === 2 ? 0.02 : 0, 1); return; }
+      // headed away: the second ball drops in midfield. Whoever is stronger and keener there wins it,
+      // and a side that plays long wins it against a defence still turned round
+      const second = 0.1 + 0.07 * ta.press + (A(a, 'tackling') - A(b, 'tackling')) * 0.008; // (won by the men pushed up around it: a side that sits off has nobody there)
+      if (r.next() < Math.max(0.15, Math.min(0.5, second))) { if (r.next() < 0.13) { reach(a, 2); create(a); } return; }
+      if (tb.mentality === 0 && r.next() < 0.06) counter(b);
       return;
     }
     // a defensive side has men behind the ball and is harder to play through; an attacking one leaves gaps
@@ -836,6 +841,12 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     let prog = (A(a, 'passing') - A(b, 'tackling')) * 0.03 + [0, 0.15, 0.15 + 0.17 * intoBlock][ta.mentality] - 0.12 + (tb.mentality - 1) * (ta.focus === 0 && ta.width >= 1 ? 0.07 : 0.12);
     prog += tb.line === 0 ? (ta.focus === 0 && ta.width >= 1 ? -0.04 : -0.18) : tb.line === 2 ? 0.12 : 0; // wide crossing teams go around a deep block
     prog += 0.13 * gapB; // through the hole between a high press and a deep line
+    // the wings are the easy way forward (fewer men guard them than the middle); the hard part of
+    // crossing is what happens in the box. Wide play gets there more often, a narrow defence gives the
+    // flanks away, a wide one guards them
+    // shooting from distance only needs the ball 25 yards out, not past the last man
+    if (ta.focus === 3) prog += 0.07 * (tb.line === 0 ? 1.4 : 1);
+    if (ta.focus === 0) prog += 0.09 * (ta.width === 2 ? 1.3 : ta.width === 0 ? 0.5 : 1) * (tb.width === 0 ? 1.3 : tb.width === 2 ? 0.7 : 1);
     // game state: a team chasing the game late on throws bodies forward, more so when told to attack
     const behind = goals[b] - goals[a];
     if (behind > 0 && minute >= 55) prog += 0.16 + (ta.mentality === 2 ? 0.22 * intoBlock : ta.mentality === 0 ? -0.1 : 0);
@@ -853,6 +864,17 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     prog += [0.08, 0, -0.1][tk(b)]; // soft tacklers let them through, hard ones stop them in their tracks
     prog += S[a].flags.prog;
     if (r.next() < sig(prog - 1.55)) { reach(a, 2); create(a); }
+    // nothing on: a man told to shoot from distance has a go himself, and it is worth what he is worth
+    // (his long shots and nerve against their keeper). A poor shooter wastes the ball; a fine one scores
+    else if (S[a].shooters.length && r.next() < S[a].shooters.reduce((x, y) => x + y.w, 0)) {
+      const man = r.weighted(S[a].shooters.filter((x) => S[a].pitch.includes(x.o)), (x) => x.w);
+      if (man) {
+        reach(a, 2);
+        // the price of having a go: a shot charged down in front of the box and they are away
+        if (r.next() < 0.3) { if (r.next() < 0.35) counter(b); return; }
+        return shot(a, 0.05 + (tb.line === 0 ? 0.01 : 0) - (tb.width === 0 ? 0.006 : 0), 'long shot', man.o, 0.035); // from 25 yards the man matters even more than from a free kick
+      }
+    }
     // the attack breaks down near their box: a cross blocked, a tackle behind for a corner (wide sides win more)
     else if (r.next() < (ta.focus === 0 ? 0.075 : 0.04) * (ta.width === 2 ? 1.25 : ta.width === 0 ? 0.8 : 1) * (tb.line === 0 ? 1.25 : 1)) { reach(a, 2); corner(a); }
     else if (r.next() < offRate(a)) flagged(a);
