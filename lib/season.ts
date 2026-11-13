@@ -16,7 +16,7 @@ import {
 } from './game.ts';
 import { aiPlan, aiTactic, counterShare, nearestPreset, simulate, type Change, type EPlayer, type ESide, type Report } from './engine.ts';
 import { hashSeed, rng } from './rng.ts';
-import { moveTimes, shownBy, tm } from './pitchtime.ts';
+import { moveTimes, nextStop, shownBy, tm } from './pitchtime.ts';
 import { AI_SQUAD, botListings, checkSquads, cleanTactic, getLeague, myClub, news, pickXI, squadOf, standings } from './league.ts';
 import { staffLevels } from './club.ts';
 import { moraleAfterMatch, randomEvents } from './people.ts';
@@ -562,7 +562,11 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   if (changes.filter((c) => c.side === side).length >= 10) fail(400, 'Too many changes.');
   let ch: Change;
   if (b.kind === 'sub') {
-    ch = { m: minute, side: side as 0 | 1, kind: 'sub', out: String(b.out), in: String(b.in) };
+    // the player comes on when the ball next goes dead (a throw-in, a foul, a shot, a goal...), never in open play
+    let at = minute;
+    try { const rep = typeof f.report === 'string' ? JSON.parse(f.report) : f.report; if (rep?.flow) { const k = nextStop(moveTimes(rep.flow, rep.shots || []), rep.events || [], minute); at = Math.min(89, k + 1); } } catch { /* the minute alone */ }
+    // (the stop is in minute k, which this change leaves as it was: he plays from the minute after it)
+    ch = { m: at, side: side as 0 | 1, kind: 'sub', out: String(b.out), in: String(b.in) };
   } else if (b.plan) {
     const key = String(b.plan).toUpperCase();
     const plan = (club.plans || {})[key] || (key === 'A' ? club.tactic : null);
@@ -596,7 +600,7 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   const cond = conditionsFor(f.id, (await getLeague(f.league_id)).pool, f.day);
   const rep = simulate(hs, as, hashSeed(f.id, f.league_id), { knockout: f.comp === 'cup', derby, changes: all, weather: cond.weather, strict: cond.referee.strict });
   await q(`UPDATE fixtures SET changes=$2::jsonb, report=$3::jsonb WHERE id=$1 AND status='live'`, [f.id, JSON.stringify(all), JSON.stringify(rep)]);
-  return { report: rep, minute };
+  return { report: rep, minute: ch.m };
 }
 
 // ---------------------------------------------------------------- finishing a match

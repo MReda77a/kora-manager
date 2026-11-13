@@ -3,10 +3,10 @@ import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { whyReport } from '../../../lib/why.ts';
 import { ShareButton } from '../../../components/match/ShareCard.tsx';
 import { api, clock, shirt } from '../../../lib/client.ts';
-import { CLUB_TYPES, FORMATIONS, PRESETS, TACKLE_STYLES, minuteAt, type ClubTypeKey } from '../../../lib/game.ts';
+import { CLUB_TYPES, FORMATIONS, LINE, LINE_NAME, PRESETS, REF_LEVELS, TACKLE_STYLES, minuteAt, type ClubTypeKey } from '../../../lib/game.ts';
 import { crowdBed, crowdLevel, isMuted, music, play, whistle } from '../../../lib/sound.ts';
 import { SoundButton } from '../../../components/SoundButton.tsx';
-import { Crest, Kit, Spinner, lastName, useToast } from '../../../components/ui.tsx';
+import { Crest, Kit, RefBadge, Spinner, lastName, useToast } from '../../../components/ui.tsx';
 import { Pitch2D, evAt, tm, usePlan, shownUpTo, pitchMinute } from '../../../components/match/Pitch2D.tsx';
 import { Commentary, Formation, KeyEvents, LiveStats, Lineups, Momentum, assistantTips, liveFit, useSmoothClock, type Tip } from '../../../components/match/Panels.tsx';
 
@@ -74,7 +74,7 @@ function Conditions({ d }: { d: any }) {
     <div className="row small" style={{ gap: 10, flexWrap: 'wrap', fontWeight: 800 }}>
       <span title={c.weatherInfo.note}>{c.weatherInfo.icon} {c.weatherInfo.label}</span>
       <span className="muted">·</span>
-      <span>Referee {c.referee.name} <span className="tiny" style={{ color: c.referee.strict === 2 ? '#FF8A80' : c.referee.strict === 0 ? '#2EE6A0' : 'var(--muted)' }}>({c.referee.label})</span></span>
+      <RefBadge strict={c.referee.strict} name={c.referee.name} />
     </div>
   );
 }
@@ -117,7 +117,8 @@ function PreMatch({ d, reload }: { d: any; reload: () => void }) {
             <div className="col" style={{ gap: 3 }}>
               <span className="kicker">Match conditions</span>
               <Conditions d={d} />
-              <span className="tiny muted">{d.conditions.weatherInfo.note} {d.conditions.referee.strict === 2 ? 'Strict referee: more cards and penalties.' : d.conditions.referee.strict === 0 ? 'Lenient referee: lets the game flow.' : ''}</span>
+              <span className="tiny muted">{d.conditions.weatherInfo.icon} {d.conditions.weatherInfo.note}</span>
+              <span className="tiny muted">{REF_LEVELS[d.conditions.referee.strict]?.text}</span>
             </div>
             <KitPair d={d} />
           </div>
@@ -324,7 +325,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     }
     return { on: [...set], bench: [...bench] };
   };
-  const subsUsed = (side: number) => events.slice(0, revealed).filter((e) => e.side === side && e.type === 'sub').length;
+  // subs already asked for that wait for the ball to go dead: they count, and their men are taken
+  const pendingSubs = events.slice(revealed).filter((e) => e.side === mineSide && e.type === 'sub' && e.pid && e.pid2);
+  const subsUsed = (side: number) => events.slice(0, revealed).filter((e) => e.side === side && e.type === 'sub').length + (side === mineSide ? pendingSubs.length : 0);
   const change = async (body: Record<string, unknown>, msg: string) => {
     setReact(null);
     try {
@@ -391,7 +394,9 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   // the live match centre
   const lastEv = events[Math.max(0, revealed - 1)];
   const seen = events.slice(0, revealed);
-  const { on, bench } = mineSide >= 0 ? onPitch(mineSide as 0 | 1) : { on: [], bench: [] };
+  const { on: on0, bench: bench0 } = mineSide >= 0 ? onPitch(mineSide as 0 | 1) : { on: [], bench: [] };
+  const taken = new Set(pendingSubs.flatMap((e) => [e.pid!, e.pid2!]));
+  const on = on0.filter((id) => !taken.has(id)), bench = bench0.filter((id) => !taken.has(id));
   const hasFlow = !!rep.flow;
   const formSide = (mineSide >= 0 ? mineSide : 0) as 0 | 1;
   const tactics = canChange ? [
@@ -440,7 +445,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       </header>
       <div className="mc-cond tiny muted row">
         {hasFlow && <span className="row" style={{ gap: 6 }}><b style={{ letterSpacing: 0.5 }}>MOMENTUM</b><Momentum d={d} gm={pm} flow={rep.flow || []} shots={rep.shots || []} /></span>}
-        <span>🏟 {d.home.stadium}</span><span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon} {d.conditions.weatherInfo.label}</span><span>🧑‍⚖️ {d.conditions.referee.name} ({d.conditions.referee.label})</span>
+        <span>🏟 {d.home.stadium}</span><span title={d.conditions.weatherInfo.label}>{d.conditions.weatherInfo.icon} {d.conditions.weatherInfo.label}</span><span title={REF_LEVELS[d.conditions.referee.strict]?.text}>🧑‍⚖️ Referee: <b style={{ color: REF_LEVELS[d.conditions.referee.strict]?.color }}>{d.conditions.referee.label}</b> {REF_LEVELS[d.conditions.referee.strict]?.cards}</span>
       </div>
       <div className="mc-body">
         <aside className="panel mc-left mc-wide">
@@ -460,11 +465,32 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           )}
           {!htLeft && lastEv && gm - plan.timeOf(lastEv) < 3.5 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny ellipsis mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
           {fx && !htLeft && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
+          {pendingSubs.length > 0 && !htLeft && (
+            <span className="tiny mc-subwait">🔁 {pendingSubs.map((e) => `${lastName(d.names[e.pid!]?.name || '')} for ${lastName(d.names[e.pid2!]?.name || '')}`).join(' · ')} — waiting for the ball to go out</span>
+          )}
           {htLeft > 0 && (
             <div className="mc-ht">
               <span className="lz" style={{ fontSize: 40, lineHeight: 1 }}>HALF-TIME</span>
               <span className="lz" style={{ fontSize: 28 }}>{score[0]} – {score[1]}</span>
               <span className="small" style={{ fontWeight: 800 }}>Second half in <b style={{ color: 'var(--mint)' }}>0:{String(htLeft).padStart(2, '0')}</b></span>
+              {(() => {
+                // the first half in numbers: what to fix at the break
+                const sh = (rep.shots || []).filter((x: any) => x.m <= 45 && !x.ghost), fl = (rep.flow || []).filter((f: any) => f[0] <= 45);
+                const poss = fl.length ? Math.round((fl.filter((f: any) => f[1] === 0).length / fl.length) * 100) : 50;
+                const row = (lab: string, a: string | number, b: string | number) => <div className="row" style={{ gap: 10, justifyContent: 'center' }}><b style={{ minWidth: 34, textAlign: 'right' }}>{a}</b><span className="tiny muted" style={{ minWidth: 110, textAlign: 'center', fontWeight: 800 }}>{lab}</span><b style={{ minWidth: 34 }}>{b}</b></div>;
+                const k = (side: number, ks: string[]) => sh.filter((x: any) => x.side === side && ks.includes(x.kind)).length;
+                return (
+                  <div className="col mc-htstats" style={{ gap: 2 }}>
+                    {row('Possession', `${poss}%`, `${100 - poss}%`)}
+                    {row('Shots', sh.filter((x: any) => x.side === 0).length, sh.filter((x: any) => x.side === 1).length)}
+                    {row('On target', sh.filter((x: any) => x.side === 0 && x.on).length, sh.filter((x: any) => x.side === 1 && x.on).length)}
+                    {row('xG', sh.filter((x: any) => x.side === 0).reduce((a: number, x: any) => a + x.xg, 0).toFixed(2), sh.filter((x: any) => x.side === 1).reduce((a: number, x: any) => a + x.xg, 0).toFixed(2))}
+                    {row('Chances in behind', k(0, ['counter', 'through ball']), k(1, ['counter', 'through ball']))}
+                    {row('From crosses & set pieces', k(0, ['cross', 'corner', 'set piece', 'free kick']), k(1, ['cross', 'corner', 'set piece', 'free kick']))}
+                    {row('From distance', k(0, ['long shot']), k(1, ['long shot']))}
+                  </div>
+                );
+              })()}
               {canChange && <>
                 <span className="tiny muted">The clock is stopped: make your changes now.</span>
                 <div className="row wrap center" style={{ gap: 6 }}>
@@ -540,12 +566,35 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       {panel === 'sub' && (
         <div className="panel cut mc-pop" style={{ gap: 6 }}>
           <span className="kicker">{subOut ? 'Who comes on?' : 'Who comes off?'}</span>
-          <div className="row wrap" style={{ gap: 6 }}>
-            {(subOut ? bench : on).map((id) => {
-              const pl = d.names[id];
-              return <button key={id} className={`bench ${subOut === id ? 'sel' : ''}`} style={{ width: 84 }} onClick={() => (subOut ? change({ kind: 'sub', out: subOut, in: id }, `${lastName(pl?.name || '')} comes on`) : setSubOut(id))}><b>{pl?.ovr ?? ''}</b><small>{lastName(pl?.name || '?')} · {pl?.pos}</small></button>;
-            })}
-          </div>
+          {(() => {
+            // grouped by line (keeper, defenders, midfielders, forwards), with how fit each man is right now;
+            // when choosing who comes on, the same line as the man going off comes first
+            const ids = subOut ? bench : on;
+            const lineOf = (id: string) => LINE[d.names[id]?.pos] || 'MID';
+            const outLine = subOut ? lineOf(subOut) : null;
+            const order = (['GK', 'DEF', 'MID', 'FWD'] as const).slice().sort((a, b) => Number(b === outLine) - Number(a === outLine));
+            return order.map((ln) => {
+              const group = ids.filter((id) => lineOf(id) === ln);
+              if (!group.length) return null;
+              return (
+                <div key={ln} className="col" style={{ gap: 4 }}>
+                  <span className="tiny muted" style={{ fontWeight: 900, letterSpacing: 0.5 }}>{LINE_NAME[ln]}{outLine === ln ? ' · same position' : ''}</span>
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    {group.map((id) => {
+                      const pl = d.names[id];
+                      const fit = subOut ? pl?.fit : liveFit(d, id, pm, seen);
+                      return (
+                        <button key={id} className={`bench ${subOut === id ? 'sel' : ''}`} style={{ width: 92 }} onClick={() => (subOut ? change({ kind: 'sub', out: subOut, in: id }, `${lastName(pl?.name || '')} comes on when the ball next goes out`) : setSubOut(id))}>
+                          <b>{pl?.ovr ?? ''}</b><small>{lastName(pl?.name || '?')} · {pl?.pos}</small>
+                          {fit != null && <small style={{ color: fit < 55 ? '#FF8A80' : fit < 75 ? '#FFD166' : '#2EE6A0', fontWeight: 900 }}>🔋 {fit}%</small>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            });
+          })()}
           {subOut && <button className="tiny muted" onClick={() => setSubOut(null)}>‹ choose another player</button>}
         </div>
       )}

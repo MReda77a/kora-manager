@@ -62,6 +62,7 @@ export function Lineups({ d, gm, shown }: { d: any; gm: number; shown: Ev[] }) {
               <span className="grow ellipsis">{lastName(n.name || '?')}{id === rep.lineups[s].captain ? ' ©' : ''}</span>
               {goals.get(id) ? <span title="Goal">{'⚽'.repeat(Math.min(3, goals.get(id)!))}</span> : null}
               {cards.get(id) && <i className="mc-card" style={{ background: cards.get(id) === 'r' ? '#FF4A5E' : '#FFE86B' }} />}
+              {(() => { const f = !off.has(id) && cards.get(id) !== 'r' ? liveFit(d, id, gm, shown) : null; return f != null && d.names[id]?.pos !== 'GK' ? <i className="mc-fit" title={`${f}% fit`}><i style={{ width: `${f}%`, background: f < 55 ? '#FF6B7D' : f < 75 ? '#FFD166' : '#2EE6A0' }} /></i> : null; })()}
               {on.has(id) && <span className="mc-in" title="Came on">▲</span>}
               {off.has(id) && <span className="mc-out" title="Went off">▼</span>}
               {r !== null && <b className="mc-rt" style={{ background: r >= 7.5 ? '#2FA36B' : r >= 6.8 ? '#3B7A5A' : r < 6 ? '#8A3A4A' : 'rgba(255,255,255,0.1)' }}>{r.toFixed(1)}</b>}
@@ -285,6 +286,27 @@ export function assistantTips(d: any, gm: number, shown: Ev[], mine: 0 | 1, onPi
       const ourLeft = /^R/.test(d.names[fb.pid!].pos);
       tips.push({ key: `fb-${fb.pid}`, ico: '🎯', text: `Their ${d.names[fb.pid!].pos} ${nm(fb.pid!)} is on a yellow and can't go in hard. Run at him down our ${ourLeft ? 'left' : 'right'}.`, act: { label: `Lean ${ourLeft ? 'left' : 'right'} 50%`, body: { shift: ourLeft ? -50 : 50 } } });
     }
+  }
+  // how the chances come: what their attacks keep finding, and what ours do (from what has been shown)
+  if (M >= 20) {
+    const recentKinds = (side: 0 | 1) => (rep.shots || []).filter((x: Shot) => x.side === side && tm(x.m) <= gm && x.m > M - 25 && x.kind !== 'penalty');
+    const theirs2 = recentKinds(them), ours2 = recentKinds(mine);
+    const share = (xs: Shot[], ks: string[]) => (xs.length ? xs.filter((x) => ks.includes(x.kind)).length / xs.length : 0);
+    const blk = `why-${Math.floor(M / 15)}`;
+    if (theirs2.length >= 3 && share(theirs2, ['counter', 'through ball']) >= 0.6)
+      tips.push(now.line >= 1
+        ? { key: `${blk}-run`, ico: '🏃', text: `Most of their chances are balls in behind us: our ${now.line === 2 ? 'high' : 'mid'} line leaves them space to run into.`, act: { label: 'Drop the line', body: { line: 0 } } }
+        : { key: `${blk}-run`, ico: '🏃', text: 'They keep breaking on us after we lose the ball. Pressing less keeps more men behind it.', act: { label: 'Press less', body: { press: 0 } } });
+    else if (theirs2.length >= 3 && share(theirs2, ['cross', 'corner', 'set piece']) >= 0.6)
+      tips.push({ key: `${blk}-air`, ico: '🎯', text: 'Their chances come from balls into our box: crosses and set pieces. Closing the crosser down early stops them at the source.', act: { label: 'Press higher', body: { press: 2 } } });
+    else if (theirs2.length >= 3 && share(theirs2, ['long shot']) >= 0.6)
+      tips.push({ key: `${blk}-far`, ico: '📏', text: 'They are shooting from distance: we sit so deep that they have time on the edge of our box.', act: { label: 'Stay compact', body: { mentality: 0, line: 1, press: 1 } } });
+    else if (theirs2.length >= 3 && share(theirs2, ['high turnover']) >= 0.5)
+      tips.push({ key: `${blk}-lose`, ico: '⚠️', text: 'We keep losing the ball near our own goal to their press. Going longer gets it past them.', act: { label: 'Play it long', body: { preset: 'Long ball' } } });
+    if (ours2.length >= 4 && share(ours2, ['long shot']) >= 0.6)
+      tips.push({ key: `${blk}-ours`, ico: '🔭', text: 'Nearly all our shots are from far out: we are not getting into their box.' });
+    else if (ours2.length >= 3 && share(ours2, ['counter', 'through ball']) >= 0.6)
+      tips.push({ key: `${blk}-oursrun`, ico: '⚡', text: 'Our runs in behind are working: their line is there to be beaten.' });
   }
   // never suggest what we are already doing
   const already = (b?: Record<string, unknown>) => !!b && Object.entries(b).every(([k, v]) => (k === 'preset' ? now.preset === v : k === 'shift' ? Math.sign(now.shift || 0) === Math.sign(v as number) : now[k] === v));

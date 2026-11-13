@@ -33,6 +33,8 @@ export const MAX_SQUAD = 30;
 export const LINE: Record<string, 'GK' | 'DEF' | 'MID' | 'FWD'> = {
   GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', DM: 'MID', CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID', LW: 'FWD', RW: 'FWD', ST: 'FWD',
 };
+/** the four lines of a team, as a manager names them (players grouped this way in lists) */
+export const LINE_NAME: Record<'GK' | 'DEF' | 'MID' | 'FWD', string> = { GK: 'GOALKEEPERS', DEF: 'DEFENDERS', MID: 'MIDFIELDERS', FWD: 'FORWARDS' };
 /** a winger with a midfielder's engine (work rate, stamina, crossing, passing, tracking back rather than
  * finishing) is a wide midfielder: LM or RM. Used once on the player database. */
 export function wideMidOf(pos: string, a: Record<string, number>): string | null {
@@ -373,6 +375,12 @@ export const WEATHER: Record<string, { label: string; icon: string; note: string
   snow: { label: 'Snow', icon: '❄️', note: 'Slow pitch: pace and quick play count for little, but legs stay fresh.' },
   fog: { label: 'Fog', icon: '🌫️', note: 'Hard to see: long balls rarely find their man.' },
 };
+// how hard the referee is, in plain words: the level, its cards (one to three) and what it means for you
+export const REF_LEVELS = [
+  { label: 'Easy-going', cards: '🟨', color: '#2EE6A0', text: 'Easy-going referee: few cards, you can tackle hard.' },
+  { label: 'Normal', cards: '🟨🟨', color: '#B8C4D6', text: 'Normal referee: the usual number of cards.' },
+  { label: 'Hard', cards: '🟨🟨🟨', color: '#FF8A80', text: 'Hard referee: lots of cards and penalties. Careful with hard tackling.' },
+];
 export const REFEREES = ['K. Aldridge', 'S. Marwan', 'L. Ferrand', 'T. Okafor', 'R. Haddad', 'J. Lindqvist', 'M. Serrano', 'D. Kowal', 'A. Nassar', 'P. Bellamy', 'H. Rahimi', 'G. Ottaviani'];
 export function conditionsFor(fixtureId: number, pool: string, day: number) {
   let h = 2166136261;
@@ -381,7 +389,7 @@ export function conditionsFor(fixtureId: number, pool: string, day: number) {
   const w = h % 100;
   const weather = w < 50 ? 'clear' : w < 55 ? (hot ? 'clear' : 'fog') : w < 70 ? (hot ? 'heat' : 'rain') : w < 82 ? 'wind' : w < 92 ? (hot ? 'heat' : 'rain') : cold ? 'snow' : hot ? 'clear' : 'fog';
   const strict = (h >>> 8) % 3; // 0 lenient, 1 normal, 2 strict
-  return { weather, referee: { name: REFEREES[(h >>> 12) % REFEREES.length], strict, label: ['Lenient', 'Normal', 'Strict'][strict] } };
+  return { weather, referee: { name: REFEREES[(h >>> 12) % REFEREES.length], strict, label: REF_LEVELS[strict].label } };
 }
 
 // ---------------------------------------------------------------- tactic fit

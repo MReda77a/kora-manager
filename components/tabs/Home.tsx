@@ -3,7 +3,7 @@ import { timeLeft } from '../WindowSplash.tsx';
 import { useEffect, useState } from 'react';
 import { H2HLine, useRecords } from './Records.tsx';
 import { api, utcMinToLocal, localToUtcMin, shirt } from '../../lib/client.ts';
-import { Bar, Crest, Ring, lastName } from '../ui.tsx';
+import { Bar, Crest, RefBadge, Ring, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
 function useNow(ms = 1000) {
@@ -275,10 +275,12 @@ function NextMatch({ f, club, now, go, lid }: { f: any; club: any; now: number; 
         </div>
         <H2HLine rec={rec} oppId={homeMine ? f.away_id : f.home_id} />
         {f.cond && (
-          <div className="row wrap small" style={{ gap: 8, marginTop: 6, fontWeight: 800 }}>
-            <span className="tag" title={f.cond.note}><span>{f.cond.icon} {f.cond.label}</span></span>
-            <span className="tag" title={f.cond.strict === 2 ? 'Strict referee: more cards and penalties.' : f.cond.strict === 0 ? 'Lenient referee: lets the game flow.' : 'Normal referee.'} style={{ background: f.cond.strict === 2 ? 'rgba(255,92,108,0.28)' : f.cond.strict === 0 ? 'rgba(46,230,160,0.22)' : undefined }}><span>🧑‍⚖️ {f.cond.ref} · {f.cond.refLabel}</span></span>
-            {(f.cond.weather !== 'clear' || f.cond.strict !== 1) && <span className="tiny muted" style={{ flexBasis: '100%', fontWeight: 700 }}>{f.cond.weather !== 'clear' ? f.cond.note : ''}{f.cond.weather !== 'clear' && f.cond.strict !== 1 ? ' ' : ''}{f.cond.strict === 2 ? 'Strict referee: more cards and penalties.' : f.cond.strict === 0 ? 'Lenient referee: lets the game flow.' : ''}</span>}
+          <div className="col" style={{ gap: 6, marginTop: 6 }}>
+            <div className="col" style={{ gap: 2 }}>
+              <span className="row" style={{ gap: 6, fontWeight: 800 }}><span>{f.cond.icon} Weather:</span><b>{f.cond.label}</b></span>
+              {f.cond.weather !== 'clear' && <span className="tiny muted" style={{ fontWeight: 700 }}>{f.cond.note}</span>}
+            </div>
+            <RefBadge strict={f.cond.strict} name={f.cond.ref} explain />
           </div>
         )}
         <span className="grow" />

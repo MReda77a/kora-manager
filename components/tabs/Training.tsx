@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api, when } from '../../lib/client.ts';
-import { LINE } from '../../lib/game.ts';
+import { LINE, LINE_NAME } from '../../lib/game.ts';
 import { BackHead, Bar, Spinner, Stars } from '../ui.tsx';
 import type { TabProps } from './types.ts';
 
@@ -38,13 +38,22 @@ export default function TrainingTab({ lid, toast, reload }: TabProps) {
       <BackHead title="Training" sub="Each player trains one thing: a skill or a new position" right={<span className="small muted" style={{ fontWeight: 700 }}>{d.active.length}/{d.slots} slots busy · Coach <Stars n={d.coach} /></span>} />
       <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 250px) minmax(0, 1fr)', gap: 12 }}>
         <section className="panel cut" style={{ padding: 6, gap: 2, maxHeight: 330, overflowY: 'auto' }}>
-          {sorted.map((x: any) => {
-            const t = activeFor(x.id);
+          {(['GK', 'DEF', 'MID', 'FWD'] as const).map((ln) => {
+            const group = sorted.filter((x: any) => (LINE[x.pos] || 'MID') === ln);
+            if (!group.length) return null;
             return (
-              <button key={x.id} className={`row-item ${sel === x.id ? 'sel' : ''}`} style={{ textAlign: 'left' }} onClick={() => { setSel(x.id); setTarget(null); }}>
-                <span className="col grow" style={{ gap: 0, minWidth: 0 }}><b className="small ellipsis">{x.name}</b><span className="tiny muted">{x.pos} · {x.age} yrs · {x.ovr}</span></span>
-                {t && <span className="tag" style={{ height: 20, fontSize: 11, background: t.kind === 'pos' ? 'color-mix(in srgb, var(--cyan) 20%, transparent)' : 'rgba(46, 230, 160,0.2)', color: t.kind === 'pos' ? 'var(--cyan)' : '#2EE6A0' }}><span>{t.kind === 'pos' ? `Learning ${t.target}` : `${t.target} +${t.amount}`}</span></span>}
-              </button>
+              <div key={ln} className="col" style={{ gap: 2 }}>
+                <span className="tiny muted" style={{ fontWeight: 900, letterSpacing: 0.5, padding: '6px 6px 2px' }}>{LINE_NAME[ln]}</span>
+                {group.map((x: any) => {
+                  const t = activeFor(x.id);
+                  return (
+                    <button key={x.id} className={`row-item ${sel === x.id ? 'sel' : ''}`} style={{ textAlign: 'left' }} onClick={() => { setSel(x.id); setTarget(null); }}>
+                      <span className="col grow" style={{ gap: 0, minWidth: 0 }}><b className="small ellipsis">{x.name}</b><span className="tiny muted">{x.pos} · {x.age} yrs · {x.ovr}</span></span>
+                      {t && <span className="tag" style={{ height: 20, fontSize: 11, background: t.kind === 'pos' ? 'color-mix(in srgb, var(--cyan) 20%, transparent)' : 'rgba(46, 230, 160,0.2)', color: t.kind === 'pos' ? 'var(--cyan)' : '#2EE6A0' }}><span>{t.kind === 'pos' ? `Learning ${t.target}` : `${t.target} +${t.amount}`}</span></span>}
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </section>

@@ -924,6 +924,8 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     for (const i of [0, 1] as const) {
       const t = S[i].tactic;
       for (const o of S[i].pitch) {
+        // a keeper covers about half the ground of an outfield man and never presses: his legs hardly go
+        if (o.slot === 'GK') { o.tired += 0.0016 * (weather === 'heat' ? 1.2 : weather === 'snow' ? 0.8 : 1); continue; }
         const stam = o.p.a.Stamina || 70;
         const roleTire = S[i].roleOf.size && ['Wing back', 'Box to box', 'Overlap'].includes(S[i].roleOf.get(o.p.id) || '') ? 1.18 : 1;
         o.tired += Math.max(0.002, (0.0045 + t.press * 0.0016 + t.tempo * 0.0012) * (1 - (stam - 75) * 0.01)) * (weather === 'heat' ? 1.25 + 0.12 * (t.tempo - 1) + ((o.p.a.Dribbling || 50) > 74 ? 0.1 : 0) : weather === 'snow' ? 0.8 : 1) * roleTire * (S[i].s.tireMul ?? 1); // heat drains the runners and the men on the ball; snow keeps legs fresh

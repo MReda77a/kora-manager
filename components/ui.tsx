@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { shirt, tier } from '../lib/client.ts';
+import { REF_LEVELS } from '../lib/game.ts';
 
 export const SHAPES = ['M20 1L37 6V20C37 30 29 36 20 39 11 36 3 30 3 20V6z', 'M20 1l17 10v18L20 39 3 29V11z', 'M20 1a19 19 0 110 38 19 19 0 010-38z', 'M20 0L40 20 20 40 0 20z'];
 export const SHAPE_NAMES = ['Shield', 'Hex', 'Round', 'Diamond'];
@@ -214,5 +215,18 @@ export function Kit({ c1, c2, pattern = 0, size = 40, label }: { c1: string; c2:
       </g>
       <path d={body} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1" />
     </svg>
+  );
+}
+
+/** the referee in plain words: how hard he is (one to three cards) and, if asked, what that means */
+export function RefBadge({ strict, name, explain }: { strict: number; name?: string; explain?: boolean }) {
+  const L = REF_LEVELS[Math.max(0, Math.min(2, strict))];
+  return (
+    <span className="col" style={{ gap: 2 }}>
+      <span className="row" style={{ gap: 6, alignItems: 'center', fontWeight: 800 }}>
+        <span>🧑‍⚖️ Referee:</span><b style={{ color: L.color }}>{L.label}</b><span style={{ letterSpacing: -2 }}>{L.cards}</span>{name ? <span className="tiny muted">({name})</span> : null}
+      </span>
+      {explain ? <span className="tiny muted" style={{ fontWeight: 700 }}>{L.text}</span> : null}
+    </span>
   );
 }

@@ -74,3 +74,35 @@ harder tackling	التحام أخشن
 softer tackling	التحام أنعم
 normal tackling	التحام عادي
 Normal referee.	حكم عادي.
+Easy-going	متساهل
+Referee:	الحكم:
+Weather:	الجو:
+Easy-going referee: few cards, you can tackle hard.	حكم متساهل: كروت قليلة، تقدر تلعب بخشونة.
+Normal referee: the usual number of cards.	حكم عادي: كروت بالعدد المعتاد.
+Hard referee: lots of cards and penalties. Careful with hard tackling.	حكم شديد: كروت وبلنتيات كتير. خلي بالك من التدخلات الخشنة.
+GOALKEEPERS	الحراس
+DEFENDERS	المدافعين
+MIDFIELDERS	لاعبين الوسط
+FORWARDS	المهاجمين
+ · same position	 · نفس المركز
+— waiting for the ball to go out	— مستني الكورة تخرج
+Throw-in	رمية تماس
+Out · throw-in	برة · رمية تماس
+{name} comes on when the ball next goes out	{name} هينزل أول ما الكورة تخرج
+Chances in behind	فرص ورا الدفاع
+From crosses & set pieces	من العرضيات والكرات الثابتة
+From distance	من بعيد
+On target	على المرمى
+Most of their chances are balls in behind us: our {0} line leaves them space to run into.	أغلب فرصهم كور ورا دفاعنا: خطنا {0} سايبلهم مساحة يجروا فيها.
+high	العالي
+mid	المتوسط
+Drop the line	نزّل الخط
+They keep breaking on us after we lose the ball. Pressing less keeps more men behind it.	بيضربونا بالمرتدات كل ما نفقد الكورة. ضغط أقل يخلي لعيبة أكتر ورا الكورة.
+Press less	ضغط أقل
+Their chances come from balls into our box: crosses and set pieces. Closing the crosser down early stops them at the source.	فرصهم جاية من كور جوه منطقتنا: عرضيات وكور ثابتة. الضغط بدري على اللي بيعرّض بيوقفها من الأول.
+Press higher	اضغط أعلى
+They are shooting from distance: we sit so deep that they have time on the edge of our box.	بيشوطوا من بعيد: إحنا راجعين لورا أوي فعندهم وقت على حدود منطقتنا.
+We keep losing the ball near our own goal to their press. Going longer gets it past them.	بنفقد الكورة قريب من مرمانا من ضغطهم. الكور الطويلة تعدّيهم.
+Play it long	العب طويل
+Nearly all our shots are from far out: we are not getting into their box.	تقريبًا كل تسديداتنا من بعيد: مش عارفين ندخل منطقتهم.
+Our runs in behind are working: their line is there to be beaten.	الجري ورا دفاعهم شغال: خطهم ممكن يتكسر.
