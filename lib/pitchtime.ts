@@ -37,7 +37,7 @@ export function moveTimes(flow: Flow[], shots: ShotLike[]): Move[] {
   // (up to three minutes), and the quiet minute before a shot becomes its build-up
   for (let i = 1; i < raw.length - 1; i++) {
     const a = raw[i - 1], b = raw[i], c = raw[i + 1];
-    if (b.sh < 0 && b.r <= 1 && !b.off && !a.off && a.s === c.s && b.s !== a.s && !(b.t0 < 45 && b.t1 > 45) && Math.abs(b.t0 - 45) > 0.01) b.s = a.s;
+    if (b.sh < 0 && b.r <= 1 && !b.off && !a.off && a.sh < 0 && a.s === c.s && b.s !== a.s && !(b.t0 < 45 && b.t1 > 45) && Math.abs(b.t0 - 45) > 0.01) b.s = a.s;
   }
   const spells: Move[] = [];
   for (const m of raw) {

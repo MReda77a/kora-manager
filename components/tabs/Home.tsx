@@ -274,6 +274,13 @@ function NextMatch({ f, club, now, go, lid }: { f: any; club: any; now: number; 
           <span className="col small" style={{ gap: 0, lineHeight: 1.4, marginLeft: 4 }}><b>{cup ? 'Cup' : 'League'} · {homeMine ? 'Home' : 'Away'}</b><span className="muted">{new Date(f.kickoff_at).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span></span>
         </div>
         <H2HLine rec={rec} oppId={homeMine ? f.away_id : f.home_id} />
+        {f.cond && (
+          <div className="row wrap small" style={{ gap: 8, marginTop: 6, fontWeight: 800 }}>
+            <span className="tag" title={f.cond.note}><span>{f.cond.icon} {f.cond.label}</span></span>
+            <span className="tag" title={f.cond.strict === 2 ? 'Strict referee: more cards and penalties.' : f.cond.strict === 0 ? 'Lenient referee: lets the game flow.' : 'Normal referee.'} style={{ background: f.cond.strict === 2 ? 'rgba(255,92,108,0.28)' : f.cond.strict === 0 ? 'rgba(46,230,160,0.22)' : undefined }}><span>🧑‍⚖️ {f.cond.ref} · {f.cond.refLabel}</span></span>
+            {(f.cond.weather !== 'clear' || f.cond.strict !== 1) && <span className="tiny muted" style={{ flexBasis: '100%', fontWeight: 700 }}>{f.cond.weather !== 'clear' ? f.cond.note : ''}{f.cond.weather !== 'clear' && f.cond.strict !== 1 ? ' ' : ''}{f.cond.strict === 2 ? 'Strict referee: more cards and penalties.' : f.cond.strict === 0 ? 'Lenient referee: lets the game flow.' : ''}</span>}
+          </div>
+        )}
         <span className="grow" />
         <div className="row wrap" style={{ gap: 16 }}>
           {live ? <a className={`cta ${derby ? 'gold' : ''}`} href={`/m/${f.id}`}><span>WATCH LIVE ›</span></a> : <button className={`cta ${derby ? 'gold' : ''}`} onClick={() => go('lineup')}><span>PREPARE THE MATCH ›</span></button>}

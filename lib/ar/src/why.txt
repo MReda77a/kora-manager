@@ -73,3 +73,4 @@ no offside trap	من غير مصيدة تسلل
 harder tackling	التحام أخشن
 softer tackling	التحام أنعم
 normal tackling	التحام عادي
+Normal referee.	حكم عادي.

@@ -14,7 +14,7 @@ import * as C from '../../../../../lib/club.ts';
 import * as P from '../../../../../lib/people.ts';
 import * as O from '../../../../../lib/offers.ts';
 import * as K from '../../../../../lib/career.ts';
-import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, traitOf, type ClubTypeKey, marketValue, leadership } from '../../../../../lib/game.ts';
+import { CLUB_TYPES, CUP_NAMES, PACKS, POOLS, WEATHER, conditionsFor, traitOf, type ClubTypeKey, marketValue, leadership } from '../../../../../lib/game.ts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -45,6 +45,8 @@ export const GET = handle(async (req: Request, ctx: Ctx) => {
     const myTable = division === myDiv ? table : fresh.status === 'setup' ? [] : await L.standings(lid, myDiv);
     const win = await L.windowFor(fresh);
     const mine = club ? await q(`${FX_SELECT} WHERE f.league_id=$1 AND (f.home_id=$2 OR f.away_id=$2) ORDER BY f.day`, [lid, club.id]) : [];
+    // the weather and the referee of each of my matches (known in advance: the match card shows them)
+    for (const f of mine as any[]) { const c = conditionsFor(f.id, fresh.pool, f.day); f.cond = { weather: c.weather, icon: WEATHER[c.weather].icon, label: WEATHER[c.weather].label, note: WEATHER[c.weather].note, ref: c.referee.name, strict: c.referee.strict, refLabel: c.referee.label }; }
     const newsRows = await q(`SELECT kind, text, created_at FROM news WHERE league_id=$1 AND kind<>'inbox' ORDER BY id DESC LIMIT 20`, [lid]);
     const md = await one<{ played: number; total: number }>(
       `SELECT COUNT(DISTINCT matchday) FILTER (WHERE status='done')::int AS played, COUNT(DISTINCT matchday)::int AS total FROM fixtures WHERE league_id=$1 AND comp='league'`, [lid]);

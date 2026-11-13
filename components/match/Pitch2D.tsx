@@ -150,8 +150,38 @@ export function buildPlan(rep: any, events: Ev[]) {
     const xi = [0, 1].map((s) => [...(rep.lineups?.[s]?.xi || [])] as (string | null)[]);
     // when each move plays: the same layout the server uses, from what is known in advance (never a result)
     const raw: Move[] = moveTimes(rep.flow || [], shots);
+    // the team that kicks off has the ball first: the home side at the start, the away side after
+    // half-time, the team that conceded after a goal. When the move shown next is the other side's, a
+    // quiet one simply becomes the kick-off team's; one that ends in a shot gives up its first part to
+    // the kick-off and a short spell on the ball (the clock holds through the celebration and kick-off)
+    for (let i = raw.length - 1; i >= 0; i--) {
+      const a = raw[i - 1], b = raw[i], sa = a && a.sh >= 0 ? shots[a.sh] : null;
+      const half = !a || (a.t0 < 45 - 1e-6 && b.t0 >= 45 - 1e-6);
+      const want: 0 | 1 | null = half ? (a ? 1 : 0) : sa && sa.goal && !sa.var ? ((1 - a.s) as 0 | 1) : null;
+      if (want === null || b.s === want) continue;
+      if (b.sh < 0 && !b.off) { b.s = want; continue; }
+      const cut = Math.min(1.6, b.t1 - b.t0 - (b.sh >= 0 ? 1 : 0.6));
+      if (cut < (half ? 0.6 : 1.2)) continue;
+      raw.splice(i, 0, { t0: b.t0, t1: b.t0 + cut, s: want, r: 0, sh: -1, m0: b.m0, m1: b.m0 - 1 });
+      b.t0 += cut;
+    }
     // anything timed by its minute (a sub, a card, a tactic change) shows inside the move playing that minute
     const atMin = (e: Ev) => (e.type === 'ft' || e.type === 'pens' ? 90.5 : e.type === 'ht' ? 45 : minuteTime(raw, e.m) ?? evAt(e));
+    // a booking in open play is for a foul on the team with the ball: the move it shows in is the fouled
+    // side's (a quiet spell of the other side in that minute becomes theirs: they had the ball in it too)
+    events.forEach((e, i) => {
+      if (e.type !== 'yellow' && e.type !== 'red') return;
+      const isKick = (x: Ev) => x.m === e.m && x.side !== e.side && (x.type === 'freekick' || x.type === 'penalty');
+      if (events.slice(Math.max(0, i - 3), i + 4).some(isKick)) return;
+      const T = atMin(e), at = raw.findIndex((x) => x.t0 <= T && T < x.t1);
+      const q = raw[at];
+      if (!q || q.s !== e.side) return;
+      const nx = raw[at + 1];
+      if (nx && nx.s !== e.side && nx.t0 - T < 1) return; // the next move is theirs: the foul shows there
+      const a = raw[at - 1], sa = a && a.sh >= 0 ? shots[a.sh] : null;
+      const kickOff = !a || (a.t0 < 45 - 1e-6 && q.t0 >= 45 - 1e-6) || (sa && sa.goal && !sa.var);
+      if (q.sh < 0 && !q.off && !kickOff) q.s = (1 - e.side) as 0 | 1;
+    });
     const changes: Occ = events.filter((e) => (e.type === 'sub' && e.pid && e.pid2) || (e.type === 'red' && e.pid)).map((e) => ({ at: atMin(e), side: e.side, out: e.type === 'sub' ? e.pid2! : e.pid!, inn: e.type === 'sub' ? e.pid! : null }));
     // the side's set-up at time t: its tactic at kick-off, then every change (live or by the assistant)
     type Style = { mentality: number; press: number; line: number; build: number; width: number; tempo: number; preset?: string };
@@ -190,7 +220,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       let koSide: 0 | 1 | undefined;
       if (!prev || ht || prev.out === 'goal') {
         restart = 'kickoff'; startX = 50;
-        koSide = !prev ? s : ht ? ((1 - (plans[0].koSide ?? plans[0].s)) as 0 | 1) : ((1 - prev.s) as 0 | 1);
+        koSide = !prev ? 0 : ht ? 1 : ((1 - prev.s) as 0 | 1);
       }
       else if (prev.out === 'saved' || prev.out === 'wide') {
         if (prev.s !== s) restart = 'keeper';
@@ -343,9 +373,11 @@ export function buildPlan(rep: any, events: Ev[]) {
       if (at < 0) return;
       // the move it happened in, or (if that one is too short to stop) the one after it (never one before: a
       // live pitch may already be showing it before the card is known)
-      for (const qi of [at, at + 1]) {
+      // (where the booked man's side has the ball, the move after it is tried first)
+      const order = plans[at] && plans[at].s === e.side && plans[at + 1] && plans[at + 1].s !== e.side ? [at + 1, at] : [at, at + 1];
+      for (const qi of order) {
         const q = plans[qi];
-        if (!q || Math.abs((qi === at ? T : qi > at ? q.t0 : q.t1) - T) > 0.7) continue;
+        if (!q || Math.abs((qi === at ? T : qi > at ? q.t0 : q.t1) - T) > 1) continue;
         if (q.foul) { q.foul.evs.push(e); return; }
         const dur = (q.t1 - q.t0) * (1 - (q.pre || 0)), ce = setPieceOf(q) || (q.sh >= 0 ? 0.84 : q.out === 'lost' ? 0.72 : q.out === 'kept' ? 1 : 0.8);
         // about a second (less in a short move, never more than a third of its passing)
@@ -356,7 +388,7 @@ export function buildPlan(rep: any, events: Ev[]) {
         // the whistle goes while a man has the ball at his feet (never with a pass in the air), as close as
         // possible to when it happened
         // after the stop there is at least as much play left as the stop took, so nothing races to catch up
-        const vMin = q.restart ? 0.2 : 0.04, vMax = ce - 2 * w - 0.01;
+        const vMin = q.restart ? 0.2 : 0.04, vMax = ce - 1.3 * w - 0.01;
         let fv = -1;
         if (q.cum && q.holds) {
           for (let j = 0; j < q.chain.length; j++) {
@@ -615,6 +647,22 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     if (!m) { const a = markOf(F, [occAt(0, q.t0), occAt(1, q.t0)], q.s); m = new Map([...a].map(([x, y]) => [y, x])); markMemo.set(q, m); }
     return m; // defender slot -> the attacker he marks
   };
+  // how free each attacker is to be beyond the defenders' line at move progress v: the man on the ball is,
+  // the man a pass is played to gets free as it travels, and one who has just played it gets back onside
+  const freedOf = (q: NonNullable<typeof p>, v: number) => {
+    const n = q.chain.length, cj = chainAt(q, Math.min(1, v / chainEndOf(q)));
+    return (k: number) => {
+      let ex = 0;
+      for (let c = 0; c < n; c++) {
+        if (q.chain[c] !== k) continue;
+        if (c === cj.j) return 1;
+        if (c === cj.j + 1) ex = Math.max(ex, smooth3(c01((cj.seg - cj.hold) / Math.max(1e-3, 1 - cj.hold))));
+        // (back onside before the man he gave it to plays the next ball: a one-two is never offside)
+        else if (c === cj.j - 1) ex = Math.max(ex, 1 - smooth3(c01(cj.seg / Math.max(0.05, cj.hold * 0.9))));
+      }
+      return ex;
+    };
+  };
   const posQ = (q: NonNullable<typeof p>, vRaw: number, blend = true): ((side: 0 | 1, k: number) => [number, number]) => {
     const v = inner(q, vRaw);
     const base = posP(phaseOf(q, vRaw), q.s);
@@ -791,20 +839,36 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     };
     // the tackler gets to the man on the ball wherever he really is, even while the others still walk on
     const contactV = ce + (1 - ce) * 0.45;
+    // the defenders' line: the second-last of them (the keeper counts), toward the goal being attacked
+    const od = occAt(dSide, q.t0);
+    const lineX = (() => {
+      const xs = F[dSide].slots.map((_, kk) => (od[kk] ? blended(dSide, kk)[0] : null)).filter((x): x is number => x !== null).sort((a, b) => (q.s === 0 ? b - a : a - b));
+      return xs.length > 1 ? xs[1] : null;
+    })();
+    // the attackers hold their runs on that line (nobody can be offside in his own half): a man goes
+    // beyond it only once the ball has been played to him, and drifts back onside after his turn on it.
+    // A corner or a free kick is set up on its own terms.
+    // (before a free kick is given the attack that wins it is open play like any other)
+    const holdOn = q.restart === 'corner' ? 0 : sp0 ? 1 - c01((v - sp0) / 0.1) : 1;
+    const onside = lineX !== null && holdOn > 0;
+    const lim = lineX === null ? 0 : q.s === 0 ? Math.max(lineX - 0.4, L / 2) : Math.min(lineX + 0.4, L / 2);
+    const freed = freedOf(q, v);
+    // the run that is flagged: he sets off at a sprint so that he is past the line as the last ball is
+    // played to him (and never past the six-yard box)
+    const arrive = q.off && q.cum && q.cum.length === n + 1 ? Math.max(0.1, q.cum[n - 1]) * ce : ce * 0.85;
     return (side, k) => {
       const r = blended(side, k);
       if (q.off && side === q.s && k === q.chain[n - 1]) {
-        // the runner goes too early: by the time the ball reaches him he is past the last defender
-        const w = ease(c01((v - ce * 0.78) / (ce * 0.22)));
-        if (w <= 0) return r;
-        const od = occAt(dSide, q.t0);
-        const xs = F[dSide].slots.map((sl, kk) => (sl !== 'GK' && od[kk] ? blended(dSide, kk)[0] : null)).filter((x): x is number => x !== null);
-        if (!xs.length) return r;
-        const line = q.s === 0 ? Math.max(...xs) : Math.min(...xs), tx = line + dir * 2.2;
-        // a step or two beyond the line, never a sprint across half the pitch, and never past the
-        // six-yard box (or off the pitch altogether)
-        const x = q.s === 0 ? Math.min(Math.max(r[0], tx), r[0] + 8, L - 9) : Math.max(Math.min(r[0], tx), r[0] - 8, 9);
+        if (lineX === null) return r;
+        const tx = lineX + dir * 2.6;
+        const x = q.s === 0 ? Math.min(Math.max(r[0], tx), L - 6) : Math.max(Math.min(r[0], tx), 6);
+        const len = Math.max(0.04, Math.abs(x - r[0]) / 40 / inDur);
+        const w = ease(c01((v - (arrive - len)) / len));
         return [lerp(r[0], x, w), r[1]];
+      }
+      if (onside && side === q.s && F[side].slots[k] !== 'GK') {
+        const held = q.s === 0 ? Math.min(r[0], lim) : Math.max(r[0], lim);
+        if (held !== r[0]) { const ex = 1 - (1 - freed(k)) * holdOn; if (ex < 1) return [lerp(held, r[0], ex), r[1]]; }
       }
       if (q.out !== 'lost' || side === q.s || k !== q.win) return r;
       const ap = blended(q.s, q.chain[n - 1]), tgt: [number, number] = [ap[0] + (q.s === 0 ? 1.6 : -1.6), ap[1] + 0.6];
@@ -1000,6 +1064,24 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     // ...and at a set piece the wall and the marking stand where the referee wants them
     const calm = (p.restart === 'kickoff' ? c01((u - (p.pre || 0) - 0.06) / 0.2) : 1) * (sp ? c01((sp - 0.05 - vIn) / 0.15) : 1);
     pos = pressed(pos, p.s, S.ball, S.holder, fade, calm);
+    // a defender stepping up to the ball moves the line up: the attackers keep onside of where it really is
+    const holdOn = p.restart === 'corner' ? 0 : sp ? 1 - c01((vIn - sp) / 0.1) : 1;
+    if (holdOn > 0) {
+      const att = p.s, dS = (1 - att) as 0 | 1, pos0 = pos, free = freedOf(p, vIn);
+      const xs = F[dS].slots.map((_, kk) => (idsNow[dS][kk] ? pos0(dS, kk)[0] : null)).filter((x): x is number => x !== null).sort((a, b) => (att === 0 ? b - a : a - b));
+      if (xs.length > 1) {
+        const lim = att === 0 ? Math.max(xs[1] - 0.4, L / 2) : Math.min(xs[1] + 0.4, L / 2);
+        const runner = p.off ? p.chain[p.chain.length - 1] : -1;
+        pos = (side, kk) => {
+          const r = pos0(side, kk);
+          if (side !== att || kk === runner || F[side].slots[kk] === 'GK') return r;
+          const held = att === 0 ? Math.min(r[0], lim) : Math.max(r[0], lim);
+          if (held === r[0]) return r;
+          const ex = 1 - (1 - free(kk)) * holdOn;
+          return ex >= 1 ? r : [lerp(held, r[0], ex), r[1]];
+        };
+      }
+    }
   } else {
     S.banner = t < 0.2 ? 'KICK-OFF' : t > 45 && t < 46 ? 'HALF-TIME' : t >= 90 ? 'FULL TIME' : '';
   }

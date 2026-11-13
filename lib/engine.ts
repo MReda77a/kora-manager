@@ -254,7 +254,7 @@ function mkLine(p: EPlayer, side: 0 | 1, onAt: number): PlayerLine {
 
 const last = (n: string) => n.split(' ').slice(-1)[0];
 
-const SHOT_LOST = 0.25;
+const SHOT_LOST = 0.35;
 const HOW: Record<string, string[]> = {
   corner: ['with a header from a corner', 'rising highest at a corner', 'bundling it in from a corner'],
   'set piece': ['meeting the free kick with his head', 'with a header from a free kick', 'getting on the end of the free kick'],
@@ -351,7 +351,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     reach(a, 3); flow[flow.length - 1][3] = shotsList.length;
     const taken = by ? (S[a].val(by, 'LongShots') + S[a].val(by, 'Composure')) / 2 : 0;
     // (a poor taker against a fine keeper still has some chance: the kick is never worth less than a third of an ordinary one)
-    let q = (0.69 / (1 - SHOT_LOST)) * baseXg * (by ? Math.max(0.35, 1 + (taken - A(b, 'keeper')) * slope) : 1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
+    let q = (lost ? 0.69 / (1 - lost) : 0.92) * baseXg * (by ? Math.max(0.35, 1 + (taken - A(b, 'keeper')) * slope) : 1 + (A(a, "finishing") - A(b, "keeper")) * 0.015);
     if (S[b].flags.mark > 0) q *= 1 - 0.07 * Math.min(1.5, S[b].flags.mark); // their danger man is man-marked
     q = Math.min(0.75, Math.max(0.01, q));
     // a team well ahead takes its foot off the gas, and nobody scores more than six
@@ -373,6 +373,7 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       }
       goals[a]++;
       onT[a]++;
+      nextTo = b; // the team that conceded kicks off and has the ball first
       shotsList.push({ m: minute, side: a, x: sx, y: sy, xg: Math.round(q * 100) / 100, goal: true, kind, pid: sc.p.id, on: true, ...fk });
       sc.line.g++;
       sc.line.r += 1.0;
@@ -580,8 +581,11 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
       gap = A(a, 'finishing') - A(b, 'keeper');
       // from distance: plenty of shots, each worth little (a narrow defence blocks more of them)
       t = { shoot: gap * 0.0022, line: (tb.line === 0 ? 0.03 : 0) - (tb.line === 2 ? 0.008 : 0), roles: S[a].flags.longshot * 0.8, lobbed: S[b].flags.lobbed, shape: tb.width === 0 ? -0.005 : tb.width === 2 ? 0.004 : 0 };
-      q = 0.058 + t.shoot + t.line + t.roles + t.lobbed + t.shape;
-      two = 0.8; // most of the time a second go follows the first
+      // each go is a real strike worth hitting (the keeper parries now and then and a second go follows),
+      // not a stream of hopeful pot-shots: as much danger as before, in fewer, cleaner shots
+      q = (0.058 + t.shoot + t.line + t.roles + t.lobbed + t.shape) * 1.44;
+      for (const k of Object.keys(t)) t[k] *= 1.44;
+      two = 0.25;
     }
     q = Math.max(0.02, q + bonus);
     if (f === 1) {
@@ -911,6 +915,9 @@ export function simulate(home: ESide, away: ESide, seed: number, opts: SimOpts =
     minute = k <= 45 + stoppage1 ? Math.min(k, 45) : k - stoppage1;
     minuteShots = 0;
     if (k === 46 + stoppage1) log('ht', 0, `Half-time: ${home.name} ${goals[0]}–${goals[1]} ${away.name}`);
+    // the home side kicks off the match and the away side the second half: each has the ball first
+    if (k === 1) nextTo = 0;
+    if (k === 46 + stoppage1) nextTo = 1;
     while (nextChange < changes.length && changes[nextChange].m <= minute && (k > 45 + stoppage1 || changes[nextChange].m <= 45)) {
       applyChange(changes[nextChange++]);
     }
