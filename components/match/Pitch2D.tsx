@@ -170,7 +170,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       if (want === null || b.s === want) continue;
       if (b.sh < 0 && !b.off) { b.s = want; continue; }
       const cut = Math.min(1.6, b.t1 - b.t0 - (b.sh >= 0 ? 1 : 0.6));
-      if (cut < (half ? 0.6 : 1.2)) continue;
+      if (cut < (half ? 0.6 : 0.9)) continue;
       raw.splice(i, 0, { t0: b.t0, t1: b.t0 + cut, s: want, r: 0, sh: -1, m0: b.m0, m1: b.m0 - 1 });
       b.t0 += cut;
     }
@@ -349,7 +349,7 @@ export function buildPlan(rep: any, events: Ev[]) {
         const absY = (k: number) => (s === 0 ? F[s].xy[k][1] : 100 - F[s].xy[k][1]);
         const last = chain[chain.length - 1];
         if (Math.abs(absY(last) - 50) < 25) {
-          const up = hash(i * 17 + 3) % 2 === 0;
+          const up = absY(last) !== 50 ? absY(last) > 50 : hash(i * 17 + 3) % 2 === 0; // to the flank he is nearer
           const wide = outfield.filter((k) => k !== last && (up ? absY(k) > 70 : absY(k) < 30)).sort((a, b) => Math.abs(absY(b) - 50) - Math.abs(absY(a) - 50))[0];
           if (wide !== undefined) chain.push(wide);
         }
@@ -373,7 +373,9 @@ export function buildPlan(rep: any, events: Ev[]) {
       const cum: number[] = [0]; let holds: number[] = [];
       {
         const flagAbs: [number, number] = [s === 0 ? 100 : 0, (shot && shot.y > 50) ? 100 : 0]; // a corner is crossed from the flag
-        const wts = chain.slice(0, -1).map((k, j) => { const a = j === 0 && restart === 'corner' ? flagAbs : absBase(s, k), b2 = absBase(s, chain[j + 1]); return 0.3 + Math.hypot((a[0] - b2[0]) * 1.05, (a[1] - b2[1]) * 0.68) / 35; });
+        // (the last ball of a chance goes to where the shot is taken from: he has run there to meet it)
+        const shotAbs: [number, number] | null = shot && !SET(shot.kind) ? [shot.x, shot.y] : null;
+        const wts = chain.slice(0, -1).map((k, j) => { const a = j === 0 && restart === 'corner' ? flagAbs : absBase(s, k), b2 = shotAbs && j === chain.length - 2 ? shotAbs : absBase(s, chain[j + 1]); return 0.3 + Math.hypot((a[0] - b2[0]) * 1.05, (a[1] - b2[1]) * 0.68) / 35; });
         holds = wts.map((w2) => 0.3 / w2);
         // a kick-off: a longer first turn (the kick-off itself, and the ball being won if the other side took it)
         if (restart === 'kickoff' && wts.length > 1) { const extra = koSide !== undefined && koSide !== s ? 1.1 : 0.5; wts[0] += extra; holds[0] = (0.3 + extra) / wts[0]; }
@@ -761,6 +763,8 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         b = [lerp(b[0], c0[0], w), lerp(b[1], c0[1], w)];
         if (!(q.out === 'lost' && k === q.win)) return b;
       }
+      // the kick-off: the first man stands over the ball on the centre spot (before anything else moves him)
+      if (q.restart === 'kickoff' && (q.koSide === undefined || q.koSide === q.s) && side === q.s && k === q.chain[0]) { const c0: [number, number] = [L / 2 - dir * 0.9, W / 2 - 0.5], len = Math.max(0.25, Math.hypot(b[0] - c0[0], b[1] - c0[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass * 0.4) / len)); return [lerp(b[0], c0[0], w), lerp(b[1], c0[1], w)]; }
       // a throw-in: the thrower stands on the touchline with the ball until he has thrown it
       if (q.restart === 'throw' && side === q.s && k === q.chain[0] && q.i > 0) {
         const o0 = outSpot(plans[q.i - 1]), at: [number, number] = [o0[0], o0[1] > W / 2 ? W - 0.2 : 0.2];
@@ -854,8 +858,6 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       }
       if (setW && q.kind === 'penalty' && F[side].slots[k] !== 'GK') { const edge = q.s === 0 ? L - 17.5 : 17.5; return [lerp(bb[0], q.s === 0 ? Math.min(bb[0], edge) : Math.max(bb[0], edge), setW), bb[1]]; }
       if (k === taker) { const len = Math.max(0.2, Math.hypot(bb[0] - flag[0], bb[1] - flag[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass) / len)); return [lerp(bb[0], flag[0], w), lerp(bb[1], flag[1], w)]; }
-      // the kick-off: the first man stands over the ball on the centre spot
-      if (q.restart === 'kickoff' && (q.koSide === undefined || q.koSide === q.s) && k === q.chain[0]) { const c0: [number, number] = [L / 2 - dir * 0.9, W / 2 - 0.5], len = Math.max(0.25, Math.hypot(bb[0] - c0[0], bb[1] - c0[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass * 0.4) / len)); return [lerp(bb[0], c0[0], w), lerp(bb[1], c0[1], w)]; }
       return bb;
     };
     // the players walk on from where the last move left them (about 1 s live), nobody snaps into place
@@ -1021,7 +1023,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       else if (koOther) { const km = pos(q.koSide!, q.koMan!), f0: [number, number] = [km[0] + (q.koSide === 0 ? 0.9 : -0.9), km[1] + 0.5], u3 = ease(c01((seg - hold0 * 0.35) / (hold0 * 0.65))); st.ball = [lerp(f0[0], a[0] + dir * 0.9, u3), lerp(f0[1], a[1] + 0.5, u3)]; if (u3 >= 1) st.holder = { side: s, k: slotAt(0) }; }
       else if (q.restart === 'throw' && j === 0 && seg < hold) { st.ball = [a[0], a[1] > W / 2 ? W + 0.3 : -0.3]; st.holder = { side: s, k: slotAt(0) }; }
       else if (seg < hold || j >= n - 1) { st.ball = [a[0] + dir * 0.9, a[1] + 0.5]; st.holder = { side: s, k: slotAt(j) }; }
-      else { const u2 = c01((seg - hold) / (1 - hold)), w = u2 * u2 * (3 - 2 * u2); st.ball = [lerp(a[0], b[0], w), lerp(a[1], b[1], w)]; st.pass = { from: a, to: b, side: s }; } // an even flight
+      else { const u2 = c01((seg - hold) / (1 - hold)), w = 0.75 * u2 + 0.25 * u2 * u2 * (3 - 2 * u2); st.ball = [lerp(a[0], b[0], w), lerp(a[1], b[1], w)]; st.pass = { from: a, to: b, side: s }; } // an even flight (no burst of speed in the middle)
       if (j >= 1 && !st.pass) st.lastPass = { from: pos(s, slotAt(j - 1)), to: a, side: s };
       st.banner = koOther ? (seg < hold0 * 0.35 ? 'KICK-OFF' : 'Ball won back') : q.restart === 'kickoff' && v < 0.12 && (q.koSide === undefined || q.koSide === s) ? 'KICK-OFF' : q.restart === 'keeper' && v < 0.15 ? 'Goal kick' : q.restart === 'throw' && j === 0 ? 'Throw-in' : q.restart === 'clear' && v < 0.18 ? 'Second ball'
         : q.restart === 'corner' && v < 0.25 ? 'Corner' : q.label && v < 0.45 ? q.label : q.r === 0 || v < 0.3 ? 'Building up' : q.r === 1 ? 'Attack' : v > 0.5 ? 'Dangerous attack' : 'Attack';
@@ -1047,7 +1049,10 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     if (q.out === 'out') {
       // under pressure, he plays it (or it is knocked) over the touchline: a throw-in to them
       const a0: [number, number] = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5], o1 = outSpot(q);
-      const c1 = ce + (1 - ce) * 0.2, c2 = ce + (1 - ce) * 0.75;
+      // the ball runs out at the pace of a pass (about 90 m a minute), however far it has to go
+      const inDurQ = Math.max(0.05, (q.t1 - q.t0) * (1 - (q.pre || 0)));
+      const needV = Math.hypot(o1[0] - a0[0], o1[1] - a0[1]) / 90 / inDurQ;
+      const c2 = ce + (1 - ce) * 0.8, c1 = Math.max(ce + 0.005, Math.min(ce + (1 - ce) * 0.2, c2 - needV));
       if (v < c1) { st.ball = a0; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = 'Under pressure'; return st; }
       const w = ease(c01((v - c1) / (c2 - c1)));
       st.ball = [lerp(a0[0], o1[0], w), lerp(a0[1], o1[1], w)];
@@ -1069,7 +1074,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         return st;
       }
       if (v < contact) { st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = v < ce + (1 - ce) * 0.25 ? 'Under pressure' : 'Tackle!'; st.bannerSide = v < ce + (1 - ce) * 0.25 ? s : o; return st; }
-      const w = ease(c01((v - contact) / ((1 - contact) * 0.4)));
+      const w = ease(c01((v - contact) / ((1 - contact) * 0.7)));
       const from: [number, number] = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5];
       st.ball = [lerp(from[0], win[0] + (o === 0 ? 0.9 : -0.9), w), lerp(from[1], win[1] + 0.5, w)];
       if (w >= 1 && q.win !== null) st.holder = { side: o, k: q.win };
