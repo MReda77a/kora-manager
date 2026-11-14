@@ -1175,3 +1175,30 @@ table.t tbody tr td { padding-top: 9px; padding-bottom: 9px; }
   .h2-cond-compact { display: flex; }
   .h2-hero-in .cta { min-height: 44px; }
 }
+/* the match centre on a phone held sideways: every pixel of height goes to the pitch (it is as wide as the
+   height lets it be), the header is one slim line and the words on the pitch are small */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mc-root { position: fixed; inset: 0; height: auto !important; padding: 4px max(8px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); gap: 4px; }
+  .mc-top { padding: 2px 8px; border-radius: 12px; gap: 6px; }
+  .mc-top .ghost, .mc-top .seg, .mc-top button { min-height: 30px !important; }
+  .mc-top > a:first-child, .mc-top > button:first-child { min-height: 30px; min-width: 34px; }
+  .mc-big { font-size: 26px; }
+  .mc-side .tname { font-size: 14px; }
+  .mc-side .tiny { font-size: 10px; }
+  .mc-score { gap: 8px; }
+  .mc-body { gap: 6px; grid-template-columns: minmax(170px, 34%) minmax(0, 1fr); }
+  .mc-tabs { padding: 6px; }
+  .mc-tabrow .seg { min-height: 24px; font-size: 10.5px; padding: 0 7px; }
+  .mc-tabbody { font-size: 12px; }
+  .mc-tabbody .small { font-size: 12px; }
+  .mc-pitch { border-radius: 12px; }
+  /* the phase of play sits in a corner, off the touchline where tackles and throw-ins happen */
+  .p2d-banner { bottom: 4px; left: 4px; transform: none; padding: 2px 8px 2px 3px; gap: 6px; opacity: 0.9; pointer-events: none; }
+  .p2d-banner b { font-size: 9px; padding: 1px 4px; }
+  .p2d-banner span { font-size: 13px; }
+  .p2d-banner.big span { font-size: 18px; }
+  .p2d-chance { left: 4px; top: 4px; padding: 3px 7px; font-size: 10px; gap: 5px; }
+  .p2d-chance-ico { font-size: 14px; }
+  .mc-evbanner { top: 4px; right: 4px; font-size: 10.5px; padding: 2px 8px; max-width: 42%; }
+  .mc-subwait { font-size: 10px; top: 4px; }
+}
