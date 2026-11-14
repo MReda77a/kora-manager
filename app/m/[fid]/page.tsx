@@ -326,7 +326,8 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
     return { on: [...set], bench: [...bench] };
   };
   // subs already asked for that wait for the ball to go dead: they count, and their men are taken
-  const pendingSubs = events.slice(revealed).filter((e) => e.side === mineSide && e.type === 'sub' && e.pid && e.pid2);
+  // (only while it is live: in a replay every later sub is already in the report, and is no 'waiting')
+  const pendingSubs = live ? events.slice(revealed).filter((e) => e.side === mineSide && e.type === 'sub' && e.pid && e.pid2 && plan.timeOf(e) - gm < 6) : [];
   const subsUsed = (side: number) => events.slice(0, revealed).filter((e) => e.side === side && e.type === 'sub').length + (side === mineSide ? pendingSubs.length : 0);
   const change = async (body: Record<string, unknown>, msg: string) => {
     setReact(null);
@@ -463,10 +464,10 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
               <Dots d={d} gm={gm} events={events} revealed={revealed} />
             </>
           )}
-          {!htLeft && lastEv && gm - plan.timeOf(lastEv) < 3.5 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny ellipsis mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
+          {!htLeft && lastEv && gm - plan.timeOf(lastEv) < 1.4 && !['kickoff', 'goal'].includes(lastEv.type) && <span className="tiny h2-two mc-evbanner">{team(lastEv.side).name} · {lastEv.text}</span>}
           {fx && !htLeft && <FxOverlay e={fx} d={d} mineSide={mineSide} names={d.names} />}
           {pendingSubs.length > 0 && !htLeft && (
-            <span className="tiny mc-subwait">🔁 {pendingSubs.map((e) => `${lastName(d.names[e.pid!]?.name || '')} for ${lastName(d.names[e.pid2!]?.name || '')}`).join(' · ')} — waiting for the ball to go out</span>
+            <span className="tiny mc-subwait ellipsis">🔁 {pendingSubs.map((e) => `${lastName(d.names[e.pid!]?.name || '')} ⇄ ${lastName(d.names[e.pid2!]?.name || '')}`).join(' · ')} · next stoppage</span>
           )}
           {htLeft > 0 && (
             <div className="mc-ht">

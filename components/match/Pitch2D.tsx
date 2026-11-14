@@ -232,6 +232,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       let out: Outcome = !shot && p.off ? 'lost' : !shot ? (raw[i + 1] && raw[i + 1].s === s && !(p.t1 <= 45.01 && raw[i + 1].t0 >= 45) ? 'kept' : 'lost') : shot.goal ? 'goal' : shot.on ? 'saved' : 'wide';
       // ...or with the ball going out over the touchline for a throw-in to them (more often down a flank)
       if (out === 'lost' && endsOut(raw, i)) out = 'out';
+      const absYs = (k: number) => (s === 0 ? F[s].xy[k][1] : 100 - F[s].xy[k][1]);
       const prev = plans[i - 1];
       const ht = !!prev && p.t0 >= 45 - 1e-6 && prev.t0 < 45 - 1e-6;
       let restart: Plan['restart'] = null;
@@ -359,12 +360,14 @@ export function buildPlan(rep: any, events: Ev[]) {
       // a ball that goes out for a throw-in goes out wide: if the last man is in the middle, he plays it out to
       // the flank first (to the widest man on the side he faces) and it runs out from there
       if (out === 'out') {
-        const absY = (k: number) => (s === 0 ? F[s].xy[k][1] : 100 - F[s].xy[k][1]);
+        const absY = absYs;
         const last = chain[chain.length - 1];
-        if (Math.abs(absY(last) - 50) < 25) {
+        if (Math.abs(absY(last) - 50) < 30) {
           const up = absY(last) !== 50 ? absY(last) > 50 : hash(i * 17 + 3) % 2 === 0; // to the flank he is nearer
-          const wide = outfield.filter((k) => k !== last && (up ? absY(k) > 70 : absY(k) < 30)).sort((a, b) => Math.abs(absY(b) - 50) - Math.abs(absY(a) - 50))[0];
-          if (wide !== undefined) chain.push(wide);
+          const wide = outfield.filter((k) => k !== last && (up ? absY(k) > 76 : absY(k) < 24)).sort((a, b) => Math.abs(absY(b) - 50) - Math.abs(absY(a) - 50))[0]
+            ?? outfield.filter((k) => k !== last && Math.abs(absY(k) - 50) >= 26).sort((a, b) => Math.abs(absY(b) - 50) - Math.abs(absY(a) - 50))[0];
+          // nobody out wide to take it there: it is simply lost in the tackle, not knocked out from the middle
+          if (wide !== undefined) chain.push(wide); else out = 'lost';
         }
       }
       // who wins a lost ball: the man marking the last one (see markOf), else the opponent nearest him
@@ -779,6 +782,11 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         const c0: [number, number] = [L / 2 + (side === 0 ? -0.9 : 0.9), W / 2 - 0.5], len = Math.max(0.25, Math.hypot(b[0] - c0[0], b[1] - c0[1]) / 30 / inDur), w = 1 - ease(c01((v - koEnd) / len));
         b = [lerp(b[0], c0[0], w), lerp(b[1], c0[1], w)];
         if (!(q.out === 'lost' && k === q.win)) return b;
+      }
+      // a ball that goes out for a throw-in: the man on it is taken toward the touchline as he is closed down
+      if (q.out === 'out' && side === q.s && k === q.chain[n - 1]) {
+        const ey = (q.outY ?? 0) > 50 ? W - 3.5 : 3.5;
+        return runTo(b, [b[0], ey], ce + (1 - ce) * 0.45, 0.35);
       }
       // the kick-off: the first man stands over the ball on the centre spot (before anything else moves him)
       if (q.restart === 'kickoff' && (q.koSide === undefined || q.koSide === q.s) && side === q.s && k === q.chain[0]) { const c0: [number, number] = [L / 2 - dir * 0.9, W / 2 - 0.5], len = Math.max(0.25, Math.hypot(b[0] - c0[0], b[1] - c0[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass * 0.4) / len)); return [lerp(b[0], c0[0], w), lerp(b[1], c0[1], w)]; }
@@ -1196,7 +1204,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
   // the referee's moments, drawn where they happened for a few seconds: a foul and the free kick, a card
   // over the player, a penalty on the spot, the offside line with the flag
   const planAt = (time: number) => { let lo = 0, hi = plans.length - 1; while (lo <= hi) { const mid = (lo + hi) >> 1; if (plans[mid].t1 <= time) lo = mid + 1; else hi = mid - 1; } return plans[lo] && plans[lo].t0 <= time ? plans[lo] : null; };
-  const marks = seen.filter((e) => ['freekick', 'yellow', 'red', 'offside', 'penalty'].includes(e.type) && t - timeOf(e) >= 0 && t - timeOf(e) < 1.1).slice(-2).map((e) => {
+  const marks = seen.filter((e) => ['freekick', 'yellow', 'red', 'offside', 'penalty'].includes(e.type) && t - timeOf(e) >= 0 && t - timeOf(e) < 0.75).slice(-2).map((e) => {
     const at = timeOf(e), q = planAt(at);
     const qpos = q ? posQ(q, c01((at - q.t0) / (q.t1 - q.t0))) : posP(50, null);
     let spot: [number, number] = q ? stateAt(q, c01((at - q.t0) / (q.t1 - q.t0))).ball : [L / 2, W / 2];
@@ -1287,7 +1295,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         }))}
         {/* the referee's moments */}
         {marks.map(({ e, spot, line, age }, i) => (
-          <g key={`m${i}`} opacity={age > 0.85 ? (1.1 - age) / 0.25 : 1}>
+          <g key={`m${i}`} opacity={age > 0.55 ? (0.75 - age) / 0.2 : 1}>
             {line !== null && <line x1={line} y1={0} x2={line} y2={W} stroke="#FFE86B" strokeWidth={0.35} strokeDasharray="1.2 0.8" />}
             <circle cx={spot[0]} cy={spot[1]} r={3.6} fill="none" stroke={e.type === 'red' ? '#FF4A5E' : '#FFE86B'} strokeWidth={0.35}><animate attributeName="r" values="2.6;4.2;2.6" dur="0.8s" repeatCount="indefinite" /></circle>
             <g transform={`translate(${Math.max(9, Math.min(L - 9, spot[0]))} ${flip ? Math.min(W - 5, spot[1] + 5.2) : Math.max(5, spot[1] - 5.2)})${flip ? ' rotate(180)' : ''}`}>
