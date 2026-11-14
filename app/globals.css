@@ -1160,3 +1160,18 @@ table.t tbody tr td { padding-top: 9px; padding-bottom: 9px; }
 @media (max-width: 520px) { .prof-row { grid-template-columns: 1fr 34px 76px; } .prof-row .prof-bar { grid-column: 1 / -1; order: 5; } }
 
 .why-causes { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+/* the next match on a phone held sideways: one line for the opponent, smaller crests, the conditions as two chips */
+.h2-cond-compact { display: none; }
+.h2-chip { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px; border-radius: 14px; background: rgba(5, 13, 28, 0.6); border: 1px solid rgba(110, 160, 230, 0.22); font-size: 13px; font-weight: 800; white-space: nowrap; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .h2-hero, .h2-hero-in { min-height: 0; }
+  .h2-hero-in { padding: 12px 18px; gap: 4px; background: linear-gradient(90deg, rgba(5, 13, 28, 0.72), rgba(5, 13, 28, 0.35) 55%, rgba(5, 13, 28, 0) 85%); }
+  .h2-kick { font-size: 12px !important; letter-spacing: 1px !important; }
+  .h2-name1 { display: none; }
+  .h2-name2 { font-size: 24px; color: #EAF2FF; }
+  .h2-crests { margin-top: 2px !important; gap: 8px !important; }
+  .h2-crests > svg { width: 30px; height: 30px; }
+  .h2-cond-full { display: none; }
+  .h2-cond-compact { display: flex; }
+  .h2-hero-in .cta { min-height: 44px; }
+}

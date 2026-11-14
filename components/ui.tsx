@@ -224,7 +224,7 @@ export function RefBadge({ strict, name, explain }: { strict: number; name?: str
   return (
     <span className="col" style={{ gap: 2 }}>
       <span className="row" style={{ gap: 6, alignItems: 'center', fontWeight: 800 }}>
-        <span>🧑‍⚖️ Referee:</span><b style={{ color: L.color }}>{L.label}</b><span style={{ letterSpacing: -2 }}>{L.cards}</span>{name ? <span className="tiny muted">({name})</span> : null}
+        <span>🧑‍⚖️ Referee:</span><b style={{ color: L.color }}>{L.label}</b><span style={{ letterSpacing: 2, fontSize: '0.8em' }}>{L.cards}</span>{name ? <span className="tiny muted">({name})</span> : null}
       </span>
       {explain ? <span className="tiny muted" style={{ fontWeight: 700 }}>{L.text}</span> : null}
     </span>

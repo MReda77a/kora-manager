@@ -5,6 +5,7 @@ import { H2HLine, useRecords } from './Records.tsx';
 import { api, utcMinToLocal, localToUtcMin, shirt } from '../../lib/client.ts';
 import { Bar, Crest, RefBadge, Ring, lastName } from '../ui.tsx';
 import type { TabProps } from './types.ts';
+import { REF_LEVELS } from '../../lib/game.ts';
 
 function useNow(ms = 1000) {
   const [n, setN] = useState(Date.now());
@@ -264,10 +265,10 @@ function NextMatch({ f, club, now, go, lid }: { f: any; club: any; now: number; 
     <section className={`h2-hero rise ${derby ? 'derby-card' : ''}`} aria-label="Next match">
       <Stadium home={f.hc} away={f.ac} gold={!!derby} />
       <div className="h2-hero-in">
-        <span className="lz" style={{ fontSize: 15, fontWeight: 600, color: accent, letterSpacing: 2 }}>{live ? '● LIVE NOW' : derby ? 'DERBY' : 'NEXT MATCH'}{cup ? ' · CUP' : ` · MATCHDAY ${f.matchday}`}</span>
+        <span className="lz h2-kick" style={{ fontSize: 15, fontWeight: 600, color: accent, letterSpacing: 2 }}>{live ? '● LIVE NOW' : derby ? 'DERBY' : 'NEXT MATCH'}{cup ? ' · CUP' : ` · MATCHDAY ${f.matchday}`}</span>
         <span className="lz h2-name1">{club.name}</span>
         <span className="lz h2-name2"><span style={{ color: '#8FA6C4', fontSize: '0.72em' }}>VS </span>{opp}</span>
-        <div className="row" style={{ gap: 12, marginTop: 6 }}>
+        <div className="row h2-crests" style={{ gap: 12, marginTop: 6 }}>
           <Crest c1={f.hc} c2="#fff" shape={f.hsh} emblem={f.hu ? f.hem : -1} short={f.hs} size={44} />
           <span className="tiny muted" style={{ fontWeight: 800 }}>VS</span>
           <Crest c1={f.ac} c2="#fff" shape={f.ash} emblem={f.au ? f.aem : -1} short={f.as_} size={44} />
@@ -275,13 +276,26 @@ function NextMatch({ f, club, now, go, lid }: { f: any; club: any; now: number; 
         </div>
         <H2HLine rec={rec} oppId={homeMine ? f.away_id : f.home_id} />
         {f.cond && (
-          <div className="col" style={{ gap: 6, marginTop: 6 }}>
-            <div className="col" style={{ gap: 2 }}>
-              <span className="row" style={{ gap: 6, fontWeight: 800 }}><span>{f.cond.icon} Weather:</span><b>{f.cond.label}</b></span>
-              {f.cond.weather !== 'clear' && <span className="tiny muted" style={{ fontWeight: 700 }}>{f.cond.note}</span>}
+          <>
+            {/* the full version (wide screens and phones held upright) */}
+            <div className="col h2-cond-full" style={{ gap: 6, marginTop: 6 }}>
+              <div className="col" style={{ gap: 2 }}>
+                <span className="row" style={{ gap: 6, fontWeight: 800 }}><span>{f.cond.icon} Weather:</span><b>{f.cond.label}</b></span>
+                {f.cond.weather !== 'clear' && <span className="tiny muted" style={{ fontWeight: 700 }}>{f.cond.note}</span>}
+              </div>
+              <RefBadge strict={f.cond.strict} name={f.cond.ref} explain />
             </div>
-            <RefBadge strict={f.cond.strict} name={f.cond.ref} explain />
-          </div>
+            {/* a phone on its side: two chips on one line, and a word on what they mean only when it matters */}
+            <div className="col h2-cond-compact" style={{ gap: 3, marginTop: 4 }}>
+              <div className="row wrap" style={{ gap: 6 }}>
+                <span className="h2-chip">{f.cond.icon} <b>{f.cond.label}</b></span>
+                <span className="h2-chip">🧑‍⚖️ Referee: <b style={{ color: REF_LEVELS[f.cond.strict]?.color }}>{REF_LEVELS[f.cond.strict]?.label}</b> <span style={{ letterSpacing: 2, fontSize: '0.8em' }}>{REF_LEVELS[f.cond.strict]?.cards}</span></span>
+              </div>
+              {(f.cond.weather !== 'clear' || f.cond.strict !== 1) && (
+                <span className="tiny muted" style={{ fontWeight: 700 }}>{[f.cond.weather !== 'clear' ? f.cond.note : '', f.cond.strict !== 1 ? REF_LEVELS[f.cond.strict]?.text : ''].filter(Boolean).join(' ')}</span>
+              )}
+            </div>
+          </>
         )}
         <span className="grow" />
         <div className="row wrap" style={{ gap: 16 }}>
