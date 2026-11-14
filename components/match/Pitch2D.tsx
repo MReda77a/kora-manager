@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FORMATIONS, PRESETS, ROLES } from '../../lib/game.ts';
 import { shirt } from '../../lib/client.ts';
 import { lastName } from '../ui.tsx';
-import { endsOut, moveTimes, minuteTime, tm, type Move } from '../../lib/pitchtime.ts';
+import { endsOut, endsOutOwn, moveTimes, minuteTime, tm, type Move } from '../../lib/pitchtime.ts';
 export { tm };
 
 export type Ev = { m: number; type: string; side: 0 | 1; text: string; pid?: string; pid2?: string };
@@ -42,6 +42,7 @@ type Plan = {
   out: Outcome; win: number | null; // the defender who wins a lost ball
   restart: 'kickoff' | 'keeper' | 'corner' | 'clear' | 'throw' | 'offside' | null;
   outY?: 0 | 100; // a ball that goes out for a throw-in: over which touchline (absolute %)
+  outTo?: 0 | 1; // ...and whose throw it is (theirs, or ours when a defender knocked it out)
   label?: string; // what the team is doing, from its tactic (patient build-up, direct ball, counter)
   parry?: boolean;
   pre?: number; // the first part of the move that finishes the last one: celebration, keeper's ball, ball out for the corner
@@ -58,13 +59,15 @@ type Plan = {
   setTaker?: number; // a penalty or free kick: who takes it (the man fouled is the last of the chain) // a booked foul in open play: the ball stops (inner time v to v+w)
 };
 
-type Occ = { at: number; side: 0 | 1; out: string | null; inn: string | null }[];
+type Occ = { at: number; side: 0 | 1; out: string | null; inn: string | null; ev?: Ev }[];
 /** when a substitution timed at T is made: at the stop just before it (the minute it was asked for starts
  * after the ball went dead) or else the next one, a moment after the ball goes dead */
 function subTime(T: number, stops: number[]) {
-  const before = stops.filter((x) => x <= T + 1e-6 && x >= T - 2.5);
-  if (before.length) return before[before.length - 1] + 0.05;
-  const after = stops.find((x) => x > T && x <= T + 4);
+  // the nearest stop: the one just before (up to 2.5 minutes back) wins a tie with one ahead
+  const before = stops.filter((x) => x <= T + 1e-6 && x >= T - 4);
+  const after = stops.find((x) => x > T && x <= T + 8);
+  const b = before.length ? before[before.length - 1] : undefined;
+  if (b !== undefined && (after === undefined || T - b <= 2.5 || T - b <= after - T)) return b + 0.05;
   return after !== undefined ? after + 0.05 : T;
 }
 const markMemo = new WeakMap<object, Map<number, number>>();
@@ -200,8 +203,18 @@ export function buildPlan(rep: any, events: Ev[]) {
     });
     // a substitution is made while the ball is dead: when the move before it ends with a shot, an offside
     // or the ball out of play (the next one starts with the new man on)
-    const rawStops = [...raw.map((q, i) => (q.sh >= 0 || q.off || endsOut(raw, i) ? q.t1 : -1)).filter((x) => x >= 0), 45].sort((a, b) => a - b); // (half-time too)
-    const changes: Occ = events.filter((e) => (e.type === 'sub' && e.pid && e.pid2) || (e.type === 'red' && e.pid)).map((e) => ({ at: e.type === 'sub' ? subTime(atMin(e), rawStops) : atMin(e), side: e.side, out: e.type === 'sub' ? e.pid2! : e.pid!, inn: e.type === 'sub' ? e.pid! : null }));
+    const isStop = (i: number) => raw[i].sh >= 0 || raw[i].off || endsOut(raw, i) || endsOutOwn(raw, i);
+    const rawStops = [...raw.map((q, i) => (isStop(i) ? q.t1 : -1)).filter((x) => x >= 0), 45].sort((a, b) => a - b); // (half-time too)
+    // a sub with no stoppage anywhere near it: the move it falls in ends with the ball knocked out (a throw-in)
+    const forceOut = new Set<number>();
+    for (const e of events) {
+      if (e.type !== 'sub' || !e.pid || !e.pid2) continue;
+      const T = atMin(e);
+      if (rawStops.some((x) => x >= T - 4 && x <= T + 8)) continue;
+      const j = raw.findIndex((q, i) => q.t1 >= T && q.sh < 0 && !q.off && raw[i + 1] && !(q.t0 < 45 && raw[i + 1].t0 >= 45 - 1e-6));
+      if (j >= 0) { forceOut.add(j); rawStops.push(raw[j].t1); rawStops.sort((a, b) => a - b); }
+    }
+    const changes: Occ = events.filter((e) => (e.type === 'sub' && e.pid && e.pid2) || (e.type === 'red' && e.pid)).map((e) => ({ at: e.type === 'sub' ? subTime(atMin(e), rawStops) : atMin(e), side: e.side, out: e.type === 'sub' ? e.pid2! : e.pid!, inn: e.type === 'sub' ? e.pid! : null, ev: e }));
     // the side's set-up at time t: its tactic at kick-off, then every change (live or by the assistant)
     type Style = { mentality: number; press: number; line: number; build: number; width: number; tempo: number; preset?: string };
     const styleAt = (side: 0 | 1, t: number): Style => {
@@ -231,7 +244,9 @@ export function buildPlan(rep: any, events: Ev[]) {
       // a quiet spell only ends with the ball lost when the other team has the next move; otherwise we keep it
       let out: Outcome = !shot && p.off ? 'lost' : !shot ? (raw[i + 1] && raw[i + 1].s === s && !(p.t1 <= 45.01 && raw[i + 1].t0 >= 45) ? 'kept' : 'lost') : shot.goal ? 'goal' : shot.on ? 'saved' : 'wide';
       // ...or with the ball going out over the touchline for a throw-in to them (more often down a flank)
-      if (out === 'lost' && endsOut(raw, i)) out = 'out';
+      if (out === 'lost' && (endsOut(raw, i) || forceOut.has(i))) out = 'out';
+      // ...or knocked out by a defender for their own throw-in
+      if (out === 'kept' && (endsOutOwn(raw, i) || forceOut.has(i))) out = 'out';
       const absYs = (k: number) => (s === 0 ? F[s].xy[k][1] : 100 - F[s].xy[k][1]);
       const prev = plans[i - 1];
       const ht = !!prev && p.t0 >= 45 - 1e-6 && prev.t0 < 45 - 1e-6;
@@ -401,7 +416,8 @@ export function buildPlan(rep: any, events: Ev[]) {
       }
       // over the touchline on the side the last man plays on
       const outY: 0 | 100 | undefined = out === 'out' ? (F[s].xy[chain[chain.length - 1]][1] > 50 === (s === 0) ? 100 : 0) : undefined;
-      plans.push({ ...p, i, startX, targetX, chain, cum, holds, out, outY, win, restart, label, ruled: !!shot?.var, spot: shot ? (shot.kind === 'set piece' && shot.fx != null ? [shot.fx, shot.fy!] : [shot.x, shot.y]) : undefined, aim: shot && shot.kind === 'set piece' && shot.fx != null ? [shot.x, shot.y] : undefined, header, kind: shot?.kind || '', setTaker, fouler, koSide, koMan: koSide !== undefined && koSide !== s ? (F[koSide].slots.map((_, k) => k).filter((k) => F[koSide!].slots[k] === 'MID' && occAt(koSide!, p.t0)[k]).sort((a, b) => Math.abs(F[koSide!].xy[a][1] - 50) - Math.abs(F[koSide!].xy[b][1] - 50))[0] ?? undefined) : undefined });
+      const outTo: 0 | 1 | undefined = out === 'out' ? (raw[i + 1]?.s ?? ((1 - s) as 0 | 1)) : undefined;
+      plans.push({ ...p, i, startX, targetX, chain, cum, holds, out, outY, outTo, win, restart, label, ruled: !!shot?.var, spot: shot ? (shot.kind === 'set piece' && shot.fx != null ? [shot.fx, shot.fy!] : [shot.x, shot.y]) : undefined, aim: shot && shot.kind === 'set piece' && shot.fx != null ? [shot.x, shot.y] : undefined, header, kind: shot?.kind || '', setTaker, fouler, koSide, koMan: koSide !== undefined && koSide !== s ? (F[koSide].slots.map((_, k) => k).filter((k) => F[koSide!].slots[k] === 'MID' && occAt(koSide!, p.t0)[k]).sort((a, b) => Math.abs(F[koSide!].xy[a][1] - 50) - Math.abs(F[koSide!].xy[b][1] - 50))[0] ?? undefined) : undefined });
       endX = out === 'lost' || out === 'out' || out === 'kept' ? targetX : out === 'goal' ? 50 : s === 0 ? 96 : 4;
       endHolder = out === 'lost' && win !== null ? { side: o, k: win } : out === 'kept' ? { side: s, k: chain[chain.length - 1] } : null;
     });
@@ -459,6 +475,9 @@ export function buildPlan(rep: any, events: Ev[]) {
       if (q) q.offEv = e;
     }
     const timeOf = timing(plans, shots);
+    // the man changes at the very stop the sub is shown at (a foul, the ball out, an offside, a kick-off)
+    for (const c of changes) if (c.ev && (c.ev.type === 'sub' || c.ev.type === 'red')) c.at = timeOf(c.ev);
+    changes.sort((a, b) => a.at - b.at);
     return { plans, F, occAt, shots, styleAt, timeOf, roleIn, timing };
   }
   /** when each event shows on the pitch's clock, from the moves as they are shown */
@@ -497,7 +516,16 @@ export function buildPlan(rep: any, events: Ev[]) {
       const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => !x.ghost && x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
       if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' || (e.type === 'var' && /to the screen/.test(e.text)) ? s2.foul : e.type === 'var' ? (Math.floor((s2.land + 0.45) / 45) > Math.floor(s2.land / 45) ? s2.land : s2.land + 0.45) : s2.land; }
       if (e.type === 'yellow' || e.type === 'red') return cardAt(e);
-      if (e.type === 'sub') return subTime(atMin(e), [...plans.filter((q) => q.sh >= 0 || q.off || q.out === 'out').map((q) => q.t1), 45].sort((a, b) => a - b));
+      if (e.type === 'sub') {
+        // made while the ball is dead: at the end of a move with a shot, an offside or the ball out (the next
+        // starts with a restart), at a foul (with its free kick or card), or at half-time
+        const stops = [
+          ...plans.filter((q) => q.sh >= 0 || q.off || q.out === 'out').map((q) => q.t1),
+          ...events.filter((x) => ['freekick', 'penalty', 'yellow', 'red'].includes(x.type)).map((x) => rawTime(x) + 0.08),
+          45,
+        ].sort((a, b) => a - b);
+        return subTime(atMin(e), stops);
+      }
       if (e.type === 'offside') {
         const oq = plans.find((p) => p.offEv === e);
         if (oq) { const pre = oq.pre || 0; return oq.t0 + (oq.t1 - oq.t0) * (pre + (1 - pre) * (0.72 + 0.28 * 0.12)); }
@@ -793,13 +821,13 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       // the free kick for offside: the defender goes to the ball where the runner was caught and plays it
       if (q.restart === 'offside' && side === q.s && k === q.chain[0] && q.i > 0) {
         const o0 = offSpot(plans[q.i - 1]), at: [number, number] = [o0[0] - dir * 0.9, o0[1] - 0.5];
-        const len = Math.max(0.15, Math.hypot(b[0] - at[0], b[1] - at[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass * 0.5) / len));
+        const len = Math.max(0.15, Math.hypot(b[0] - at[0], b[1] - at[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass) / len)); // (he leaves the spot once he has played it)
         return [lerp(b[0], at[0], w), lerp(b[1], at[1], w)];
       }
       // a throw-in: the thrower stands on the touchline with the ball until he has thrown it
       if (q.restart === 'throw' && side === q.s && k === q.chain[0] && q.i > 0) {
         const o0 = outSpot(plans[q.i - 1]), at: [number, number] = [o0[0], o0[1] > W / 2 ? W - 0.2 : 0.2];
-        const len = Math.max(0.15, Math.hypot(b[0] - at[0], b[1] - at[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass * 0.5) / len));
+        const len = Math.max(0.15, Math.hypot(b[0] - at[0], b[1] - at[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass) / len)); // (he leaves the spot once he has played it)
         return [lerp(b[0], at[0], w), lerp(b[1], at[1], w)];
       }
       // the keeper on his line for a penalty
@@ -1093,7 +1121,7 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       if (v < c1) { st.ball = a0; st.holder = { side: s, k: slotAt(n - 1) }; st.banner = v < c1 - (1 - ce) * 0.15 ? 'Under pressure' : 'Tackle!'; st.bannerSide = v < c1 - (1 - ce) * 0.15 ? s : o; return st; }
       const w = ease(c01((v - c1) / Math.max(1e-3, c2 - c1)));
       st.ball = [lerp(a0[0], o1[0], w), lerp(a0[1], o1[1], w)];
-      st.banner = w < 1 ? 'Tackle!' : 'Out · throw-in'; st.bannerSide = o;
+      st.banner = w < 1 ? 'Tackle!' : 'Out · throw-in'; st.bannerSide = w < 1 ? o : (q.outTo ?? o);
       return st;
     }
     if (q.out === 'lost') {
@@ -1101,7 +1129,8 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       const contact = ce + (1 - ce) * 0.45;
       const win = q.win !== null ? pos(o, q.win) : last;
       // the flag goes up as the ball reaches him: from then on it is dead, nobody has it (he does not play on)
-      if (q.off && v < contact) { const up = v >= ce + (1 - ce) * 0.1; st.ball = [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = up ? null : { side: s, k: slotAt(n - 1) }; st.banner = up ? 'Offside!' : 'Through ball'; st.bannerSide = up ? o : s; return st; }
+      // (and stays where he was caught: the free kick is taken from there, in the next move)
+      if (q.off) { const up = v >= ce + (1 - ce) * 0.1; st.ball = q.i >= 0 ? offSpot(q) : [last[0] + (s === 0 ? 0.9 : -0.9), last[1] + 0.5]; st.holder = up ? null : { side: s, k: slotAt(n - 1) }; st.banner = !up ? 'Through ball' : v < contact ? 'Offside!' : 'Free kick'; st.bannerSide = up ? o : s; return st; }
       if (q.off) {
         // the flag is up: the free kick is taken from where the run was, so the ball stays there and a
         // defender walks up to it. It must not fly back to the defensive line — that reads as the ball

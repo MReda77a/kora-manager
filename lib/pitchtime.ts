@@ -132,12 +132,22 @@ export function endsOut(moves: Move[], i: number): boolean {
   return (h % 100) < (q.lane ? 60 : 35);
 }
 
+/** a move that keeps the ball but ends with it knocked out by a defender: their own throw-in (a long spell
+ * on the ball has its stoppages too) */
+export function endsOutOwn(moves: Move[], i: number): boolean {
+  const q = moves[i], nx = moves[i + 1];
+  if (!q || !nx || q.sh >= 0 || q.off || nx.s !== q.s || (q.t0 < 45 && nx.t0 >= 45 - 1e-6)) return false;
+  let h = 2166136261;
+  for (const c of `own${Math.round(q.t0 * 100)}|${q.s}|${q.r}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  return (h % 100) < (q.lane ? 35 : 22);
+}
+
 /** the first minute from `m` on in which the ball goes dead (a goal, a shot that ends the move, a foul, a
  * card, an offside, an injury, a ball out of play): a live substitution is made then, never in open play */
 export function nextStop(moves: Move[], events: { m: number; type: string }[], m: number): number {
   const stops = new Set<number>();
   for (const e of events) if (['goal', 'save', 'miss', 'freekick', 'penalty', 'offside', 'yellow', 'red', 'injury', 'sub', 'var', 'ht'].includes(e.type)) stops.add(e.m);
-  moves.forEach((q, i) => { if (q.sh >= 0 || q.off || endsOut(moves, i)) stops.add(q.m1); });
+  moves.forEach((q, i) => { if (q.sh >= 0 || q.off || endsOut(moves, i) || endsOutOwn(moves, i)) stops.add(q.m1); });
   for (let k = m; k <= Math.min(89, m + 10); k++) if (stops.has(k)) return k;
   return m;
 }

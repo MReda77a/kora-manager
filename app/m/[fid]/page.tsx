@@ -327,7 +327,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
   };
   // subs already asked for that wait for the ball to go dead: they count, and their men are taken
   // (only while it is live: in a replay every later sub is already in the report, and is no 'waiting')
-  const pendingSubs = live ? events.slice(revealed).filter((e) => e.side === mineSide && e.type === 'sub' && e.pid && e.pid2 && plan.timeOf(e) - gm < 6) : [];
+  const pendingSubs = live ? events.slice(revealed).filter((e) => e.side === mineSide && e.type === 'sub' && e.pid && e.pid2) : [];
   const subsUsed = (side: number) => events.slice(0, revealed).filter((e) => e.side === side && e.type === 'sub').length + (side === mineSide ? pendingSubs.length : 0);
   const change = async (body: Record<string, unknown>, msg: string) => {
     setReact(null);
@@ -336,7 +336,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
       const r = await api(`/api/fixtures/${d.fixture.id}/change`, { ...body, after: shownUpTo(plan, gm) });
       const n = await api(`/api/fixtures/${d.fixture.id}`);
       if (n.report) setD(n);
-      toast.ok(r?.minute ? `${msg} (from ${r.minute}')` : msg);
+      toast.ok(r?.minute && body.kind !== 'sub' ? `${msg} (from ${r.minute}')` : msg);
       setPanel(null); setSubOut(null);
     } catch (e: any) { toast.bad(e.message); }
   };
