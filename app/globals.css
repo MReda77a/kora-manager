@@ -1201,4 +1201,11 @@ table.t tbody tr td { padding-top: 9px; padding-bottom: 9px; }
   .p2d-chance-ico { font-size: 14px; }
   .mc-evbanner { top: 4px; right: 4px; font-size: 10.5px; padding: 2px 8px; max-width: 42%; }
   .mc-subwait { font-size: 10px; top: 4px; }
+  /* half-time: the score is in the header; the first-half numbers in two columns so they fit */
+  .mc-ht { gap: 3px; padding: 6px; }
+  .mc-ht-title { font-size: 22px !important; }
+  .mc-ht-score { display: none; }
+  .mc-htstats { display: grid !important; grid-template-columns: 1fr 1fr; column-gap: 14px; row-gap: 0; font-size: 12px; padding: 4px 8px; margin: 2px 0; }
+  .mc-htstats .tiny { font-size: 10px; min-width: 96px !important; }
+  .mc-htstats b { min-width: 26px !important; }
 }

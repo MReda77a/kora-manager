@@ -564,7 +564,12 @@ export async function changeLive(uid: number, fixtureId: number, b: Record<strin
   if (b.kind === 'sub') {
     // the player comes on when the ball next goes dead (a throw-in, a foul, a shot, a goal...), never in open play
     let at = minute;
-    try { const rep = typeof f.report === 'string' ? JSON.parse(f.report) : f.report; if (rep?.flow) { const k = nextStop(moveTimes(rep.flow, rep.shots || []), rep.events || [], minute); at = Math.min(89, k + 1); } } catch { /* the minute alone */ }
+    try { const rep = typeof f.report === 'string' ? JSON.parse(f.report) : f.report; if (rep?.flow) {
+      const k = nextStop(moveTimes(rep.flow, rep.shots || []), rep.events || [], minute); at = Math.min(89, k + 1);
+      // the half-time break is the stop when it comes first (or is on now): he starts the second half
+      const ht = (rep.events || []).find((e: { type: string; m: number }) => e.type === 'ht')?.m;
+      if (ht && minute <= ht && at > ht) at = ht;
+    } } catch { /* the minute alone */ }
     // (the stop is in minute k, which this change leaves as it was: he plays from the minute after it)
     ch = { m: at, side: side as 0 | 1, kind: 'sub', out: String(b.out), in: String(b.in) };
   } else if (b.plan) {

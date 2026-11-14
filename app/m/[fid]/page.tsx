@@ -471,8 +471,8 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
           )}
           {htLeft > 0 && (
             <div className="mc-ht">
-              <span className="lz" style={{ fontSize: 40, lineHeight: 1 }}>HALF-TIME</span>
-              <span className="lz" style={{ fontSize: 28 }}>{score[0]} – {score[1]}</span>
+              <span className="lz mc-ht-title" style={{ fontSize: 40, lineHeight: 1 }}>HALF-TIME</span>
+              <span className="lz mc-ht-score" style={{ fontSize: 28 }}>{score[0]} – {score[1]}</span>
               <span className="small" style={{ fontWeight: 800 }}>Second half in <b style={{ color: 'var(--mint)' }}>0:{String(htLeft).padStart(2, '0')}</b></span>
               {(() => {
                 // the first half in numbers: what to fix at the break
@@ -585,7 +585,7 @@ function Watch({ d: raw, setD, skip, reload }: { d: any; setD: (x: any) => void;
                       const pl = d.names[id];
                       const fit = subOut ? pl?.fit : liveFit(d, id, pm, seen);
                       return (
-                        <button key={id} className={`bench ${subOut === id ? 'sel' : ''}`} style={{ width: 92 }} onClick={() => (subOut ? change({ kind: 'sub', out: subOut, in: id }, `${lastName(pl?.name || '')} comes on when the ball next goes out`) : setSubOut(id))}>
+                        <button key={id} className={`bench ${subOut === id ? 'sel' : ''}`} style={{ width: 92 }} onClick={() => (subOut ? change({ kind: 'sub', out: subOut, in: id }, htLeft > 0 ? `${lastName(pl?.name || '')} comes on for the second half` : `${lastName(pl?.name || '')} comes on when the ball next goes out`) : setSubOut(id))}>
                           <b>{pl?.ovr ?? ''}</b><small>{lastName(pl?.name || '?')} · {pl?.pos}</small>
                           {fit != null && <small style={{ color: fit < 55 ? '#FF8A80' : fit < 75 ? '#FFD166' : '#2EE6A0', fontWeight: 900 }}>🔋 {fit}%</small>}
                         </button>

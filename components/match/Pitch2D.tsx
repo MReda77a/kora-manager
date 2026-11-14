@@ -200,7 +200,7 @@ export function buildPlan(rep: any, events: Ev[]) {
     });
     // a substitution is made while the ball is dead: when the move before it ends with a shot, an offside
     // or the ball out of play (the next one starts with the new man on)
-    const rawStops = raw.map((q, i) => (q.sh >= 0 || q.off || endsOut(raw, i) ? q.t1 : -1)).filter((x) => x >= 0);
+    const rawStops = [...raw.map((q, i) => (q.sh >= 0 || q.off || endsOut(raw, i) ? q.t1 : -1)).filter((x) => x >= 0), 45].sort((a, b) => a - b); // (half-time too)
     const changes: Occ = events.filter((e) => (e.type === 'sub' && e.pid && e.pid2) || (e.type === 'red' && e.pid)).map((e) => ({ at: e.type === 'sub' ? subTime(atMin(e), rawStops) : atMin(e), side: e.side, out: e.type === 'sub' ? e.pid2! : e.pid!, inn: e.type === 'sub' ? e.pid! : null }));
     // the side's set-up at time t: its tactic at kick-off, then every change (live or by the assistant)
     type Style = { mentality: number; press: number; line: number; build: number; width: number; tempo: number; preset?: string };
@@ -497,7 +497,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       const k = shotOf.get(e) ?? (linked[e.type] ? shots.findIndex((x, j) => !x.ghost && x.m === e.m && linked[e.type](x, e) && shotAt.has(j)) : -1);
       if (k >= 0) { const s2 = shotAt.get(k)!; return e.type === 'penalty' || e.type === 'freekick' || (e.type === 'var' && /to the screen/.test(e.text)) ? s2.foul : e.type === 'var' ? (Math.floor((s2.land + 0.45) / 45) > Math.floor(s2.land / 45) ? s2.land : s2.land + 0.45) : s2.land; }
       if (e.type === 'yellow' || e.type === 'red') return cardAt(e);
-      if (e.type === 'sub') return subTime(atMin(e), plans.filter((q) => q.sh >= 0 || q.off || q.out === 'out').map((q) => q.t1));
+      if (e.type === 'sub') return subTime(atMin(e), [...plans.filter((q) => q.sh >= 0 || q.off || q.out === 'out').map((q) => q.t1), 45].sort((a, b) => a - b));
       if (e.type === 'offside') {
         const oq = plans.find((p) => p.offEv === e);
         if (oq) { const pre = oq.pre || 0; return oq.t0 + (oq.t1 - oq.t0) * (pre + (1 - pre) * (0.72 + 0.28 * 0.12)); }

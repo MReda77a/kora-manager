@@ -106,3 +106,4 @@ We keep losing the ball near our own goal to their press. Going longer gets it p
 Play it long	العب طويل
 Nearly all our shots are from far out: we are not getting into their box.	تقريبًا كل تسديداتنا من بعيد: مش عارفين ندخل منطقتهم.
 Our runs in behind are working: their line is there to be beaten.	الجري ورا دفاعهم شغال: خطهم ممكن يتكسر.
+{name} comes on for the second half	{name} هينزل في الشوط التاني
