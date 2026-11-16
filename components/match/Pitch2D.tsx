@@ -92,17 +92,29 @@ export function usePlan(rep: any, events: Ev[], now?: number) {
   // during a live match the report is worked out again after every change (and polled every few seconds);
   // the moves already under way stay as they were and the new match carries on from the end of the
   // current move, so nothing teleports and no goal is squeezed into a split second
-  const last = useRef<{ rep: any; plan: ReturnType<typeof buildPlan> } | null>(null);
+  const last = useRef<PlanState | null>(null);
   return useMemo(() => {
-    const fresh = buildPlan(rep, events);
-    const old = last.current;
-    // the layout never depends on results, so a plain refresh lays out the very same moves: only a change of
-    // tactic or a sub (which changes the match from then on) needs the stitch
-    const same = !!old && old.plan.plans.length === fresh.plans.length && old.plan.plans.every((q, i) => q.t0 === fresh.plans[i].t0 && q.t1 === fresh.plans[i].t1 && q.sh === fresh.plans[i].sh && q.s === fresh.plans[i].s);
-    const out = old && old.rep !== rep && !same && now != null && now > 0.5 ? stitch(old.plan, fresh, now) : fresh;
-    last.current = { rep, plan: out };
-    return out;
+    const r = advancePlan(last.current, rep, events, now);
+    last.current = r;
+    return r.plan;
   }, [rep, events]);
+}
+
+type PlanState = { rep: any; plan: ReturnType<typeof buildPlan>; fresh: ReturnType<typeof buildPlan>; base: Base | null };
+/** the plan on screen after a new poll of the report (pure, so it can be checked outside the page): the
+ * layout never depends on results, so a plain refresh lays out the very same moves as the last poll did and
+ * the plan on screen stays as it is (only its event times and shot results are brought up to date). Only a
+ * change of tactic or a sub (which changes the match from then on) needs the stitch */
+export function advancePlan(old: PlanState | null, rep: any, events: Ev[], now: number | null | undefined): PlanState {
+  const fresh = buildPlan(rep, events);
+  const sameLayout = (a: ReturnType<typeof buildPlan>, b: ReturnType<typeof buildPlan>) => a.plans.length === b.plans.length && a.plans.every((q, i) => q.t0 === b.plans[i].t0 && q.t1 === b.plans[i].t1 && q.sh === b.plans[i].sh && q.s === b.plans[i].s);
+  if (!old || old.rep === rep) return { rep, plan: fresh, fresh, base: old?.base ?? null };
+  // nothing changed in the match: what was stitched stays stitched at the same point
+  if (sameLayout(old.fresh, fresh)) return { rep, plan: old.base ? stitchFrom(old.base, fresh) : fresh, fresh, base: old.base };
+  // the match changed (a tactic, a sub): what is on screen stays, the new match carries on after it
+  if (now == null || now <= 0.5) return { rep, plan: fresh, fresh, base: null };
+  const base = baseOf(old.plan, now);
+  return { rep, plan: stitchFrom(base, fresh), fresh, base };
 }
 
 /** the match minute the pitch is playing at time t: the clock, stats and tips follow what is on screen
@@ -121,16 +133,29 @@ export const pitchMinute = (plan: { plans: Plan[] }, t: number) => {
 /** the last match minute the pitch has already shown or is showing now: a live change must start after it */
 export const shownUpTo = (plan: { plans: Plan[] }, now: number) => plan.plans.reduce((m, q) => (q.t0 <= now + 1e-6 ? Math.max(m, q.m1) : m), 0);
 
+/** an event as the same thing from one poll of a live match to the next (each poll brings new objects) */
+export const evKey = (e: Ev) => `${e.type}|${e.m}|${e.side}|${e.pid ?? ''}|${e.pid2 ?? ''}|${e.text ?? ''}`;
+
 const sameShot = (a?: Shot, b?: Shot) => !!a && !!b && a.m === b.m && a.side === b.side && a.x === b.x && a.y === b.y && a.kind === b.kind;
 
 /** the old moves up to the end of the one under way, then the new report's moves, each given the time it needs */
 export function stitch(old: ReturnType<typeof buildPlan>, fresh: ReturnType<typeof buildPlan>, now: number) {
+  return stitchFrom(baseOf(old, now), fresh);
+}
+type Base = { plans: Plan[]; shots: Shot[]; cut: number };
+/** what stays on screen when the match changes now: the moves up to the end of the one under way */
+function baseOf(old: ReturnType<typeof buildPlan>, now: number): Base {
   const cur = old.plans.find((q) => q.t0 <= now && q.t1 > now);
   const cut = cur ? cur.t1 : now;
+  return { plans: old.plans.filter((q) => q.t1 <= cut + 1e-6), shots: old.shots, cut };
+}
+/** those moves, then the new report's (laid out again from every poll, so each brings its latest events) */
+function stitchFrom(base: Base, fresh: ReturnType<typeof buildPlan>) {
+  const old = base, cut = base.cut;
   const shots = [...fresh.shots];
   // a move already on screen keeps its shot; if a change means that shot no longer happens, it stays a
   // harmless effort (no goal) instead of borrowing a different shot of the new report
-  const keep = old.plans.filter((q) => q.t1 <= cut + 1e-6).map((q) => {
+  const keep = old.plans.map((q) => {
     if (q.sh < 0 || sameShot(old.shots[q.sh], fresh.shots[q.sh])) return q;
     const was = old.shots[q.sh];
     if (!was) return { ...q, sh: -1 };
@@ -151,6 +176,15 @@ export function stitch(old: ReturnType<typeof buildPlan>, fresh: ReturnType<type
     next.push(t0 === q.t0 && t1 === q.t1 ? q : { ...q, t0, t1, pre: q.pre && t0 !== q.t0 ? Math.min(0.6, (q.pre * (q.t1 - q.t0)) / (t1 - t0)) : q.pre });
     at = t1;
   }
+  // the first new move restarts from how the last one on screen ended (not from how it ends in the new
+  // report): a throw-in only after the ball went out, a free kick for offside only after a flag...
+  const prevK = keep[keep.length - 1], first = next[0];
+  if (prevK && first && first.restart) {
+    const ok = first.restart === 'throw' ? prevK.out === 'out' : first.restart === 'offside' ? !!prevK.off
+      : first.restart === 'kickoff' ? prevK.out === 'goal' || (prevK.t1 <= 45.01 && first.t0 >= 45 - 1e-6)
+      : prevK.out === 'saved' || prevK.out === 'wide';
+    if (!ok) next[0] = { ...first, restart: null, pre: undefined, koSide: undefined };
+  }
   const plans = [...keep, ...next].map((q, i) => (q.i === i ? q : { ...q, i }));
   return { ...fresh, plans, shots, timeOf: fresh.timing(plans, shots) };
 }
@@ -162,6 +196,15 @@ export function buildPlan(rep: any, events: Ev[]) {
     const xi = [0, 1].map((s) => [...(rep.lineups?.[s]?.xi || [])] as (string | null)[]);
     // when each move plays: the same layout the server uses, from what is known in advance (never a result)
     const raw: Move[] = moveTimes(rep.flow || [], shots);
+    // every offside is seen: one that fell in a minute shown by another move flags the nearest quiet move of
+    // that side (it ends with the flag)
+    for (const e of events) {
+      if (e.type !== 'offside') continue;
+      if (raw.some((q) => q.off && q.s === e.side && q.m0 - 1 <= e.m && e.m <= q.m1 + 1)) continue;
+      const gap = (q: Move) => (e.m < q.m0 ? q.m0 - e.m : e.m > q.m1 ? e.m - q.m1 : 0);
+      const c = raw.filter((q) => q.s === e.side && q.sh < 0 && !q.off && gap(q) <= 2).sort((a, b) => gap(a) - gap(b))[0];
+      if (c) c.off = true;
+    }
     // the team that kicks off has the ball first: the home side at the start, the away side after
     // half-time, the team that conceded after a goal. When the move shown next is the other side's, a
     // quiet one simply becomes the kick-off team's; one that ends in a shot gives up its first part to
@@ -178,7 +221,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       const bAvail = Math.max(0, b.t1 - b.t0 - (b.sh >= 0 ? 0.8 : 0.5));
       const aAvail = a && a.off && a.sh < 0 && !half ? Math.max(0, a.t1 - a.t0 - 0.9) : 0;
       const cut = Math.min(a && a.off ? 1.0 : 1.6, bAvail + aAvail);
-      if (cut < (half ? 0.6 : a && a.off ? 0.6 : 0.9)) continue;
+      if (cut < (half ? 0.6 : a && a.off ? 0.45 : 0.9)) continue;
       const takeB = Math.min(bAvail, cut), takeA = cut - takeB;
       raw.splice(i, 0, { t0: b.t0 - takeA, t1: b.t0 + takeB, s: want, r: 0, sh: -1, m0: b.m0, m1: b.m0 - 1 });
       if (a) a.t1 -= takeA;
@@ -471,7 +514,8 @@ export function buildPlan(rep: any, events: Ev[]) {
     // each offside belongs to the move it ends (the flag goes up when the ball reaches the runner)
     for (const e of events) {
       if (e.type !== 'offside') continue;
-      const q = plans.find((x) => x.off && !x.offEv && x.s === e.side && x.m0 <= e.m && e.m <= x.m1);
+      const gap = (x: Plan) => (e.m < x.m0 ? x.m0 - e.m : e.m > x.m1 ? e.m - x.m1 : 0);
+      const q = plans.filter((x) => x.off && !x.offEv && x.s === e.side && gap(x) <= 2).sort((a, b) => gap(a) - gap(b))[0];
       if (q) q.offEv = e;
     }
     const timeOf = timing(plans, shots);
@@ -527,7 +571,7 @@ export function buildPlan(rep: any, events: Ev[]) {
         return subTime(atMin(e), stops);
       }
       if (e.type === 'offside') {
-        const oq = plans.find((p) => p.offEv === e);
+        const oq = plans.find((p) => p.offEv && evKey(p.offEv) === evKey(e));
         if (oq) { const pre = oq.pre || 0; return oq.t0 + (oq.t1 - oq.t0) * (pre + (1 - pre) * (0.72 + 0.28 * 0.12)); }
         // a flag in a minute shown by a chance: just after what came before it in that minute
         const i = events.indexOf(e), before = events.slice(0, i).filter((x) => x.m === e.m && x.type !== 'offside' && x.type !== 'yellow' && x.type !== 'red');
@@ -542,7 +586,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       const isKick = (x: Ev) => x.m === e.m && x.side !== e.side && (x.type === 'freekick' || x.type === 'penalty');
       const kick = events.find((x, j) => j > i && isKick(x)) ?? [...events.slice(Math.max(0, i - 3), i)].reverse().find(isKick);
       if (kick) return rawTime(kick);
-      const fq = plans.find((p) => p.foul?.evs.includes(e));
+      const fq = plans.find((p) => p.foul?.evs.some((x) => evKey(x) === evKey(e)));
       if (fq && fq.foul) { const pre = fq.pre || 0; return fq.t0 + (fq.t1 - fq.t0) * (pre + (1 - pre) * (fq.foul.v + fq.foul.w * 0.3)); }
       const at = atMin(e), q = plans.find((p) => p.t0 <= at && at < p.t1);
       // ...but never after whatever comes next (a goal, the half-time whistle): nothing waits behind a card
@@ -748,6 +792,12 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
       let ex = 0;
       for (let c = 0; c < n; c++) {
         if (q.chain[c] !== k) continue;
+        // only the man who will shoot gets in behind them: one who is through on goal does not pass it
+        // back, so in a move with no shot everybody stays on (or behind) their line. A restart's taker
+        // stands where the ball is.
+        if (c === 0 && q.restart && cj.j === 0) return 1;
+        if (setPiece(q) && c === n - 1) return 1; // the man fouled goes where the foul is
+        if (q.sh < 0 || c !== n - 1) { if (c === cj.j) ex = Math.max(ex, 0); continue; }
         if (c === cj.j) return 1;
         if (c === cj.j + 1) ex = Math.max(ex, smooth3(c01((cj.seg - cj.hold) / Math.max(1e-3, 1 - cj.hold))));
         // (back onside before the man he gave it to plays the next ball: a one-two is never offside)
@@ -811,24 +861,24 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
         b = [lerp(b[0], c0[0], w), lerp(b[1], c0[1], w)];
         if (!(q.out === 'lost' && k === q.win)) return b;
       }
-      // a ball that goes out for a throw-in: the man on it is taken toward the touchline as he is closed down
-      if (q.out === 'out' && side === q.s && k === q.chain[n - 1]) {
-        const ey = (q.outY ?? 0) > 50 ? W - 3.5 : 3.5;
-        return runTo(b, [b[0], ey], ce + (1 - ce) * 0.45, 0.35);
-      }
       // the kick-off: the first man stands over the ball on the centre spot (before anything else moves him)
       if (q.restart === 'kickoff' && (q.koSide === undefined || q.koSide === q.s) && side === q.s && k === q.chain[0]) { const c0: [number, number] = [L / 2 - dir * 0.9, W / 2 - 0.5], len = Math.max(0.25, Math.hypot(b[0] - c0[0], b[1] - c0[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass * 0.4) / len)); return [lerp(b[0], c0[0], w), lerp(b[1], c0[1], w)]; }
       // the free kick for offside: the defender goes to the ball where the runner was caught and plays it
       if (q.restart === 'offside' && side === q.s && k === q.chain[0] && q.i > 0) {
         const o0 = offSpot(plans[q.i - 1]), at: [number, number] = [o0[0] - dir * 0.9, o0[1] - 0.5];
         const len = Math.max(0.15, Math.hypot(b[0] - at[0], b[1] - at[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass) / len)); // (he leaves the spot once he has played it)
-        return [lerp(b[0], at[0], w), lerp(b[1], at[1], w)];
+        if (w > 0) return [lerp(b[0], at[0], w), lerp(b[1], at[1], w)];
       }
       // a throw-in: the thrower stands on the touchline with the ball until he has thrown it
       if (q.restart === 'throw' && side === q.s && k === q.chain[0] && q.i > 0) {
         const o0 = outSpot(plans[q.i - 1]), at: [number, number] = [o0[0], o0[1] > W / 2 ? W - 0.2 : 0.2];
         const len = Math.max(0.15, Math.hypot(b[0] - at[0], b[1] - at[1]) / 30 / inDur), w = 1 - ease(c01((v - firstPass) / len)); // (he leaves the spot once he has played it)
-        return [lerp(b[0], at[0], w), lerp(b[1], at[1], w)];
+        if (w > 0) return [lerp(b[0], at[0], w), lerp(b[1], at[1], w)];
+      }
+      // a ball that goes out for a throw-in: the man on it is taken toward the touchline as he is closed down
+      if (q.out === 'out' && side === q.s && k === q.chain[n - 1]) {
+        const ey = (q.outY ?? 0) > 50 ? W - 3.5 : 3.5;
+        return runTo(b, [b[0], ey], ce + (1 - ce) * 0.45, 0.35);
       }
       // the keeper on his line for a penalty
       if (setW && side !== q.s && F[side].slots[k] === 'GK' && q.kind === 'penalty') return [lerp(b[0], goalX + (q.s === 0 ? -0.8 : 0.8), setW), lerp(b[1], W / 2, setW)];
@@ -1103,8 +1153,9 @@ export function Pitch2D({ d, t, plan, mineSide, seen = [], fitOf }: { d: any; t:
     // 3) a set piece: the foul, the ball on the spot, the taker steps up
     if (sp0 && v < 0.84 && q.spot) {
       const spot: [number, number] = q.kind === 'penalty' ? [s === 0 ? L - 11 : 11, W / 2] : toPitch(q.spot);
-      const w = ease(c01((v - sp0) / 0.1));
+      // (the ball is set down where the foul was: carried there at a walk if play had moved on from it)
       const end = pos(s, slotAt(n - 1)), tk = q.setTaker ?? slotAt(n - 1);
+      const w = ease(c01((v - sp0) / Math.max(0.1, Math.min(0.3, Math.hypot(spot[0] - end[0], spot[1] - end[1]) / 60 / Math.max(0.2, (q.t1 - q.t0) * (1 - (q.pre || 0)))))));
       st.ball = [lerp(end[0], spot[0], w), lerp(end[1], spot[1], w)];
       st.holder = w >= 1 ? { side: s, k: tk } : null;
       st.banner = q.kind === 'penalty' ? (v < sp0 + 0.22 ? 'PENALTY!' : `${name(tk)} steps up…`) : v < sp0 + 0.15 ? 'Foul · free kick' : `${name(tk)} over the ball…`;
