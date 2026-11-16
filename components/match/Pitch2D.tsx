@@ -63,12 +63,14 @@ type Occ = { at: number; side: 0 | 1; out: string | null; inn: string | null; ev
 /** when a substitution timed at T is made: at the stop just before it (the minute it was asked for starts
  * after the ball went dead) or else the next one, a moment after the ball goes dead */
 function subTime(T: number, stops: number[]) {
-  // the nearest stop: the one just before (up to 2.5 minutes back) wins a tie with one ahead
+  // the stop just before it (the minute asked for starts right after the ball went dead), else the next one
+  // (so the clock never shows it minutes before its own minute), else one a little further back
   const before = stops.filter((x) => x <= T + 1e-6 && x >= T - 4);
   const after = stops.find((x) => x > T && x <= T + 8);
   const b = before.length ? before[before.length - 1] : undefined;
-  if (b !== undefined && (after === undefined || T - b <= 2.5 || T - b <= after - T)) return b + 0.05;
-  return after !== undefined ? after + 0.05 : T;
+  if (b !== undefined && T - b <= 1.5) return b + 0.05;
+  if (after !== undefined) return after + 0.05;
+  return b !== undefined ? b + 0.05 : T;
 }
 const markMemo = new WeakMap<object, Map<number, number>>();
 
@@ -218,7 +220,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       if (b.sh < 0 && !b.off) { b.s = want; continue; }
       // the time comes out of the next move (it keeps enough for its chance) and, after an offside, out of
       // the move that was flagged too (the flag simply goes up a little sooner)
-      const bAvail = Math.max(0, b.t1 - b.t0 - (b.sh >= 0 ? 0.8 : 0.5));
+      const bAvail = Math.max(0, b.t1 - b.t0 - (b.sh >= 0 ? 1.3 : 0.5)); // (a chance keeps time for its restart and its shot)
       const aAvail = a && a.off && a.sh < 0 && !half ? Math.max(0, a.t1 - a.t0 - 0.9) : 0;
       const cut = Math.min(a && a.off ? 1.0 : 1.6, bAvail + aAvail);
       if (cut < (half ? 0.6 : a && a.off ? 0.45 : 0.9)) continue;
@@ -254,7 +256,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       if (e.type !== 'sub' || !e.pid || !e.pid2) continue;
       const T = atMin(e);
       if (rawStops.some((x) => x >= T - 4 && x <= T + 8)) continue;
-      const j = raw.findIndex((q, i) => q.t1 >= T && q.sh < 0 && !q.off && raw[i + 1] && !(q.t0 < 45 && raw[i + 1].t0 >= 45 - 1e-6));
+      const j = raw.findIndex((q, i) => q.t1 >= T && q.sh < 0 && !q.off && raw[i + 1] && !(q.t0 < 45 && raw[i + 1].t0 >= 45 - 1e-6) && !(raw[i + 1].sh >= 0 && raw[i + 1].t1 - raw[i + 1].t0 < 1.4));
       if (j >= 0) { forceOut.add(j); rawStops.push(raw[j].t1); rawStops.sort((a, b) => a - b); }
     }
     const changes: Occ = events.filter((e) => (e.type === 'sub' && e.pid && e.pid2) || (e.type === 'red' && e.pid)).map((e) => ({ at: e.type === 'sub' ? subTime(atMin(e), rawStops) : atMin(e), side: e.side, out: e.type === 'sub' ? e.pid2! : e.pid!, inn: e.type === 'sub' ? e.pid! : null, ev: e }));
@@ -356,7 +358,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       const every = 0.33 * ([0.75, 1, 1.4][sty.build] ?? 1) * ([1.15, 1, 0.85][sty.tempo] ?? 1);
       // the time left for passing once the last move is finished off (keeper's ball, celebration, corner)
       const preMin = !prev ? 0 : restart === 'kickoff' && prev.out === 'goal' ? 0.95 : restart === 'throw' || restart === 'offside' ? 0.45 : restart === 'clear' ? 0.9 : restart === 'corner' ? 0.6 : restart === 'keeper' ? (prev.ruled ? 0.95 : prev.out === 'wide' ? 0.5 : 0.4) : 0;
-      const effDur = (p.t1 - p.t0) - Math.min(0.6 * (p.t1 - p.t0), preMin);
+      const effDur = (p.t1 - p.t0) - Math.min(0.6 * (p.t1 - p.t0), preMin, p.sh >= 0 ? Math.max(0.15 * (p.t1 - p.t0), p.t1 - p.t0 - 0.75) : preMin);
       const runFrac = shot ? (SET(shot.kind) || 0.84) : out === 'lost' || out === 'out' ? 0.72 : 1;
       const N = Math.max(2, Math.min(16, Math.floor((effDur * runFrac) / every) + 1) - (shot ? 1 : 0)); // a shot always has a pass before it
       const counter = !restart && prev && prev.s !== s && prev.out === 'lost' && (sty.mentality === 0 || sty.build === 2) && p.r >= 2;
@@ -470,7 +472,8 @@ export function buildPlan(rep: any, events: Ev[]) {
       const prev = plans[i - 1];
       if (!prev) return;
       const P = q.restart === 'kickoff' && prev.out === 'goal' ? 0.95 : q.restart === 'throw' || q.restart === 'offside' ? 0.45 : q.restart === 'clear' ? 0.9 : q.restart === 'corner' ? 0.6 : q.restart === 'keeper' ? (prev.ruled ? 0.95 : prev.out === 'wide' ? 0.5 : 0.4) : 0;
-      if (P) q.pre = Math.min(0.6, P / Math.max(0.01, q.t1 - q.t0));
+      // (a chance keeps at least three quarters of a minute after the restart, so its shot is seen)
+      if (P) q.pre = Math.min(0.6, P / Math.max(0.01, q.t1 - q.t0), q.sh >= 0 ? Math.max(0.15, 1 - 0.75 / Math.max(0.01, q.t1 - q.t0)) : 1);
     });
     // a booking in open play is a foul you can see: the referee stops the move for a moment, shows the card,
     // and the free kick is taken where it happened (a card for a foul that gave a free kick or a penalty
@@ -591,7 +594,7 @@ export function buildPlan(rep: any, events: Ev[]) {
       const at = atMin(e), q = plans.find((p) => p.t0 <= at && at < p.t1);
       // ...but never after whatever comes next (a goal, the half-time whistle): nothing waits behind a card
       let nextT = Infinity;
-      for (let j = i + 1; j < events.length; j++) if (events[j].type !== 'yellow' && events[j].type !== 'red') { nextT = rawTime(events[j]); break; }
+      for (let j = i + 1; j < events.length; j++) if (events[j].type !== 'yellow' && events[j].type !== 'red' && events[j].type !== 'sub') { nextT = rawTime(events[j]); break; }
       return Math.min(q ? Math.max(at, q.t1 - 0.05) : at, nextT - 0.01);
     };
     // the page reveals events in order, so a sub, a tactic change or a card timed by the minute must never

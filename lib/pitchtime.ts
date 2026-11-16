@@ -127,6 +127,7 @@ export function shownBy(moves: Move[], T: number, ahead: number): number {
 export function endsOut(moves: Move[], i: number): boolean {
   const q = moves[i], nx = moves[i + 1];
   if (!q || !nx || q.sh >= 0 || q.off || nx.s === q.s || (q.t0 < 45 && nx.t0 >= 45 - 1e-6)) return false;
+  if (nx.sh >= 0 && nx.t1 - nx.t0 < 1.4) return false; // (a quick chance after it has no time for a throw-in)
   let h = 2166136261;
   for (const c of `${Math.round(q.t0 * 100)}|${q.s}|${q.r}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   return (h % 100) < (q.lane ? 60 : 35);
@@ -137,6 +138,7 @@ export function endsOut(moves: Move[], i: number): boolean {
 export function endsOutOwn(moves: Move[], i: number): boolean {
   const q = moves[i], nx = moves[i + 1];
   if (!q || !nx || q.sh >= 0 || q.off || nx.s !== q.s || (q.t0 < 45 && nx.t0 >= 45 - 1e-6)) return false;
+  if (nx.sh >= 0 && nx.t1 - nx.t0 < 1.4) return false;
   let h = 2166136261;
   for (const c of `own${Math.round(q.t0 * 100)}|${q.s}|${q.r}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   return (h % 100) < (q.lane ? 35 : 22);
